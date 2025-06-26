@@ -1,0 +1,18 @@
+{
+  "name": "seraphim-chrome-debugger",
+  "version": "1.0.0",
+  "main": "dist/background.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild src/**/*.ts --bundle --outdir=dist --platform=browser --target=chrome116 --sourcemap",
+    "watch": "yarn build --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "@types/node": "^24.0.4",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

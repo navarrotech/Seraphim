@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    // Cache
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    // Target
+    "target": "ESNext",
+    "module": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ESNext"
+    ],
+    // Type handling
+    "skipLibCheck": true, // Skip type checking of declaration files
+    "strictNullChecks": false, // Allow null & undefined to be interchangable
+    "strict": false, // Enable all strict type checking options
+    "removeComments": true,
+    "useUnknownInCatchVariables": false,
+    // Resolving
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    // Output
+    "noEmit": true,
+    // Linting
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    // Absolute import paths
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist"
+  ]
+}

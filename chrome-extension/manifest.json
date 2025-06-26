@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "seraphim-chrome-debugger",
+  "description": "A Chrome extension to orchestrate hotkeys for automated ChatGPT analysis",
+  "version": "1.0",
+  "permissions": [
+    "debugger",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://localhost/*",
+    "http://localhost/*",
+    "https://localhost:*/*",
+    "http://localhost:*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://localhost/*",
+        "http://localhost/*",
+        "https://localhost:*/*",
+        "http://localhost:*/*"
+      ],
+      "js": [ "dist/contentScript.js" ],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "dist/background.js"
+  }
+}

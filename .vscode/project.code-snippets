@@ -1,0 +1,70 @@
+{
+	// For more information visit https://code.visualstudio.com/docs/editor/userdefinedsnippets
+	"copyright": {
+		"prefix": [
+			"copyright",
+			"Jalapeno Labs copyright"
+		],
+		"body": [
+			"$LINE_COMMENT Copyright © $CURRENT_YEAR Jalapeno Labs\n",
+		],
+		"description": "Jalapeno Labs copyright header for the tops of files"
+	},
+	"t-function": {
+		"scope": "javascript,typescript,react,html,javascriptreact,typescriptreact",
+		"prefix": [
+			"tfunc",
+			"uset",
+			"translate"
+		],
+		"body": [
+			"{ t('$1', '$2') }"
+		],
+		"description": "i18n inline text function template"
+	},
+	"import-t-function": {
+		"scope": "javascript,typescript,react,html,javascriptreact,typescriptreact",
+		"prefix": [
+			"import-tfunc",
+			"import-translate"
+		],
+		"body": [
+			"import { useTranslation } from 'i18n-react';"
+		],
+		"description": "Import i18n translation function template"
+	},
+	"separate-into-lines": {
+		"scope": "javascript,typescript,react,html,javascriptreact,typescriptreact",
+		"prefix": [
+			"separate-into-lines",
+			"separate"
+		],
+		"body": [
+			"{\n",
+			"\t$CLIPBOARD\n",
+			"}"
+		],
+		"description": "Separates a single line into multiple lines with brackets"
+	},
+	"eslint-ignore": {
+		"scope": "javascript,typescript,react,html,javascriptreact,typescriptreact",
+		"prefix": [
+			"eslint-ignore",
+			"eslint"
+		],
+		"body": [
+			"// eslint-disable-next-line"
+		],
+		"description": "Disables eslint for the next line"
+	},
+	"eslint-disable": {
+		"scope": "javascript,typescript,react,html,javascriptreact,typescriptreact",
+		"prefix": [
+			"eslint-disable"
+		],
+		"body": [
+			"/* eslint-disable ${1|i18next/no-literal-string,import/no-default-export|} */\n"
+		],
+		"description": "Places a header that disables eslint for the entire file"
+	},
+}
