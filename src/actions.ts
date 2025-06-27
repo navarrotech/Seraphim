@@ -19,6 +19,7 @@ import { showHelp } from './actions/help'
 import { analyzeError } from './actions/analyzeError'
 import { writeJsDoc } from './actions/JSDoc'
 import { rewriteSelection } from './actions/rewrite'
+import { writeUnitTests } from './actions/writeUnitTests'
 
 // Lib
 import { v7 as uuid } from 'uuid'
@@ -35,7 +36,8 @@ const keyEvents = new GlobalKeyboardListener()
 const ActionsByKey: Record<ActionKeys, (context: ActionContext) => Promise<void>> = {
   analyzeError,
   writeJsDoc,
-  rewriteSelection
+  rewriteSelection,
+  writeUnitTests
 }
 
 export function startListeningForKeyEvents() {
@@ -66,6 +68,9 @@ export function startListeningForKeyEvents() {
         terminalLogs: true,
         sourceCode: true
       })
+      break
+    case 'NUMPAD 9':
+      collectContextAndPerformAction('writeUnitTests')
       break
     default:
       return false

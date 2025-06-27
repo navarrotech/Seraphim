@@ -7,16 +7,43 @@ export function getLanguage(filePath: string): ProgrammingLanguage {
     return 'python'
   }
 
-  const isTypescript = filePath.endsWith('.ts')
-    || filePath.endsWith('.tsx')
-    || filePath.endsWith('.mjs')
-    || filePath.endsWith('.cjs')
-    || filePath.endsWith('.js')
-    || filePath.endsWith('.jsx')
-
-  if (isTypescript) {
+  if (filePath.endsWith('.ts')) {
     return 'typescript'
   }
 
+  if (filePath.endsWith('.tsx')) {
+    return 'typescript-react'
+  }
+
+  if (filePath.endsWith('.js')) {
+    return 'javascript'
+  }
+
+  if (filePath.endsWith('.jsx')) {
+    return 'javascript-react'
+  }
+
+  if (filePath.endsWith('.cjs') || filePath.endsWith('.mjs')) {
+    return 'javascript'
+  }
+
   return 'other'
+}
+
+export function isJavascriptish(filePath: string): boolean {
+  const language = getLanguage(filePath)
+  return (
+    language === 'javascript'
+    || language === 'typescript'
+    || language === 'javascript-react'
+    || language === 'typescript-react'
+  )
+}
+
+export function isReact(filePath: string): boolean {
+  const language = getLanguage(filePath)
+  return (
+    language === 'javascript-react'
+    || language === 'typescript-react'
+  )
 }

@@ -6,7 +6,7 @@ import type { FunctionPointer, LineReference } from '@/types'
 import { Project } from 'ts-morph'
 
 // Lib
-import { extractFunction } from './extractFunction'
+import { extractFunctionLegacy } from './extractFunction'
 import { searchUpwardsForFile } from './searchUpwardsForFile'
 
 // Misc
@@ -80,7 +80,7 @@ export async function gatherImportLines(
 
   let result = ''
   for (const { absolutePath, functionName } of pointers) {
-    result += extractFunction(absolutePath, functionName) + '\n'
+    result += extractFunctionLegacy(absolutePath, functionName) + '\n'
   }
 
   return result

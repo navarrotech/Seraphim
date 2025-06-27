@@ -11,7 +11,7 @@ import { OPENAI_LOW_MODEL } from '@/constants'
 import fs from 'fs/promises'
 import { Timer } from '@/utils/timer'
 import { removeBackticks } from '@/utils/stripBackticks'
-import { getLanguage } from '@/utils/getLanguage'
+import { getLanguage, isJavascriptish } from '@/utils/getLanguage'
 
 const SystemPrompt = `
 You will be given a snippet of code, and your task is to generate documentation for the given function.
@@ -104,7 +104,7 @@ export async function writeJsDoc(context: ActionContext): Promise<void> {
       content: DeveloperPromptPython
     })
   }
-  if (language === 'typescript') {
+  if (isJavascriptish(filePath)) {
     messages.push({
       role: 'developer',
       content: DeveloperPromptTypescript

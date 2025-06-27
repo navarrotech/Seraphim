@@ -3,7 +3,7 @@
 import type { ChromeLogPayload, SeraphimProjectConfiguration, FunctionPointer } from './types'
 
 import { extractUrls } from './utils/extractUrls'
-import { extractFunction } from './utils/extractFunction'
+import { extractFunctionLegacy } from './utils/extractFunction'
 import { findFileFromWorkspace } from './utils/findFileFromWorkspace'
 import * as fs from 'fs/promises'
 
@@ -86,7 +86,7 @@ export async function getSourceCode(pointer: FunctionPointer): Promise<string | 
       return fileContent
     }
 
-    return extractFunction(
+    return extractFunctionLegacy(
       fileContent,
       functionName
     )

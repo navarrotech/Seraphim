@@ -60,5 +60,8 @@ export type ChromeLogPayload = {
 
 export type ProgrammingLanguage =
   | 'typescript'
+  | 'javascript'
+  | 'typescript-react'
+  | 'javascript-react'
   | 'python'
   | 'other'

@@ -12,8 +12,9 @@ import path from 'path'
 import fs from 'fs/promises'
 import { Timer } from '@/utils/timer'
 import { removeBackticks } from '@/utils/stripBackticks'
-import { extractFunction } from '@/utils/extractFunction'
-import { getLanguage } from '@/utils/getLanguage'
+import { extractFunctionLegacy } from '@/utils/extractFunction'
+import { isJavascriptish } from '@/utils/getLanguage'
+import { getFunctionName } from '@/utils/regex'
 
 const SystemPrompt = `
 You are now an experienced principal software developer.
@@ -64,8 +65,6 @@ function isChicken(
 \`\`\`
 `.trim()
 
-const functionRegex = /\bfunction\s+([A-Za-z$_][A-Za-z0-9$_]*)(?=\s*(?:<[^>]*>)?\s*\()/
-
 export async function rewriteSelection(context: ActionContext): Promise<void> {
   let selection = context.vscodeWorkspace.selectedText[0]
   if (!selection) {
@@ -85,7 +84,6 @@ export async function rewriteSelection(context: ActionContext): Promise<void> {
     return
   }
 
-  const language = getLanguage(filePath)
   const filename = path.basename(filePath)
 
   const messages: ChatCompletionMessageParam[] = [
@@ -95,17 +93,16 @@ export async function rewriteSelection(context: ActionContext): Promise<void> {
     }
   ]
 
-  if (language === 'typescript') {
+  if (isJavascriptish(filePath)) {
     messages.push({
       role: 'developer',
       content: DeveloperPromptTypescript
     })
   }
 
-  const hasFunction = selection.includes('function')
-  if (hasFunction) {
-    const functionName = functionRegex.exec(selection)[1]
-    selection = extractFunction(selection, functionName)
+  const functionName = getFunctionName(selection)
+  if (functionName) {
+    selection = extractFunctionLegacy(selection, functionName)
   }
 
   messages.push({

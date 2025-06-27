@@ -2,6 +2,7 @@
 
 // Core
 import { spawn, type SpawnOptions } from 'child_process'
+import path from 'path'
 
 /**
  * Spawns a child process asynchronously and returns its combined stdout and stderr output.
@@ -26,7 +27,11 @@ export async function runCommand(
     let output: string = ''
     let child: ReturnType<typeof spawn> | null = null
 
-    console.debug(`  >> Running child process command: '${fullCommand}'`)
+    if (options.cwd && typeof options.cwd === 'string') {
+      options.cwd = path.resolve(options.cwd)
+    }
+
+    // console.debug(`  >> Running child process command: '${fullCommand}'`)
 
     // Try to spawn the process; if spawning throws, catch and return exit code 1
     try {

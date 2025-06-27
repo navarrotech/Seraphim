@@ -15,7 +15,8 @@ export const OPENAI_LOW_MODEL: ChatModel = 'gpt-4.1-mini' as const
 export const REGISTERED_ACTIONS = [
   'analyzeError',
   'writeJsDoc',
-  'rewriteSelection'
+  'rewriteSelection',
+  'writeUnitTests'
 ] as const
 
 export const BLACKLIST_CHROME_LOGS_MATCHES: string[] = [
