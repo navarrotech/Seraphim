@@ -1,0 +1,14 @@
+# Dev
+
+yarn watch:esbuild
+code --extensionDevelopmentPath="$PWD/vscode-extension"
+
+# Bundling for prod
+
+yarn vsce package
+code --install-extension seraphim-vscode-0.0.1.vsix
+
+# Easy uninstall: Just go to extensions tab, search name, and click uninstall
+
+# Programatic uninstall:
+code --uninstall-extension jalapeno-labs.seraphim-vscode
