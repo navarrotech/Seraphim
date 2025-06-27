@@ -10,10 +10,12 @@ import { OPENAI_HIGH_MODEL } from '@/constants'
 import path from 'path'
 import fs from 'fs/promises'
 import { Timer } from '@/utils/timer'
-import { runVitest, getBestVitestPath } from '@/utils/vitest'
+import { getBestVitestPath } from '@/utils/vitest'
 import { extractFunction } from '@/utils/extractFunction'
 import { getFunctionName } from '@/utils/regex'
 import { getLanguage, isJavascriptish, isReact } from '@/utils/getLanguage'
+import { fixTypescriptErrors } from '@/prompts/fixTypescriptErrors'
+import { fixVitestTestErrors } from '@/prompts/fixVitestTestErrors'
 
 const SystemPrompt = `
 You are now an experienced principal software developer and quality assurance expert.
@@ -180,6 +182,10 @@ export async function writeUnitTests(context: ActionContext) {
     return
   }
 
+  const language = getLanguage(filePath)
+  const isJs = isJavascriptish(filePath)
+  const isPy = language === 'python'
+
   // TODO: what if the output already exists? Could we write to improve it?
   const outputPath = path.join(
     path.dirname(filePath),
@@ -188,6 +194,9 @@ export async function writeUnitTests(context: ActionContext) {
 
   const extractedFunction = await extractFunction(filePath, functionName)
 
+  // TODO: Do something if output already exists
+  // const outputExists = existsSync(outputPath)
+  // if (!outputExists) {
   console.log('[WRITE UNIT TESTS]: Preparing to get initial round of unit tests back...')
 
   // Add the root system prompt
@@ -199,9 +208,6 @@ export async function writeUnitTests(context: ActionContext) {
   ]
 
   // Add language-specific developer instructions
-  const language = getLanguage(filePath)
-  const isJs = isJavascriptish(filePath)
-  const isPy = language === 'python'
   if (isJs) {
     messages.push({
       role: 'developer',
@@ -254,43 +260,73 @@ export async function writeUnitTests(context: ActionContext) {
   const initialContent = initialUnitTest.choices[0].message.content.trim()
 
   await fs.writeFile(outputPath, initialContent, 'utf-8')
+  // }
+  // else {
+  //   console.log(`[WRITE UNIT TESTS]: Output file already exists at ${outputPath}, improving...`)
+  //   // TODO: Improve unit tests if they already exist
+  // }
 
-  const runTestsTimer = new Timer('Run unit tests')
+  const runTestsTimer = new Timer('Run and create tests')
 
-  let result: string
-  let exitCode: number
-  if (isJs) {
-    const [ output, vitestExitCode, fullCommand ] = await runVitest(
-      outputPath,
-      vitestCwd,
-      vitestCmd,
-      vitestArgs
-    )
+  // In a loop, test:
+  // 1. Ensure typescript types are valid
+  // 2. Ensure unit tests pass OR await suggestions for source function fix/improvement
+  // 3. Critique the test plan, make tweaks as needed.
 
-    console.log(`[WRITE UNIT TESTS]: Running vitest unit tester with command:
-CWD: ${chalk.blue(vitestCwd)}
-CMD: ${chalk.green(fullCommand)}
-    `.trim())
+  let iterations: number = 0
+  while (iterations < 5) {
+    iterations ++
 
-    result = output
-    exitCode = vitestExitCode
-  }
-  if (isPy) {
-    // TODO: Implement Python unit test running
+    // //////////////////////////////// //
+    //       Esint auto fix errors      //
+    // //////////////////////////////// //
+
+    // TODO: Add eslint auto-fix errors
+
+    // //////////////////////////////// //
+    //   Ensure typescript is correct   //
+    // //////////////////////////////// //
+
+    if (isJs) {
+      console.log('[WRITE UNIT TESTS]: Ensuring typescript types are valid...')
+      const passedTests = fixTypescriptErrors(filePath)
+      if (!passedTests) {
+        // Using continue to re-test everything from the start again
+        continue
+      }
+    }
+    else if (isPy) {
+      // TODO: Implement Python validity checking
+    }
+
+    // //////////////////////////// //
+    //       Unit test phase        //
+    // //////////////////////////// //
+    if (isJs) {
+      console.log('[WRITE UNIT TESTS]: Testing unit tests...')
+      const passedTests = await fixVitestTestErrors(
+        outputPath,
+        vitestCwd,
+        vitestCmd,
+        vitestArgs
+      )
+      if (!passedTests) {
+        // Using continue to re-test everything from the start again
+        continue
+      }
+    }
+    else if (isPy) {
+      // TODO: Implement Python validity checking
+    }
+
+    break
   }
 
   runTestsTimer.stop()
 
-  if (!result) {
-    console.error('No result returned from running the unit tests.')
+  if (iterations >= 5) {
+    console.error('[WRITE UNIT TESTS]: Reached maximum iterations for unit test writing, failed to finish...')
     return
   }
-
-  console.log(result)
-
-  if (exitCode === 0) {
-    console.log('[WRITE UNIT TESTS]: Unit tests passed successfully!')
-  }
-
-  console.log(`[WRITE UNIT TESTS]: Unit tests exited with code ${exitCode}.`)
+  console.log(`[WRITE UNIT TESTS]: ${chalk.green('The write unit test action has finished.')}`)
 }

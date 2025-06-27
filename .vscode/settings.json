@@ -30,7 +30,8 @@
   },
   "[json]": {
     "editor.defaultFormatter": "oliversturm.fix-json",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on"
   },
   "[xml]": {
     "editor.defaultFormatter": "redhat.vscode-xml"

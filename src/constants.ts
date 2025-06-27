@@ -1,6 +1,10 @@
 // Copyright © 2025 Jalapeno Labs
 
+// Typescript
 import type { ChatModel } from 'openai/resources'
+
+// Core
+import { join } from 'path'
 
 export const CONFIG_FILE_NAME = 'seraphim.jsonc' as const
 export const API_PORT = 9841
@@ -26,3 +30,4 @@ export const BLACKLIST_CHROME_LOGS_MATCHES: string[] = [
 ]
 
 export const MAX_IMPORT_LINES_TO_USE = 5 as const
+export const PROMPT_CACHE_DIR = join(process.cwd(), '.seraphim', 'cache')
