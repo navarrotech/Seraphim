@@ -306,6 +306,7 @@ export async function writeUnitTests(context: ActionContext) {
       console.log('[WRITE UNIT TESTS]: Testing unit tests...')
       const passedTests = await fixVitestTestErrors(
         outputPath,
+        context.vscodeWorkspace.focusedFilePath,
         vitestCwd,
         vitestCmd,
         vitestArgs
