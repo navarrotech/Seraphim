@@ -4,8 +4,7 @@
 import { ipcRenderer } from 'electron'
 
 // Typescript
-import type { LogLevel, BridgedLogFunction } from '@common/types'
-import type { IpcLogEvent } from '../types'
+import type { LogLevel, BridgedLogFunction, IpcLogEvent } from '@common/types'
 
 export const preloadLogger: BridgedLogFunction = (level: LogLevel, ...messages: any[]) => {
   const message = messages.map((message) => {

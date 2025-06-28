@@ -30,8 +30,7 @@ module.exports = {
     'react-refresh',
     'header',
     '@stylistic/js',
-    'import',
-    'i18next'
+    'import'
   ],
   settings: {
     'import/resolver': {
@@ -59,12 +58,6 @@ module.exports = {
 
     // Allow banned types https://typescript-eslint.io/rules/ban-types/
     '@typescript-eslint/ban-types': 'off',
-
-    //////////////////////////////////////////
-    // Enforcing internationalization
-
-    // No literal strings https://www.npmjs.com/package/eslint-plugin-i18next
-    'i18next/no-literal-string': 'error',
 
     //////////////////////////////////////////
     // Enforcing consistency
@@ -211,7 +204,6 @@ module.exports = {
       files: ['**/__test__/**/*.{js,ts}', '**/*.{test,spec}.{js,ts}'],
       rules: {
         'import/no-extraneous-dependencies': 'off',
-        'i18next/no-literal-string': 'off',
         'no-console': 'off',
       }
     },

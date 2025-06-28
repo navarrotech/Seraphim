@@ -3,7 +3,8 @@
 // Urls
 export const UrlTree = {
   root: '/',
-  main: '/'
+  main: '/',
+  settings: '/settings'
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 

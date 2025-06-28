@@ -7,8 +7,7 @@ import chalk from 'chalk'
 
 // Typescript
 import type { ChalkInstance } from 'chalk'
-import type { LogLevel } from '@common/types'
-import type { IpcLogEvent } from '../types'
+import type { LogLevel, IpcLogEvent } from '@common/types'
 
 // By default, logs are written to the following locations:
 // on Linux: ~/.config/{app name}/logs/main.log
