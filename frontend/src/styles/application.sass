@@ -1,0 +1,45 @@
+// Copyright © 2025 Jalapeno Labs
+
+@use './mixins' as mixins
+
+// This document serves to host global styles for the application.
+// This means that component-specific styles should not be placed here.
+
+$contentPadding: 0.5em
+
+html
+  position: relative
+
+.is-blurred
+  @include mixins.blurred
+
+.dashboard
+  display: flex
+  position: relative
+  height: 100vh
+  max-height: 100vh
+  width: 100vw
+  max-width: 100vw
+  flex-direction: row
+  align-items: stretch
+
+  $contentWidth: 100vw
+
+  .dashboard-content
+    height: 100vh
+    width: $contentWidth
+    display: block
+    position: relative
+    padding: $contentPadding
+
+    .outlet
+      $height: calc(100vh - $contentPadding * 2)
+      height: $height
+      max-height: $height
+      width: 100%
+      overflow: auto
+      display: flex
+      position: relative
+      flex-direction: column
+      align-items: center
+      justify-content: flex-start

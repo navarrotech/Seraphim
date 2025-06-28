@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* ///////////////////// */
+/* Some basic components */
+/* ///////////////////// */
+
+/* This is modeling this concept https://bulma.io/documentation/elements/block/ */
+/* Why use these instead of TailwindCSS mb-X? */
+/* 1. Consistency, we can have a consistently spaced look in our application */
+/* 2. Semantic */
+/* 3. Built in :last-child support without needing a second class on everything */
+.compact:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
+.relaxed:not(:last-child) {
+  margin-bottom: 1.5rem;
+}
+
+/* This is modeling this concept https://bulma.io/documentation/layout/level/ */
+/* Why use these instead of TailwindCSS flex utilities? */
+/* 1. Semantic, easy to read */
+/* 2. Easier to maintain */
+.level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.level-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.level-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
