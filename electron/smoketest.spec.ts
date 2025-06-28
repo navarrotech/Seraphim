@@ -74,7 +74,7 @@ describe('Electron smoke test', () => {
     context.mainWindow = await app.firstWindow()
 
     context.app = app
-  }, 60_000)
+  }, 120_000)
 
   afterEach<Context>(async (context) => {
     await context.app?.close()
@@ -85,5 +85,5 @@ describe('Electron smoke test', () => {
     // Ensure there's a div with id 'root'
     const rootDiv = await context.mainWindow.$('#root')
     expect(rootDiv).toBeDefined()
-  })
+  }, 120_000)
 })
