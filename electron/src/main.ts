@@ -99,6 +99,17 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(err: any
   await gracefulShutdown()
 })
 
+// Exit cleanly on request from parent process.
+if (process.platform === 'win32') {
+  // this message usually fires in dev-mode from the parent process
+  process.on('message', (data) => {
+    if (data === 'graceful-exit') {
+      console.log('if you see this message - graceful-exit fired')
+      app.quit()
+    }
+  })
+}
+
 // //////////////////////////// //
 //     Application callbacks    //
 // //////////////////////////// //

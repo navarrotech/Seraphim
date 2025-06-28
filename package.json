@@ -31,8 +31,10 @@
     "test": "vitest run",
     "test:dev": "vitest watch --coverage.enabled=false --reporter verbose",
     "lint": "yarn eslint --ext ts,tsx --max-warnings 0",
-    "clean": "yarn rimraf frontend/dist electron/dist electron/public/browser electron/.vite electron/out ~/.seraphim vscode/dist chrome/dist",
+    "clean": "rimraf frontend/dist electron/dist electron/public/browser electron/.vite electron/out ~/.seraphim vscode/dist chrome/dist",
+    "purge": "rimraf node_modules electron/node_modules frontend/node_modules common/node_modules chrome/node_modules vscode/node_modules",
     "testdrive": "bash ./scripts/testdrive.sh",
+    "killall": "taskkill /IM node.exe /F",
     "precommit": "bash ./.githooks/pre-commit"
   },
   "dependencies": {
@@ -76,6 +78,7 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
+    "happy-dom": "^18.0.1",
     "rimraf": "^6.0.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
