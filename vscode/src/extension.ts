@@ -8,6 +8,7 @@ import * as vscode from 'vscode'
 // Protocol
 import ReconnectingWebsocket from 'reconnecting-websocket'
 import { safeParseJson } from '@common/json'
+import { stringify } from '@common/stringify'
 import { PORT } from '@common/constants'
 
 // Lib
@@ -18,7 +19,7 @@ import { sep } from 'path'
 //            Globals           //
 // //////////////////////////// //
 
-const rws = new ReconnectingWebsocket(`ws://localhost:${PORT}/vscode`)
+const rws = new ReconnectingWebsocket(`ws://localhost:${PORT}/seraphim/vscode`)
 
 let outputChannel: vscode.OutputChannel
 
@@ -133,21 +134,8 @@ function log(message: any) {
     return
   }
 
-  if (typeof message === 'object') {
-    if (message instanceof Error) {
-      message = `Error: ${message.name} - ${message.message}`
-      if (message.stack) {
-        message = `Stack: ${message.stack}`
-      }
-      return
-    }
-    try {
-      message = JSON.stringify(message, null, 2)
-    }
-    catch (error) {
-      message = `Error stringifying message: ${error}`
-    }
-  }
+  message = stringify(message)
+
   outputChannel.appendLine(
     String(message)
   )
