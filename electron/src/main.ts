@@ -14,6 +14,7 @@ import logger from 'electron-log/main'
 import serve from 'electron-serve'
 // https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
+import { startServer, stopServer } from './main/server'
 
 // Misc
 import { isProduction } from './env'
@@ -62,6 +63,7 @@ async function gracefulShutdown() {
 
   // Add some cleanup code here!
   await Promise.all([
+    stopServer(),
     app.quit()
   ])
 
@@ -93,6 +95,8 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(err: any
 
 async function startup() {
   logger.info('Spawning main window')
+
+  startServer()
 
   // Load the previous state with fallback to defaults
   const windowStateManager = windowStateKeeper({
