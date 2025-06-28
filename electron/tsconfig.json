@@ -4,11 +4,11 @@
     "module": "commonjs",
     "allowJs": true,
     "outDir": "dist",
-    "moduleResolution": "node",
-    "esModuleInterop": true
+    "moduleResolution": "node"
   },
   "include": [
     "src",
+    "src/Global.d.ts",
     "../common/src",
   ]
 }

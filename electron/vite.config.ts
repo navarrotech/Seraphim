@@ -1,4 +1,4 @@
-// Copyright © 2025 MooreslabAI
+// Copyright © 2025 Jalapeno Labs
 
 import { defineConfig } from 'vite'
 import path from 'path'

@@ -4,7 +4,6 @@
 import './main/logging'
 import { app, BrowserWindow, shell } from 'electron'
 import { initExtensions } from './extensions'
-import path from 'path'
 
 // Lib
 // https://www.npmjs.com/package/electron-window-state
@@ -18,7 +17,7 @@ import squirrelStartup from 'electron-squirrel-startup'
 
 // Misc
 import { isProduction } from './env'
-import { browserDir, logoPath } from './internalFiles'
+import { browserDir, logoPath, getSourceFile } from './internalFiles'
 import { devCsp, prodCsp } from './constants'
 
 
@@ -120,13 +119,13 @@ async function startup() {
       // https://www.electronjs.org/docs/latest/tutorial/security#3-enable-context-isolation
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: getSourceFile('preload')
     },
     autoHideMenuBar: true
   })
 
   // What if the user attempts to navigate away from the application?
-  // Let's say they click on a link to open "https://jalapenolabs.io" in a new tab.
+  // Let's say they click on a link to open "https://google.com" in a new tab.
   // We need to intercept it, and open it in the user's default browser instead of the Electron app.
 
   // Intercept any window.open or <a target="_blank">
@@ -203,9 +202,9 @@ async function startup() {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
-    gracefulShutdown()
+    await gracefulShutdown()
   }
 })
 

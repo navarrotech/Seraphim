@@ -15,11 +15,11 @@ export const devCsp: string[] = [
 
 export const prodCsp: string[] = [
   // lock everything down to your custom protocol
-  'default-src \'self\' jalapenolabsbs://app',
+  'default-src \'self\' app://electron',
   // only run bundled scripts
-  'script-src \'self\' jalapenolabsbs://app',
+  'script-src \'self\' app://electron',
   // only load bundled styles
-  'style-src \'self\' jalapenolabsbs://app',
+  'style-src \'self\' app://electron',
   // images via protocol or data URIs
-  'img-src \'self\' jalapenolabsbs://app data:'
+  'img-src \'self\' app://electron data:'
 ]

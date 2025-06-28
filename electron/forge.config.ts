@@ -54,7 +54,6 @@ const config: ForgeConfig = {
       // If you are familiar with Vite configuration, it will look really familiar.
       build: [
         {
-          // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
           entry: 'src/main.ts',
           config: 'vite.config.ts',
           target: 'main',

@@ -3,9 +3,12 @@
   "productName": "electron",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": ".vite/build/main.js",
-  "author": "MooreslabAI",
+  "author": {
+    "name": "Alex Navarro",
+    "email": "alex@jalapenolabs.io"
+  },
   "files": [
     "public"
   ],
@@ -39,6 +42,7 @@
     "@electron/fuses": "^1.8.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "cross-env": "^7.0.3",
-    "electron": "37"
+    "electron": "37",
+    "ts-node": "^10.9.2"
   }
 }
