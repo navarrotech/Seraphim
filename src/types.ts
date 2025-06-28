@@ -49,15 +49,6 @@ export type WorkspaceSource = {
 
 export type ActionKeys = typeof REGISTERED_ACTIONS[number]
 
-export type ChromeLogPayload = {
-  tabId: number
-  timestamp: number
-  method: string
-  type: string
-  message: string
-  url: string
-}
-
 export type ProgrammingLanguage =
   | 'typescript'
   | 'javascript'
