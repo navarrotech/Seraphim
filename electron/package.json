@@ -1,0 +1,44 @@
+{
+  "name": "electron",
+  "productName": "electron",
+  "version": "1.0.0",
+  "description": "My Electron application description",
+  "license": "UNLICENSED",
+  "main": ".vite/build/main.js",
+  "author": "MooreslabAI",
+  "files": [
+    "public"
+  ],
+  "scripts": {
+    "dev": "electron-forge start",
+    "build": "tsc -b",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "electron-log": "^5.3.4",
+    "electron-serve": "^2.1.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-window-state": "^5.0.3",
+    "playwright": "^1.53.1",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.0",
+    "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-rpm": "^7.8.0",
+    "@electron-forge/maker-squirrel": "^7.8.0",
+    "@electron-forge/maker-zip": "^7.8.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
+    "@electron-forge/plugin-fuses": "^7.8.0",
+    "@electron-forge/plugin-vite": "^7.8.0",
+    "@electron/fuses": "^1.8.0",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "cross-env": "^7.0.3",
+    "electron": "37"
+  }
+}
