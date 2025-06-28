@@ -1,0 +1,13 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "typecheck": "tsc",
+    "build": "echo"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  }
+}
