@@ -25,7 +25,7 @@
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
     "build": "bash ./scripts/build.sh",
     "compile:deb": "yarn cross-env TARGET_MAKER=deb bash ./scripts/compile.sh",
-    "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh",
+    "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh", 
     "typecheck": "yarn workspaces run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",

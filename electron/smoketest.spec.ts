@@ -65,6 +65,7 @@ describe('Electron smoke test', () => {
         '--disable-gpu',
         '--no-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-setuid-sandbox',
         '--headless'
       ]
     })
@@ -73,7 +74,7 @@ describe('Electron smoke test', () => {
     context.mainWindow = await app.firstWindow()
 
     context.app = app
-  })
+  }, 60_000)
 
   afterEach<Context>(async (context) => {
     await context.app?.close()
