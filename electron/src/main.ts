@@ -14,6 +14,9 @@ import logger from 'electron-log/main'
 import serve from 'electron-serve'
 // https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
+
+// Process
+import './redux-store'
 import { startServer, stopServer } from './main/server'
 
 // Misc

@@ -21,6 +21,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
     "chalk": "^5.4.1",
     "electron-log": "^5.3.4",
     "electron-serve": "^2.1.1",

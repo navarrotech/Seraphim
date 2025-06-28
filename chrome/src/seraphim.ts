@@ -7,15 +7,16 @@ import ReconnectingWebsocket from 'reconnecting-websocket'
 import { PORT } from '@common/constants'
 
 // Lib
-import { debounce } from 'lodash'
 import { stringify } from '@common/stringify'
 import { v7 as uuid } from 'uuid'
+
+console.log('Seraphim is watching this page\'s console output and errors.')
 
 // //////////////////////////// //
 //            Globals           //
 // //////////////////////////// //
 
-const websocketUri = `ws://localhost:${PORT}/seraphim/chrome`
+const websocketUri = `ws://localhost:${PORT}/seraphim/${window.location.host}/chrome`
 const rws = new ReconnectingWebsocket(websocketUri, [], {
   debug: false
 })
@@ -32,7 +33,6 @@ rws.onerror = () => {
 
 function send(payload: WsToServerMessage<'chrome'>['payload']): boolean {
   if (rws.readyState !== ReconnectingWebsocket.OPEN) {
-    console.log('WebSocket is not open, cannot send update')
     return false
   }
 
@@ -55,25 +55,32 @@ function send(payload: WsToServerMessage<'chrome'>['payload']): boolean {
   return true
 }
 
-function sendChromeLogReport() {
-  const bufferCopy = [ ...buffer ]
-  buffer.length = 0
+function sendChromeLogReports() {
+  if (rws.readyState !== ReconnectingWebsocket.OPEN) {
+    return
+  }
 
-  const sent = send({
-    type: 'chrome-log-report',
-    logs: bufferCopy
-  })
+  if (!buffer.length) {
+    return
+  }
 
-  // Clear the buffer if sent successfully
-  if (!sent) {
-    buffer.unshift(...bufferCopy)
+  for (const log of buffer) {
+    const isSent = send({
+      type: 'chrome-log-report',
+      log
+    })
+    if (isSent) {
+      // If the message was sent successfully, remove it from the buffer
+      const index = buffer.indexOf(log)
+      if (index > -1) {
+        buffer.splice(index, 1)
+      }
+    }
   }
 }
 
-const sendDebouncedChromeLogReport = debounce(sendChromeLogReport, 100)
-
 rws.addEventListener('open', () => {
-  sendChromeLogReport()
+  sendChromeLogReports()
 })
 
 function isErrorSelf(message: string): boolean {
@@ -94,8 +101,7 @@ window.addEventListener('error', (event) => {
     type: 'error',
     message
   })
-
-  sendDebouncedChromeLogReport()
+  sendChromeLogReports()
 })
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -112,8 +118,7 @@ window.addEventListener('unhandledrejection', (event) => {
     type: 'error',
     message
   })
-
-  sendDebouncedChromeLogReport()
+  sendChromeLogReports()
 })
 
 // ////////////////////////////
@@ -128,7 +133,7 @@ methods.forEach((level) => {
 
   console[level] = (...args: unknown[]) => {
     // Turn args into a single string
-    const message = stringify(args)
+    const message = stringify(...args)
 
     if (isErrorSelf(message)) {
       // Ignore messages that are self-referential (e.g., from this script)
@@ -143,7 +148,6 @@ methods.forEach((level) => {
 
     // Still log to the real console
     original.apply(console, args)
+    sendChromeLogReports()
   }
-
-  sendDebouncedChromeLogReport()
 })

@@ -19,7 +19,7 @@ import { sep } from 'path'
 //            Globals           //
 // //////////////////////////// //
 
-const rws = new ReconnectingWebsocket(`ws://localhost:${PORT}/seraphim/vscode`)
+const rws = new ReconnectingWebsocket(`ws://localhost:${PORT}/seraphim/${getWorkspaceName()}/vscode`)
 
 let outputChannel: vscode.OutputChannel
 
@@ -58,9 +58,13 @@ export function activate(context: vscode.ExtensionContext) {
   const debouncedSendUpdate = debounce(sendUpdate, 100)
 
   let isOpen: boolean = false
+  let shownMessage: boolean = false
   rws.addEventListener('open', () => {
     log('WebSocket connection established')
-    vscode.window.showInformationMessage('Seraphim successfully connected')
+    if (!shownMessage) {
+      vscode.window.showInformationMessage('Seraphim successfully connected')
+      shownMessage = true
+    }
     sendUpdate('open event')
     isOpen = true
   })

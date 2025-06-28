@@ -18,6 +18,13 @@ export type Workspace = {
   path: string
 }
 
+export type VsCodeUserState = {
+  workspaceName: string
+  workspacePaths: Workspace[]
+  focusedFilePath: AbsoluteFilePath | undefined
+  userTextSelection: string[]
+}
+
 export type ChromeLogPayload = {
   timestamp: number
   type: LogLevel
@@ -45,16 +52,12 @@ export type WsToServerMessage<Source extends WsSource> = {
 
 export type WsChromeLogReport = {
   type: 'chrome-log-report'
-  logs: ChromeLogPayload[]
+  log: ChromeLogPayload
 }
 
 export type WsVscodeReport = {
   type: 'vscode-report'
-  workspaceName: string
-  workspacePaths: Workspace[]
-  focusedFilePath: AbsoluteFilePath | undefined
-  userTextSelection: string[]
-}
+} & VsCodeUserState
 
 export type WsFromServerMessage = {
   id: string

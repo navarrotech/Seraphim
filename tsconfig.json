@@ -31,12 +31,6 @@
     // Absolute import paths
     "baseUrl": ".",
     "paths": {
-      "@electron/*": [
-        "electron/src/*"
-      ],
-      "@frontend/*": [
-        "frontend/src/*"
-      ],
       "@common/*": [
         "common/src/*"
       ]

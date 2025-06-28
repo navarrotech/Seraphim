@@ -29,6 +29,8 @@ export function stringify(...values: any[]): string {
       }
       continue
     }
+
+    together += String(value)
   }
 
   return together.trim()
