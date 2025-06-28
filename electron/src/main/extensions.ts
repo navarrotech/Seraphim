@@ -8,7 +8,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 
 // Misc
-import { extensionsDir } from './internalFiles'
+import { extensionsDir } from '../lib/internalFiles'
 import logger from 'electron-log'
 
 export async function initExtensions(session: Session) {

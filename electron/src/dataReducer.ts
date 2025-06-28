@@ -5,16 +5,29 @@ import { createSlice } from '@reduxjs/toolkit'
 
 // Typescript
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { ChromeLogPayload, VsCodeUserState, WsToServerMessage } from '@common/types'
+import type {
+  ChromeLogPayload,
+  VsCodeUserState,
+  WsToServerMessage,
+  SystemStatus
+} from '@common/types'
 
 export type DataState = {
+  errors: Set<string>
+  warnings: Set<string>
+  serverStatus: SystemStatus
   chromeLogsByPage: Record<string, ChromeLogPayload[]>
   activeVsCodeState: VsCodeUserState | null
+  vsCodeConnectionsByWorkspace: Record<string, VsCodeUserState>
 }
 
 const initialState: DataState = {
+  errors: new Set(),
+  warnings: new Set(),
+  serverStatus: 'offline',
   chromeLogsByPage: {},
-  activeVsCodeState: null
+  activeVsCodeState: null,
+  vsCodeConnectionsByWorkspace: {}
 } as const
 
 export const slice = createSlice({
@@ -36,6 +49,8 @@ export const slice = createSlice({
     setActiveVsCodeState: (state, action: PayloadAction<WsToServerMessage<'vscode'>>) => {
       const { payload } = action.payload
 
+      state.vsCodeConnectionsByWorkspace[payload.workspaceName] = payload
+
       if (!payload.focusedFilePath) {
         return
       }
@@ -51,9 +66,19 @@ export const slice = createSlice({
       state.activeVsCodeState = payload
     },
     clearActiveVsCodeStateForSource: (state, action: PayloadAction<string>) => {
+      delete state.vsCodeConnectionsByWorkspace[action.payload]
       if (state.activeVsCodeState?.workspaceName === action.payload) {
         state.activeVsCodeState = null
       }
+    },
+    setServerStatus: (state, action: PayloadAction<SystemStatus>) => {
+      state.serverStatus = action.payload
+    },
+    pushError: (state, action: PayloadAction<string>) => {
+      state.errors.add(action.payload)
+    },
+    pushWarning: (state, action: PayloadAction<string>) => {
+      state.warnings.add(action.payload)
     },
     resetData: () => ({
       ...initialState

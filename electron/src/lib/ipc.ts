@@ -1,7 +1,7 @@
 // Copyright © 2025 Jalapeno Labs
 
 import type { WebFrameMain } from 'electron'
-import { isProduction } from './env'
+import { isProduction } from '../env'
 import logger from 'electron-log'
 
 // Why we do this:

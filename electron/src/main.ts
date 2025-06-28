@@ -1,9 +1,10 @@
 // Copyright © 2025 Jalapeno Labs
 
 // Core
+import chalk from 'chalk'
 import './main/logging'
 import { app, BrowserWindow, shell } from 'electron'
-import { initExtensions } from './extensions'
+import { initExtensions } from './main/extensions'
 
 // Lib
 // https://www.npmjs.com/package/electron-window-state
@@ -16,12 +17,13 @@ import serve from 'electron-serve'
 import squirrelStartup from 'electron-squirrel-startup'
 
 // Process
-import './redux-store'
+import './lib/redux-store'
 import { startServer, stopServer } from './main/server'
+import { registerHotkeys } from './main/hotkeys'
 
 // Misc
 import { isProduction } from './env'
-import { browserDir, logoPath, getSourceFile } from './internalFiles'
+import { browserDir, logoPath, getSourceFile } from './lib/internalFiles'
 import { devCsp, prodCsp } from './constants'
 
 
@@ -70,7 +72,9 @@ async function gracefulShutdown() {
     app.quit()
   ])
 
-  logger.info('Graceful shutdown complete')
+  logger.info(
+    chalk.green('Graceful shutdown complete')
+  )
   process.exit(0)
 }
 
@@ -100,6 +104,7 @@ async function startup() {
   logger.info('Spawning main window')
 
   startServer()
+  registerHotkeys()
 
   // Load the previous state with fallback to defaults
   const windowStateManager = windowStateKeeper({
@@ -134,21 +139,6 @@ async function startup() {
   // What if the user attempts to navigate away from the application?
   // Let's say they click on a link to open "https://google.com" in a new tab.
   // We need to intercept it, and open it in the user's default browser instead of the Electron app.
-
-  // Intercept any window.open or <a target="_blank">
-  window.webContents.setWindowOpenHandler((details) => {
-    const url = details.url
-
-    // if it’s an http(s) link, open externally
-    if (url.startsWith('http')) {
-      shell.openExternal(url)
-      logger.info('Opening external link:', url)
-      return { action: 'deny' }
-    }
-
-    // otherwise allow (e.g. internal deep-linking, mailto:, etc)
-    return { action: 'allow' }
-  })
 
   // Catch in-page navigation (e.g. <a href="http://…">)
   window.webContents.on('will-navigate', (event, url) => {

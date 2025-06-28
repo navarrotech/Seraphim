@@ -7,7 +7,7 @@ import { app } from 'electron'
 import path from 'node:path'
 
 // Misc
-import { isProduction } from './env'
+import { isProduction } from '../env'
 
 export const BuildFiles = isProduction
   ? path.join(process.resourcesPath, 'app.asar', '.vite', 'build')

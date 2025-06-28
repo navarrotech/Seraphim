@@ -12,8 +12,8 @@ import logger from 'electron-log'
 import { safeParseJson } from '@common/json'
 
 // Redux
-import { dispatch } from '../redux-store'
-import { dataActions } from '../stores/data/reducer'
+import { dispatch } from '../lib/redux-store'
+import { dataActions } from '../dataReducer'
 
 // Misc
 import { v7 as uuid } from 'uuid'
@@ -24,12 +24,12 @@ const server = http.createServer(vanillaApp)
 const { app } = expressWs(vanillaApp, server)
 
 app.all('/', (request, response) => {
-  response.send('Hello from the Seraphim server!')
+  response.status(200).send('Hello from the Seraphim server!')
 })
 
-app.ws('/seraphim/:sourceName/chrome', (websocket) => {
-  // const sourceName = request.params.sourceName
-  const sessionId = uuid()
+app.ws('/seraphim/:sourceName/chrome', (websocket, request) => {
+  const sourceName = request.params.sourceName
+  const sessionId = sourceName + '@' + uuid()
 
   // Need to use a session id because Chrome cannot distinguish between multiple tabs
 

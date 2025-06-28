@@ -7,7 +7,7 @@ import { configureStore, Action } from '@reduxjs/toolkit'
 import type { ThunkAction } from '@reduxjs/toolkit'
 
 // Reducers
-import { slice as data } from './stores/data/reducer'
+import { slice as data } from '../dataReducer'
 
 // /////////////////////// //
 //          Store          //

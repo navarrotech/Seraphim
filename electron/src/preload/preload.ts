@@ -7,7 +7,7 @@ import { contextBridge } from 'electron'
 import type { ElectronIpcBridge, VersionIpcVersion } from '@common/types'
 
 // Lib
-import { preloadLogger } from './preload/logging'
+import { preloadLogger } from './logging'
 
 contextBridge.exposeInMainWorld('electron', {
   log: preloadLogger

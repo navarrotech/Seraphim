@@ -8,6 +8,7 @@ export type DateISO = string
 export type AbsoluteFilePath = string
 export type Theme = 'light' | 'dark'
 export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug'
+export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 
 // ////////////////////////// //
 //         Common Adv         //
