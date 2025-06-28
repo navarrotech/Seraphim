@@ -1,20 +1,39 @@
 {
   "name": "seraphim",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "A tool to orchestrate hotkeys to automated chatgpt analysis",
-  "main": "src/index.ts",
-  "author": "Alex Navarro",
+  "author": {
+    "name": "Alex Navarro",
+    "email": "alex@jalapenolabs.io",
+    "url": "https://jalapenolabs.io"
+  },
   "license": "MIT",
-  "private": false,
+  "private": true,
+  "repository": "https://github.com/jalapenolabs/seraphim",
+  "engines": {
+    "node": ">=23.4.0",
+    "yarn": ">=1.22.0"
+  },
+  "workspaces": [
+    "electron/",
+    "frontend/",
+    "common/",
+    "chrome/",
+    "vscode/"
+  ],
   "scripts": {
-    "dev": "cross-env NODE_ENV=development yarn tsx watch src/index.ts",
-    "start": "cross-env NODE_ENV=production yarn tsx src/index.ts",
-    "typecheck": "yarn tsc",
+    "dev": "concurrently --kill-others 'cd frontend && yarn dev' 'cd electron && yarn dev'",
+    "build": "bash ./scripts/build.sh",
+    "compile:deb": "yarn cross-env TARGET_MAKER=deb bash ./scripts/compile.sh",
+    "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh",
+    "typecheck": "yarn workspaces run typecheck",
+    "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",
     "test:dev": "vitest watch --coverage.enabled=false --reporter verbose",
     "lint": "yarn eslint --ext ts,tsx --max-warnings 0",
-    "clean": "yarn rimraf dist .seraphim",
-    "preflight": "bash ./.githooks/pre-commit"
+    "clean": "yarn rimraf frontend/dist electron/dist electron/public/browser electron/.vite electron/out ~/.seraphim",
+    "testdrive": "bash ./scripts/testdrive.sh",
+    "precommit": "bash ./.githooks/pre-commit"
   },
   "dependencies": {
     "argparse": "^2.0.1",

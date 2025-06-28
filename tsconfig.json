@@ -32,15 +32,30 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@electron/*": [
+        "electron/src/*"
+      ],
+      "@frontend/*": [
+        "frontend/src/*"
+      ],
+      "@common/*": [
+        "common/src/*"
       ]
     }
   },
   "include": [
-    "src"
+    "electron/src",
+    "frontend/src",
+    "common/src",
+    "vscode/src",
+    "chrome/src",
   ],
   "exclude": [
     "node_modules",
     "**/node_modules",
-    "**/dist"
+    "**/dist",
+    "**/.vite",
+    "**/out"
   ]
 }
