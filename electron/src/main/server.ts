@@ -3,6 +3,7 @@
 import type { WsToServerMessage } from '@common/types'
 
 // Core
+import chalk from 'chalk'
 import express from 'express'
 import expressWs from 'express-ws'
 import http from 'http'
@@ -80,25 +81,35 @@ app.ws('/seraphim/:sourceName/vscode', (websocket, request) => {
 })
 
 let net: http.Server
-export function startServer() {
+export async function startServer() {
   if (net) {
-    logger.warn('Server is already running.')
-    return
+    logger.warn(chalk.redBright('Server is already running.'))
+    return null
   }
 
-  net = server.listen(PORT, () => {
-    logger.log(`Server is running on port ${PORT}`)
+  return new Promise((resolve, reject) => {
+    function onError(error: Error) {
+      server.off('error', onError)
+      logger.error(chalk.red('Failed to start server:'), error)
+      reject(error)
+    }
+    server.on('error', onError)
+
+    net = server.listen(PORT, () => {
+      logger.log(chalk.green(`Server is running on port ${PORT}`))
+      resolve(true)
+    })
   })
 }
 
 export function stopServer() {
   if (!net) {
-    logger.warn('Server is not running.')
+    logger.warn(chalk.redBright('Cannot stop server, server is not running.'))
     return
   }
 
   net.close(() => {
-    logger.log('Server has been stopped.')
+    logger.log(chalk.green('Server has been stopped.'))
     net = null
   })
 }

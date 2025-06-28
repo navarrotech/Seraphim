@@ -1,30 +1,30 @@
 // Copyright © 2025 Jalapeno Labs
 
 // Core
-import chalk from 'chalk'
 import './main/logging'
+import './lib/redux-store'
 import { app, BrowserWindow, shell } from 'electron'
 import { initExtensions } from './main/extensions'
 
 // Lib
-// https://www.npmjs.com/package/electron-window-state
-import windowStateKeeper from 'electron-window-state'
-// https://www.npmjs.com/package/electron-log
-import logger from 'electron-log/main'
-// https://www.npmjs.com/package/electron-serve
-import serve from 'electron-serve'
-// https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
+import windowStateKeeper from 'electron-window-state'
+import logger from 'electron-log/main'
+import serve from 'electron-serve'
+import chalk from 'chalk'
 
 // Process
-import './lib/redux-store'
+import { browserDir, logoPath, getSourceFile } from './lib/internalFiles'
 import { startServer, stopServer } from './main/server'
 import { registerHotkeys } from './main/hotkeys'
+import { logSeraphim } from './main/console'
+
+// Browser
+import { devCsp, prodCsp } from './constants'
+import { FRONTEND_URL } from '@common/constants'
 
 // Misc
 import { isProduction } from './env'
-import { browserDir, logoPath, getSourceFile } from './lib/internalFiles'
-import { devCsp, prodCsp } from './constants'
 
 
 // //////////////////////////// //
@@ -60,6 +60,9 @@ if (!isProduction) {
 
 let isShuttingDown = false
 async function gracefulShutdown() {
+  logger.info(
+    chalk.yellow('Graceful shutdown initiated')
+  )
   // Prevent multiple calls to this function
   if (isShuttingDown) {
     return
@@ -101,10 +104,10 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(err: any
 // //////////////////////////// //
 
 async function startup() {
-  logger.info('Spawning main window')
-
-  startServer()
+  await startServer()
   registerHotkeys()
+
+  logger.info('Spawning main window')
 
   // Load the previous state with fallback to defaults
   const windowStateManager = windowStateKeeper({
@@ -179,11 +182,9 @@ async function startup() {
     loadDirectory(window)
   }
   else {
-    logger.info('Serving development localhost:5173 vite dev server')
+    logger.info(`Content: ${chalk.blue(FRONTEND_URL)}`)
     // Load the dev server:
-    window.loadURL('http://localhost:5173')
-    // Open the DevTools automatically
-    window.webContents.openDevTools()
+    window.loadURL(FRONTEND_URL)
   }
 
   if (windowStateManager.isMaximized) {
@@ -194,6 +195,8 @@ async function startup() {
   // automatically (the listeners will be removed when the window is closed)
   // and restore the maximized or full screen state
   windowStateManager.manage(window)
+
+  logSeraphim()
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common

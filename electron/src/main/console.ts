@@ -99,3 +99,15 @@ export function colorStatus(status: SystemStatus) {
   }
   return whichChalk(statusCapitalized)
 }
+
+export function logSeraphim() {
+  /* eslint-disable no-useless-escape */
+  console.info(
+    chalk.cyanBright(`
+
+  ____  ____ _____   ____  _____  _   _  _  __  __ 
+ (_ (_\`| ===|| () ) / () \\ | ()_)| |_| || ||  \\/  |
+.__)__)|____||_|\\_\\/__/\\__\\|_|   |_| |_||_||_|\\/|_|
+  `)
+  )
+}

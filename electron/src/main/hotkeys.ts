@@ -1,13 +1,16 @@
 // Copyright © 2025 Jalapeno Labs
 
 // Core
+import chalk from 'chalk'
 import { globalShortcut } from 'electron'
+import logger from 'electron-log'
 
 // Available accelerators:
 // https://www.electronjs.org/docs/latest/api/accelerator#available-key-codes
 
 export function registerHotkeys() {
   globalShortcut.register('Control+Alt+numsub', () => {
+    console.log('\n\n\n')
     console.log(`
 # Seraphim Hotkeys
 
@@ -29,4 +32,8 @@ Ctrl + Alt + Num* = Apply copied style to selection and complete function (TODO)
   globalShortcut.register('Control+Alt+num1', () => {
     console.log('Hotkey Control+Alt+num1 pressed!')
   })
+
+  logger.log(
+    chalk.green('Registered hotkeys!')
+  )
 }
