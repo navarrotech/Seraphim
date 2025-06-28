@@ -4,7 +4,6 @@
 import { Navigate, Routes, Route } from 'react-router'
 import { BrowserRouter, useNavigate, useHref } from 'react-router-dom'
 import { HeroUIProvider, ToastProvider } from '@heroui/react'
-import { useSystemTheme } from './hooks/useSystemTheme'
 
 // Typescript
 import type { NavigateOptions } from 'react-router-dom'
@@ -42,7 +41,6 @@ export function App() {
 function Router() {
   // Note: useNavigate can only be used in the context (child) of a Router
   const navigate = useNavigate()
-  useSystemTheme(true)
 
   return <HeroUIProvider navigate={navigate} useHref={useHref}>
     <ToastProvider />

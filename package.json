@@ -31,7 +31,7 @@
     "test": "vitest run",
     "test:dev": "vitest watch --coverage.enabled=false --reporter verbose",
     "lint": "yarn eslint --ext ts,tsx --max-warnings 0",
-    "clean": "yarn rimraf frontend/dist electron/dist electron/public/browser electron/.vite electron/out ~/.seraphim",
+    "clean": "yarn rimraf frontend/dist electron/dist electron/public/browser electron/.vite electron/out ~/.seraphim vscode/dist chrome/dist",
     "testdrive": "bash ./scripts/testdrive.sh",
     "precommit": "bash ./.githooks/pre-commit"
   },
