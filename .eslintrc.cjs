@@ -200,7 +200,6 @@ module.exports = {
     // We should be enforcing a copyright header on all files
     'header/header': ['error', 'line', [
       {
-
         pattern: 'Copyright © \\d{4} Jalapeno Labs',
         template: `Copyright © ${new Date().getFullYear()} Jalapeno Labs`,
       }
@@ -209,22 +208,20 @@ module.exports = {
   overrides: [
     // In test files, allow devDependencies and turn off the no-extraneous-dependencies rule
     {
-      files: ['**/__test__/**/*.{js,ts}', '**/*.test.{js,ts}'],
+      files: ['**/__test__/**/*.{js,ts}', '**/*.{test,spec}.{js,ts}'],
       rules: {
         'import/no-extraneous-dependencies': 'off',
         'i18next/no-literal-string': 'off',
-      },
-    },
-    {
-      files: ['constants.ts'],
-      rules: {
-        'max-len': 'off', // Disable max-len for constants file
+        'no-console': 'off',
       }
     },
     {
-      files: ['scripts/*.ts'],
+      files: ['*.config.{cjs,js,ts}'],
       rules: {
-        'import/no-extraneous-dependencies': 'off', // Allow devDependencies in scripts
+        '@typescript-eslint/no-require-imports': 'off',
+        'import/no-default-export': 'off',
+        'no-undef': 'off',
+        'no-console': 'off',
       }
     }
   ],

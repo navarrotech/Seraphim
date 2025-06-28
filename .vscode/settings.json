@@ -15,12 +15,6 @@
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  // i18next settings for showing the translation on hover:
-  "i18next.i18nPaths": "frontend/public/locales",
-  "reacti18nextTranslationOnHover.defaultLocale": "en-US",
-  "reacti18nextTranslationOnHover.translationFoldersPaths": [
-    "frontend/public/locales"
-  ],
   // Max length ruler:
   "editor.rulers": [
     120
@@ -39,4 +33,5 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   },
+  "i18next.i18nPaths": "e:/Projects/Seraphim/frontend/public/locales",
 }
