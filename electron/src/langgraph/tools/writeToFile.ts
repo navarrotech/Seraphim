@@ -73,6 +73,7 @@ export function writeToFile(snapshot: ContextSnapshot) {
       }
 
       // await writeFile(filePath, newContent, 'utf-8')
+      return 'Successfully wrote content to file at ' + filePath
     },
     {
       name: 'writeToFile',

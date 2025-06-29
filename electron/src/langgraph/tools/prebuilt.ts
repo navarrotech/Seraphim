@@ -18,16 +18,17 @@ type AvailableTools =
   | 'web-search'
   | 'calculator'
 
+// TODO: Fix these types:
 export function getPrebuiltTool(toolname: AvailableTools): ToolFactory {
   switch (toolname) {
   case 'web-search':
-    // TODO: Fix this type:
+    // https://js.langchain.com/docs/integrations/tools/webbrowser/
     return (snapshot, llm, embeddings) => new WebBrowser({
       model: llm,
       embeddings
     }) as any as DynamicStructuredTool
   case 'calculator':
-    // TODO: Fix this type:
+    // https://v03.api.js.langchain.com/classes/_langchain_community.tools_calculator.Calculator.html
     return () => new Calculator() as any as DynamicStructuredTool
   default:
     throw new Error(`Unknown tool: ${toolname}`)
