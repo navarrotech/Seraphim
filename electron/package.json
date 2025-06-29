@@ -21,11 +21,14 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.61",
     "@langchain/langgraph": "^0.3.5",
     "@langchain/openai": "^0.5.16",
     "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.10.0",
     "chalk": "^5.4.1",
+    "cheerio": "^1.1.0",
     "electron-log": "^5.3.4",
     "electron-serve": "^2.1.1",
     "electron-squirrel-startup": "^1.0.1",

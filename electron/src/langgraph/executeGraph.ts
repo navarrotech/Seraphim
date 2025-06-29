@@ -2,9 +2,10 @@
 
 import type { ContextSnapshot, ToolFactory } from './types'
 import type { Messages } from '@langchain/langgraph'
+import type { DynamicStructuredTool } from '@langchain/core/tools'
 
 // Core
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai'
 import { getProjectConfig, validateConfig } from './utility/getProjectConfig'
 import { createReactAgent } from '@langchain/langgraph/prebuilt'
 
@@ -68,8 +69,16 @@ export async function executeGraph(
       apiKey: projectConfig.openAiApiToken,
       modelName: OPENAI_MED_MODEL
     })
+    const embeddings = new OpenAIEmbeddings()
 
-    const tools = toolFactories.map((factory) => factory(snapshot, llm))
+    const tools: DynamicStructuredTool[] = []
+    for (const tool of toolFactories) {
+      const result = tool(snapshot, llm, embeddings)
+      if (!result) {
+        continue
+      }
+      tools.push(result)
+    }
 
     dispatch(
       jobActions.setOpenAIToken({

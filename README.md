@@ -23,3 +23,7 @@ And it can perform actions based on these logs and text selections, such as:
 - Ctrl + Alt + Num9 = Unit Test (TODO)
 - Ctrl + Alt + Num+ = Copy style
 - Ctrl + Alt + Num* = Apply copied style to selection and complete function
+
+# Tool installation requirements:
+- Node.js installed
+- tsx installed globally (`npm install -g tsx`)

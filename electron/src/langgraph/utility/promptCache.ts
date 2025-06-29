@@ -4,7 +4,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/chat/completio
 
 // File lib
 import { getSeraphimHomeDirectory } from '../../seraphim'
-import { createHashForText } from './sha256'
+import { createHashForText } from '../../../../common/src/node/sha256'
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 

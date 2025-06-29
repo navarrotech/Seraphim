@@ -1,15 +1,18 @@
 // Copyright © 2025 Jalapeno Labs
 
+import type { RootState } from '../../lib/redux-store'
 import { getState } from '../../lib/redux-store'
 
-export function getAllRankedVsCodeWorkspaces(): string[] {
-  const state = getState()
-
-  const allVscodeStates = [
-    // Temporarily commenting out, so it's not used
-    // Edge case: the user is selecting something in a workspace without a config?
-    // ...Object.values(state.data.vsCodeConnectionsByWorkspace)
-  ]
+export function getAllRankedVsCodeWorkspaces(
+  includeUnfocused: boolean,
+  state: RootState = getState()
+): string[] {
+  const allVscodeStates = []
+  if (includeUnfocused) {
+    allVscodeStates.push(
+      ...Object.values(state.data.vsCodeConnectionsByWorkspace)
+    )
+  }
 
   // Put the most active workspace at the top
   allVscodeStates.sort((a, b) => b.lastActiveTime - a.lastActiveTime)

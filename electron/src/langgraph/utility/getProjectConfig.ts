@@ -8,8 +8,8 @@ import hjson from 'hjson'
 // Node.js
 import { join } from 'path'
 import { readFileSync } from 'fs'
-import { getFileFromAnyPath } from './getFileFromAnyPath'
-import { recursiveSearchForFileName } from './recursiveSearchForFileName'
+import { getFileFromAnyPath } from '../../../../common/src/node/getFileFromAnyPath'
+import { recursiveSearchForFileName } from '../../../../common/src/node/recursiveSearchForFileName'
 import { getAllRankedVsCodeWorkspaces } from './getAllRankedVsCodeWorkspaces'
 
 // Misc
@@ -21,7 +21,7 @@ const defaultProjectConfig: SeraphimProjectConfiguration = {
 }
 
 export function getProjectConfig(): [ SeraphimProjectConfiguration, string ] {
-  const allWorkspaces = getAllRankedVsCodeWorkspaces()
+  const allWorkspaces = getAllRankedVsCodeWorkspaces(false)
   for (const workspace of allWorkspaces) {
     try {
       const config = searchDirectory(workspace)
