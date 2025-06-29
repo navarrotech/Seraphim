@@ -55,7 +55,7 @@ export const slice = createSlice({
         return
       }
 
-      if (!payload.userTextSelection[0].length) {
+      if (!payload.userTextSelection[0].text) {
         return
       }
 

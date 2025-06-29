@@ -1,6 +1,6 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { ToolFactory, ContextSnapshot } from '../types'
+import type { ContextSnapshot } from '../types'
 
 // Core
 import { tool } from '@langchain/core/tools'
@@ -37,7 +37,7 @@ const schema = z.object({
     .describe('Optional, the file line number to replace at.')
 })
 
-export function writeToFile(snapshot: ContextSnapshot): ToolFactory {
+export function writeToFile(snapshot: ContextSnapshot) {
   return tool(
     async (args: z.infer<typeof schema>) => {
       const { filePath, content, replace, startLine, endLine } = args

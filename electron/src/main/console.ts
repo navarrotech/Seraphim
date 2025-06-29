@@ -89,6 +89,15 @@ const colorByStatus: Record<SystemStatus, ChalkInstance> = {
   offline: chalk.gray
 }
 
+/**
+ * colorStatus - Returns the status string styled with a color based on status.
+ *
+ * @example
+ * // returns green "Online"
+ * colorStatus("online");
+ * @param {SystemStatus} status - The system status key to color.
+ * @return {string} Return a colored status string for console output.
+ */
 export function colorStatus(status: SystemStatus) {
   const whichChalk = colorByStatus[status]
   const statusCapitalized = capitalize(status)

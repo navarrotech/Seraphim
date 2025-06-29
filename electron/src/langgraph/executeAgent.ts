@@ -1,8 +1,8 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { ContextSnapshot, ToolFactory } from './types'
+import type { ContextSnapshot, ToolFactory, AgentOptions } from './types'
 import type { Messages } from '@langchain/langgraph'
-import type { DynamicStructuredTool } from '@langchain/core/tools'
+import type { DynamicStructuredTool, DynamicTool } from '@langchain/core/tools'
 
 // Core
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai'
@@ -18,32 +18,18 @@ import { v7 as uuid } from 'uuid'
 import { isEmpty } from 'lodash-es'
 import { conjoiner } from './utility/conjoiner'
 import { OPENAI_MED_MODEL } from '@common/constants'
+import { appendLanguageInstructions } from './utility/appendLanguageInstructions'
 
-// export type FunctionPointer = {
-//   absolutePath: string
-//   functionName: string
-// }
-
-// export type ActionContext = {
-//   id: string
-//   vscodeWorkspace: WorkspaceSource
-//   chromeLogs: ChromeLogPayload[]
-//   sourceFiles: Record<string, string>
-//   sourceFilePaths: FunctionPointer[]
-//   dockerLogsByContainer: Record<string, string[]>
-//   config: SeraphimProjectConfiguration
-//   startedAt: number
-// }
-
-export async function executeGraph(
+export async function executeAgent(
   messages: Messages = [],
   toolFactories: ToolFactory[],
-  shouldProceed: (snapshot: Readonly<ContextSnapshot>) => [ boolean, string ]
+  shouldProceed: (snapshot: Readonly<ContextSnapshot>) => [ boolean, string ],
+  options: AgentOptions = {}
 ) {
-  try {
-    const jobId = uuid()
-    const abortController = new AbortController()
+  const jobId = uuid()
 
+  try {
+    const abortController = new AbortController()
     const state = getState()
     console.log(state.data)
     const [ projectConfig, projectConfigPath ] = getProjectConfig()
@@ -71,7 +57,7 @@ export async function executeGraph(
     })
     const embeddings = new OpenAIEmbeddings()
 
-    const tools: DynamicStructuredTool[] = []
+    const tools: (DynamicStructuredTool | DynamicTool)[] = []
     for (const tool of toolFactories) {
       const result = tool(snapshot, llm, embeddings)
       if (!result) {
@@ -81,9 +67,9 @@ export async function executeGraph(
     }
 
     dispatch(
-      jobActions.setOpenAIToken({
-        jobId,
-        token: projectConfig.openAiApiToken
+      jobActions.addJob({
+        id: jobId,
+        controller: abortController
       })
     )
 
@@ -91,6 +77,19 @@ export async function executeGraph(
       llm,
       tools
     })
+
+    messages = appendLanguageInstructions(
+      messages,
+      snapshot,
+      options.languageInstructions
+    )
+
+    if (snapshot.projectConfig.additionalContext) {
+      messages.push({
+        role: 'human',
+        content: 'Additional project context from the user:\n' + snapshot.projectConfig.additionalContext
+      })
+    }
 
     // const finalResult = await agent.invoke({ messages }, {
     //   signal: abortController.signal,
@@ -123,6 +122,11 @@ export async function executeGraph(
   }
   catch (error) {
     console.error(`Graph execution failed: ${error.message}`)
+  }
+  finally {
+    dispatch(
+      jobActions.removeJob(jobId)
+    )
   }
 
   return null

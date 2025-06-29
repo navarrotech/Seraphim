@@ -39,11 +39,3 @@ export type WorkspaceSource = {
 }
 
 export type ActionKeys = typeof REGISTERED_ACTIONS[number]
-
-export type ProgrammingLanguage =
-  | 'typescript'
-  | 'javascript'
-  | 'typescript-react'
-  | 'javascript-react'
-  | 'python'
-  | 'other'

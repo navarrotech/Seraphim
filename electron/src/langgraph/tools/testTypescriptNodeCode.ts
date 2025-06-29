@@ -1,6 +1,6 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { ToolFactory, ContextSnapshot } from '../types'
+import type { ContextSnapshot } from '../types'
 
 // Core
 import { tool } from '@langchain/core/tools'
@@ -28,7 +28,7 @@ const schema = z.object({
 // Write a temporary javascript file into the user's workspace
 // And then run it using Node.js
 // Capture the stdout and return it as a string
-export function testTypescriptNodeCode(snapshot: ContextSnapshot): ToolFactory {
+export function testTypescriptNodeCode(snapshot: ContextSnapshot) {
   return tool(
     async (args: z.infer<typeof schema>) => {
       const { typescriptContent } = args
@@ -36,6 +36,24 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot): ToolFactory {
       if (typescriptContent.includes('writeFile')) {
         throw new Error(
           'Writing files is prohibited in this tool.'
+        )
+      }
+
+      if (typescriptContent.includes('process.env')) {
+        throw new Error(
+          'Accessing process.env is prohibited in this tool.'
+        )
+      }
+
+      if (typescriptContent.includes('dotenv')) {
+        throw new Error(
+          'Accessing .env files via dotenv is prohibited in this tool.'
+        )
+      }
+
+      if (typescriptContent.includes('.env')) {
+        throw new Error(
+          'Accessing .env files is prohibited in this tool.'
         )
       }
 
@@ -81,5 +99,5 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot): ToolFactory {
         + `This will run in a temporary file in the root of the user's workspace, on ${os.platform()}.`,
       schema
     }
-  ) as any // TODO: Fix this type assertion?
+  )
 }

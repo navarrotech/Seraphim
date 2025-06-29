@@ -47,4 +47,15 @@ describe('getSelection', () => {
       'Selection was not found in the full text.'
     )
   })
+
+  it('should expand partial selections to full lines', () => {
+    const fullText = 'line 1\nline 2\nline 3'
+    const selection = '2\nline'
+    const result = getSelection(fullText, selection)
+    expect(result).toEqual({
+      startLine: 1,
+      endLine: 2,
+      text: 'line 2\nline 3'
+    })
+  })
 })

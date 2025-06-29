@@ -9,6 +9,13 @@ export type AbsoluteFilePath = string
 export type Theme = 'light' | 'dark'
 export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
+export type ProgrammingLanguage =
+  | 'typescript'
+  | 'javascript'
+  | 'typescript-react'
+  | 'javascript-react'
+  | 'python'
+  | 'other'
 
 // ////////////////////////// //
 //          Seraphim          //
@@ -23,6 +30,12 @@ export type SeraphimProjectConfiguration = {
 //         Common Adv         //
 // ////////////////////////// //
 
+export type TextSelection = {
+  startLine: number
+  endLine: number
+  text: string
+}
+
 export type Workspace = {
   name: string
   path: string
@@ -32,7 +45,7 @@ export type VsCodeUserState = {
   workspaceName: string
   workspacePaths: Workspace[]
   focusedFilePath: AbsoluteFilePath | undefined
-  userTextSelection: string[]
+  userTextSelection: TextSelection[]
   lastActiveTime: number
 }
 

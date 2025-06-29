@@ -3,7 +3,7 @@
 import type { SeraphimProjectConfiguration } from '@common/types'
 import type { RootState } from '../lib/redux-store'
 import type { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai'
-import type { DynamicStructuredTool } from '@langchain/core/tools'
+import type { DynamicStructuredTool, DynamicTool } from '@langchain/core/tools'
 
 export type ContextSnapshot = {
   jobId: string
@@ -13,7 +13,17 @@ export type ContextSnapshot = {
 }
 
 export type ToolFactory = (
-  snapshot: ContextSnapshot,
+  snapshot: Readonly<ContextSnapshot>,
   llm: ChatOpenAI,
   embeddings: OpenAIEmbeddings
-) => DynamicStructuredTool<any>
+) => DynamicStructuredTool | DynamicTool
+
+export type LanguageSpecificInstructions = {
+  python?: string
+  typescript?: string
+  react?: string
+}
+
+export type AgentOptions = {
+  languageInstructions?: LanguageSpecificInstructions
+}

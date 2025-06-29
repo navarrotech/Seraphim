@@ -1,6 +1,6 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { ProgrammingLanguage } from '@/types'
+import type { ProgrammingLanguage } from './types'
 
 export function getLanguage(filePath: string): ProgrammingLanguage {
   if (filePath.endsWith('.py')) {
@@ -28,6 +28,13 @@ export function getLanguage(filePath: string): ProgrammingLanguage {
   }
 
   return 'other'
+}
+
+export function isPython(filePath: string): boolean {
+  const language = getLanguage(filePath)
+  return (
+    language === 'python'
+  )
 }
 
 export function isJavascriptish(filePath: string): boolean {

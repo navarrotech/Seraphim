@@ -1,6 +1,6 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { ToolFactory, ContextSnapshot } from '../types'
+import type { ContextSnapshot } from '../types'
 
 // Core
 import { tool } from '@langchain/core/tools'
@@ -26,7 +26,7 @@ const schema = z.object({
     )
 })
 
-export function readSourceCodeFile(snapshot: ContextSnapshot): ToolFactory {
+export function readTsFile(snapshot: ContextSnapshot) {
   return tool(
     async (args: z.infer<typeof schema>) => {
       const { filePath, filterExports } = args
@@ -68,10 +68,9 @@ export function readSourceCodeFile(snapshot: ContextSnapshot): ToolFactory {
       }
     },
     {
-      name: 'readSourceCodeFile',
+      name: 'readTsFile',
       description: 'Read the source code from a file at a specified path.',
       schema
     }
-    // TODO: Fix types?
-  ) as any
+  )
 }

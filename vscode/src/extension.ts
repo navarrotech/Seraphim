@@ -1,6 +1,6 @@
 // Copyright © 2025 Jalapeno Labs
 
-import type { WsToServerMessage, WsFromServerMessage, Workspace } from '@common/types'
+import type { WsToServerMessage, WsFromServerMessage, Workspace, TextSelection } from '@common/types'
 
 // Core
 import * as vscode from 'vscode'
@@ -170,7 +170,7 @@ function getFocusedFilePath(): string | undefined {
   return vscode.window.activeTextEditor?.document.uri.fsPath
 }
 
-function getAllTextSelections(): string[] {
+function getAllTextSelections(): TextSelection[] {
   // get the active editor (if there is one)
   const editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
   if (!editor) {
@@ -184,8 +184,21 @@ function getAllTextSelections(): string[] {
   }
 
   // pull the text for each selection
-  const selectedTexts: string[] = selections
-    .map((selection) => editor.document.getText(selection))
+  const selectedTexts: TextSelection[] = selections
+    .map((selection) => {
+      const fullLineSelection = new vscode.Selection(
+        selection.start.line,
+        0,
+        selection.end.line,
+        editor.document.lineAt(selection.end.line).text.length
+      )
+
+      return {
+        startLine: selection.start.line,
+        endLine: selection.end.line,
+        text: editor.document.getText(fullLineSelection)
+      }
+    })
 
   return selectedTexts
 }

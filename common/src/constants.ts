@@ -20,3 +20,23 @@ export const OPENAI_HIGH_MODEL: ChatModel = 'o3' as const
 export const OPENAI_MED_MODEL: ChatModel = 'o4-mini' as const
 // Fastest (4/5), lowest reasoning (3/5), cheapest ($0.4/m):
 export const OPENAI_LOW_MODEL: ChatModel = 'gpt-4.1-mini' as const
+
+export const COMMON_EXCLUDE_FILES = [
+  'node_modules',
+  '.git',
+  '.vite',
+  '.bin',
+  'dist',
+  'out',
+  'coverage',
+  'logs',
+  'temp',
+  'tmp'
+]
+
+export const FORBIDDEN_FILES = [
+  '.env',
+  '.git',
+  'yarn.lock',
+  'package-lock.json'
+]

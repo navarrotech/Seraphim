@@ -1,17 +1,14 @@
 // Copyright © 2025 Jalapeno Labs
-
-// shape of what we return
 type SelectionAtPosition = {
   startLine: number
   endLine: number
   text: string
 }
 
-// helper to count how many times a regex matches
+// helper to count newline matches
 function countMatches(haystack: string, needle: RegExp) {
   let count = 0
   let match: RegExpExecArray | null
-  // reset lastIndex in case the regex is stateful
   needle.lastIndex = 0
   while ((match = needle.exec(haystack))) {
     count++
@@ -23,33 +20,47 @@ function countMatches(haystack: string, needle: RegExp) {
   return count
 }
 
-// find the zero‐based start/end lines of `selection` inside `fullText`
+// get the zero‐based start/end lines, expanding to full lines
 export function getSelection(
   fullText: string,
   selection: string
 ): SelectionAtPosition {
-  // normalize all CRLFs to LFs so indexing stays consistent
-  const normalized = fullText.replace(/\r\n/g, '\n')
-  const selectionNormalized = selection.replace(/\r\n/g, '\n')
+  // normalize CRLF to LF
+  const normalizedFull = fullText.replace(/\r\n/g, '\n')
+  const normalizedSelection = selection.replace(/\r\n/g, '\n')
 
-  // find it in the normalized text
-  const startIndex = normalized.indexOf(selectionNormalized)
+  // find the selection start
+  const startIndex = normalizedFull.indexOf(normalizedSelection)
   if (startIndex === -1) {
     throw new Error('Selection was not found in the full text.')
   }
 
-  // how many line breaks before the selection? that’s startLine
-  const startLine = countMatches(normalized.slice(0, startIndex), /\n/g)
+  // expand backwards to start of containing line
+  const startOfLineIndex
+    = normalizedFull.lastIndexOf('\n', startIndex - 1) + 1
 
-  // how many lines does the selection itself span?
-  const lineCountInSelection = countMatches(selectionNormalized, /\n/g) + 1
+  // expand forwards to end of containing line
+  const endSearchIndex = startIndex + normalizedSelection.length
+  const nextNewline = normalizedFull.indexOf('\n', endSearchIndex)
+  const endOfLineIndex
+    = nextNewline !== -1 ? nextNewline : normalizedFull.length
 
-  // endLine is startLine plus that span minus one
-  const endLine = startLine + lineCountInSelection - 1
+  // pull out the full-line snippet
+  const snippet = normalizedFull.slice(startOfLineIndex, endOfLineIndex)
+
+  // compute zero-based line numbers
+  const startLine = countMatches(
+    normalizedFull.slice(0, startOfLineIndex),
+    /\n/g
+  )
+  const endLine = countMatches(
+    normalizedFull.slice(0, endOfLineIndex),
+    /\n/g
+  )
 
   return {
     startLine,
     endLine,
-    text: selection
+    text: snippet
   }
 }

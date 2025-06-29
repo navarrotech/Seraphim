@@ -3,20 +3,25 @@
 import type { ContextSnapshot } from '../types'
 
 import { tool } from '@langchain/core/tools'
-import { z } from 'zod'
 
 export function getUserTextSelection(snapshot: Readonly<ContextSnapshot>) {
   return tool(
     async () => {
+      const focusedFilePath = snapshot.state.data?.activeVsCodeState?.focusedFilePath
+      const userTextSelection = snapshot.state.data?.activeVsCodeState?.userTextSelection || []
+
+      if (!focusedFilePath || userTextSelection?.length === 0) {
+        throw new Error('The user doesn\'t have any code selected in VS Code.')
+      }
+
       return {
-        focusedFilePath: snapshot.state.data?.activeVsCodeState?.focusedFilePath,
-        userTextSelection: snapshot.state.data?.activeVsCodeState?.userTextSelection || []
+        focusedFilePath,
+        userTextSelection
       }
     },
     {
       name: 'getUserTextSelection',
-      description: 'Return the user\'s text selection in VS Code, at the time of the request.',
-      schema: z.object({})
+      description: 'Return the user\'s text selection in VS Code, at the time of the request.'
     }
   )
 }
