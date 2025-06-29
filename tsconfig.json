@@ -21,6 +21,7 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "jsx": "react-jsx",
     // Output
     "noEmit": true,
     // Linting
@@ -37,11 +38,7 @@
     }
   },
   "include": [
-    "electron/src",
-    "frontend/src",
-    "common/src",
-    "vscode/src",
-    "chrome/src",
+    "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",

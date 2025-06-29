@@ -24,8 +24,8 @@ export function resetConsole() {
   logVscodeWorkspaceStatus(state)
   logCurrentJobs(state)
 
-  logErrorOrWarning(state.data.errors, chalk.red, 'Errors:')
-  logErrorOrWarning(state.data.warnings, chalk.yellow, 'Warnings:')
+  // logErrorOrWarning(state.data.errors, chalk.red, 'Errors:')
+  // logErrorOrWarning(state.data.warnings, chalk.yellow, 'Warnings:')
 
   console.log('\n')
 }
@@ -72,15 +72,15 @@ function logCurrentJobs(state: RootState) {
   // TODO: Implement current jobs logging
 }
 
-function logErrorOrWarning(messages: Set<string>, color: ChalkInstance, prefix: string) {
-  if (!messages.size) {
-    return
-  }
-  console.error(prefix)
-  for (const error of messages) {
-    console.warn(`  - ${color(error)}`)
-  }
-}
+// function logErrorOrWarning(messages: Set<string>, color: ChalkInstance, prefix: string) {
+//   if (!messages.size) {
+//     return
+//   }
+//   console.error(prefix)
+//   for (const error of messages) {
+//     console.warn(`  - ${color(error)}`)
+//   }
+// }
 
 const colorByStatus: Record<SystemStatus, ChalkInstance> = {
   operational: chalk.green,

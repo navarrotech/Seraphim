@@ -69,23 +69,27 @@ export async function executeGraph(
 
     const tools = toolFactories.map((factory) => factory(snapshot, llm))
 
-    // dispatch(
-    //   jobActions.setOpenAIToken({
-    //     jobId,
-    //     token: projectConfig.openAiApiToken
-    //   })
-    // )
+    dispatch(
+      jobActions.setOpenAIToken({
+        jobId,
+        token: projectConfig.openAiApiToken
+      })
+    )
 
     const agent = createReactAgent({
       llm,
       tools
     })
 
-    return agent.invoke({ messages }, {
-    //   signal: abortController.signal
+    const finalResult = await agent.invoke({ messages }, {
+      signal: abortController.signal
     })
+
+    return finalResult
   }
   catch (error) {
     console.error(`Graph execution failed: ${error.message}`)
   }
+
+  return null
 }
