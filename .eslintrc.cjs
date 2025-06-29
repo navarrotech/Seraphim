@@ -186,6 +186,9 @@ module.exports = {
     // Google ES2015 limits the max length of lines to 80, 120 is more reasonable
     'max-len': ['error', { code: 120 }],
 
+    // Disable in general, but will override for typescript react files
+    'new-cap': 'off',
+
     //////////////////////////////////////////
     // Best practices
 
@@ -204,6 +207,12 @@ module.exports = {
       files: ['**/__test__/**/*.{js,ts}', '**/*.{test,spec}.{js,ts}'],
       rules: {
         'import/no-extraneous-dependencies': 'off'
+      }
+    },
+    {
+      files: ['*.{tsx,jsx}'],
+      rules: {
+        'new-cap': 'off',
       }
     },
     {

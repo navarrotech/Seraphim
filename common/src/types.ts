@@ -41,6 +41,11 @@ export type ChromeLogPayload = {
   message: string
 }
 
+export type LanggraphJob = {
+  id: string
+  controller: AbortController
+}
+
 // ////////////////////////// //
 //         WS Protocol        //
 // ////////////////////////// //

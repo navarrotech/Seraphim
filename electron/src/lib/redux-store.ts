@@ -8,6 +8,7 @@ import type { ThunkAction } from '@reduxjs/toolkit'
 
 // Reducers
 import { slice as data } from '../dataReducer'
+import { slice as jobs } from '../jobReducer'
 
 // /////////////////////// //
 //          Store          //
@@ -15,7 +16,8 @@ import { slice as data } from '../dataReducer'
 
 export const store = configureStore({
   reducer: {
-    data: data.reducer
+    data: data.reducer,
+    jobs: jobs.reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

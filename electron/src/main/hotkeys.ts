@@ -5,7 +5,8 @@ import chalk from 'chalk'
 import { globalShortcut } from 'electron'
 
 // Utility
-// import { getProjectAndLLM } from '../langgraph/getProjectAndLLM'
+import { createReactAgent } from '@langchain/langgraph/prebuilt'
+import { getProjectConfig } from '../langgraph/utility/getProjectConfig'
 
 // Available accelerators:
 // https://www.electronjs.org/docs/latest/api/accelerator#available-key-codes
@@ -65,7 +66,6 @@ Ctrl + Alt + Num* = ${chalk.blue('Apply copied style to selection and complete f
 
   // JSDoc selection
   globalShortcut.register('Control+Alt+num6', async () => {
-    // const [ llm, projectConfig, rootPath ] = await getProjectAndLLM()
   })
 
   // Analyze chrome/backend errors & fix
