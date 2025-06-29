@@ -40,3 +40,9 @@ export const FORBIDDEN_FILES = [
   'yarn.lock',
   'package-lock.json'
 ]
+
+export const IGNORE_CHROME_LOGS_MATCHES: string[] = [
+  'Download the React DevTools for a better development experience',
+  'If you want to write it to the DOM, pass a string instead',
+  '[vite]'
+]

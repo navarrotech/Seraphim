@@ -8,6 +8,7 @@ import type { DynamicStructuredTool, DynamicTool } from '@langchain/core/tools'
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai'
 import { getProjectConfig, validateConfig } from './utility/getProjectConfig'
 import { createReactAgent } from '@langchain/langgraph/prebuilt'
+import { osToast } from '../main/notify'
 
 // Redux
 import { dispatch, getState } from '../lib/redux-store'
@@ -107,7 +108,17 @@ export async function executeAgent(
     for await (const update of stream) {
       const { agent, tools, ...other } = update
       if (agent) {
-        console.log('🦜 From agent:', conjoiner(agent.messages as any))
+        const conjoined = conjoiner(agent.messages as any)
+        if (conjoined) {
+          console.log('🦜 From agent:', conjoined)
+          osToast({
+            title: 'Seraphim Agent',
+            body: conjoined
+          })
+        }
+        else {
+          console.log('🦜 Agent response:', agent.messages)
+        }
       }
       if (tools) {
         console.log('🔧 Tool response:', conjoiner(tools.messages as any))
