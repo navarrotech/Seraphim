@@ -4,7 +4,6 @@ import type { SeraphimProjectConfiguration } from '@common/types'
 
 // Core
 import hjson from 'hjson'
-import { OPENAI_API_KEY } from '../../env'
 
 // Node.js
 import { join } from 'path'
@@ -15,6 +14,7 @@ import { getAllRankedVsCodeWorkspaces } from './getAllRankedVsCodeWorkspaces'
 
 // Misc
 import { CONFIG_FILE_NAME } from '@common/constants'
+import { OPENAI_API_KEY } from '../../env'
 
 const defaultProjectConfig: SeraphimProjectConfiguration = {
   openAiApiToken: OPENAI_API_KEY
@@ -67,7 +67,7 @@ function searchDirectory(base: string): SeraphimProjectConfiguration | null {
   return validateConfig(unvalidatedConfig)
 }
 
-function validateConfig(config: Record<string, any>): SeraphimProjectConfiguration {
+export function validateConfig(config: Record<string, any>): SeraphimProjectConfiguration {
   if (!config.openAiApiToken) {
     throw new Error('OpenAI API token is required in the configuration.')
   }

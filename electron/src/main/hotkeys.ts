@@ -5,8 +5,8 @@ import chalk from 'chalk'
 import { globalShortcut } from 'electron'
 
 // Utility
-import { createReactAgent } from '@langchain/langgraph/prebuilt'
-import { getProjectConfig } from '../langgraph/utility/getProjectConfig'
+import { executeGraph } from '../langgraph/executeGraph'
+import { getUserTextSelection } from '../langgraph/tools/getUserTextSelection'
 
 // Available accelerators:
 // https://www.electronjs.org/docs/latest/api/accelerator#available-key-codes
@@ -66,6 +66,34 @@ Ctrl + Alt + Num* = ${chalk.blue('Apply copied style to selection and complete f
 
   // JSDoc selection
   globalShortcut.register('Control+Alt+num6', async () => {
+    const agent = await executeGraph(
+      [
+        {
+          role: 'user',
+          content: 'Take the user\'s text selection in VSCode and generate a JSDoc comment for it.'
+        }
+      ],
+      [ getUserTextSelection ],
+      (snapshot) => {
+        const hasSelection = !!snapshot.state.data.activeVsCodeState?.userTextSelection?.length
+
+        if (!hasSelection) {
+          return [ false, 'Cannot run JSDoc command without an active VSCode text selection.' ]
+        }
+
+        const selection = snapshot.state.data.activeVsCodeState.userTextSelection.join(' ').trim()
+
+        // TODO: Support classes and function methods in the future?
+        if (!selection.includes('function')) {
+          return [ false, 'Cannot run JSDoc command on a selection that does not include a function.' ]
+        }
+
+        return [ true, '' ]
+      }
+    )
+
+    console.log('JSDoc command executed successfully!')
+    console.log(agent.messages)
   })
 
   // Analyze chrome/backend errors & fix

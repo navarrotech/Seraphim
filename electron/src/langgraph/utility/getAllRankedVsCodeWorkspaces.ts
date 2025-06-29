@@ -6,7 +6,9 @@ export function getAllRankedVsCodeWorkspaces(): string[] {
   const state = getState()
 
   const allVscodeStates = [
-    ...Object.values(state.data.vsCodeConnectionsByWorkspace)
+    // Temporarily commenting out, so it's not used
+    // Edge case: the user is selecting something in a workspace without a config?
+    // ...Object.values(state.data.vsCodeConnectionsByWorkspace)
   ]
 
   // Put the most active workspace at the top

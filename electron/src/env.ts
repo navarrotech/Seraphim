@@ -1,6 +1,8 @@
 // Copyright © 2025 Jalapeno Labs
 
 import 'dotenv/config'
+import dotenv from 'dotenv'
+import { resolve } from 'path'
 
 function isDev() {
   if (!process.mainModule) {
@@ -11,6 +13,13 @@ function isDev() {
 
 export const isProduction = !isDev()
 console.info('Running in production mode:', isProduction)
+
+// In dev, the environment variables are loaded from the parent directory
+if (!isProduction) {
+  dotenv.config({
+    path: resolve(process.cwd(), '..', '.env')
+  })
+}
 
 // This is NOT required, but it is used as the "default" API key
 // If not set, the it will need to be defined in the seraphim config file per-project

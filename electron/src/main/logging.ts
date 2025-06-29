@@ -9,11 +9,11 @@ import logger from 'electron-log/main'
 import chalk from 'chalk'
 
 // Redux
-import { dispatch } from '../lib/redux-store'
-import { dataActions } from '../dataReducer'
+// import { dispatch } from '../lib/redux-store'
+// import { dataActions } from '../dataReducer'
 
 // Utility
-import { stringify } from '@common/stringify'
+// import { stringify } from '@common/stringify'
 import { isProduction } from '../env'
 
 // By default, logs are written to the following locations:
@@ -67,20 +67,20 @@ logger.hooks.push((message, transport) => {
 })
 
 // Hook into all errors
-logger.hooks.push((message) => {
-  if (message.level === 'warn') {
-    dispatch(
-      dataActions.pushWarning(
-        stringify(message)
-      )
-    )
-  }
-  if (message.level === 'error') {
-    dispatch(
-      dataActions.pushError(
-        stringify(message)
-      )
-    )
-  }
-  return message
-})
+// logger.hooks.push((message) => {
+//   if (message.level === 'warn') {
+//     dispatch(
+//       dataActions.pushWarning(
+//         stringify(message)
+//       )
+//     )
+//   }
+//   if (message.level === 'error') {
+//     dispatch(
+//       dataActions.pushError(
+//         stringify(message)
+//       )
+//     )
+//   }
+//   return message
+// })

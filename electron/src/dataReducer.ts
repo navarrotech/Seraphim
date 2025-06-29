@@ -13,8 +13,8 @@ import type {
 } from '@common/types'
 
 export type DataState = {
-  errors: Set<string>
-  warnings: Set<string>
+  // errors: Set<string>
+  // warnings: Set<string>
   serverStatus: SystemStatus
   chromeLogsByPage: Record<string, ChromeLogPayload[]>
   activeVsCodeState: VsCodeUserState | null
@@ -22,8 +22,8 @@ export type DataState = {
 }
 
 const initialState: DataState = {
-  errors: new Set(),
-  warnings: new Set(),
+  // errors: new Set(),
+  // warnings: new Set(),
   serverStatus: 'offline',
   chromeLogsByPage: {},
   activeVsCodeState: null,
@@ -74,12 +74,12 @@ export const slice = createSlice({
     setServerStatus: (state, action: PayloadAction<SystemStatus>) => {
       state.serverStatus = action.payload
     },
-    pushError: (state, action: PayloadAction<string>) => {
-      state.errors.add(action.payload)
-    },
-    pushWarning: (state, action: PayloadAction<string>) => {
-      state.warnings.add(action.payload)
-    },
+    // pushError: (state, action: PayloadAction<string>) => {
+    //   state.errors.add(action.payload)
+    // },
+    // pushWarning: (state, action: PayloadAction<string>) => {
+    //   state.warnings.add(action.payload)
+    // },
     resetData: () => ({
       ...initialState
     })

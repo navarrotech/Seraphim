@@ -16,6 +16,7 @@ export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 
 export type SeraphimProjectConfiguration = {
   openAiApiToken?: string
+  additionalContext?: string
 }
 
 // ////////////////////////// //
