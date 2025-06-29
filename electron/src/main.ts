@@ -9,7 +9,6 @@ import { initExtensions } from './main/extensions'
 // Lib
 import squirrelStartup from 'electron-squirrel-startup'
 import windowStateKeeper from 'electron-window-state'
-import logger from 'electron-log/main'
 import serve from 'electron-serve'
 import chalk from 'chalk'
 
@@ -60,7 +59,7 @@ if (!isProduction) {
 
 let isShuttingDown = false
 async function gracefulShutdown() {
-  logger.info(
+  console.info(
     chalk.yellow('Graceful shutdown initiated')
   )
   // Prevent multiple calls to this function
@@ -75,7 +74,7 @@ async function gracefulShutdown() {
     app.quit()
   ])
 
-  logger.info(
+  console.info(
     chalk.green('Graceful shutdown complete')
   )
   process.exit(0)
@@ -86,15 +85,15 @@ process.on('SIGTERM', gracefulShutdown)
 process.on('exit', gracefulShutdown)
 process.on('uncaughtException', async function ElectronGracefulShutdown(err: any) {
   if (err) {
-    logger.log('Crashed', err)
+    console.log('Crashed', err)
   }
 
   try {
-    logger.error('Fatal Electron crash', JSON.stringify(process.versions))
+    console.error('Fatal Electron crash', JSON.stringify(process.versions))
   }
   catch (error) {
     // eslint-disable-next-line no-console
-    logger.error('Fatal error logging failed', error)
+    console.error('Fatal error logging failed', error)
   }
   await gracefulShutdown()
 })
@@ -118,7 +117,7 @@ async function startup() {
   await startServer()
   registerHotkeys()
 
-  logger.info('Spawning main window')
+  console.info('Spawning main window')
 
   // Load the previous state with fallback to defaults
   const windowStateManager = windowStateKeeper({
@@ -158,7 +157,7 @@ async function startup() {
   window.webContents.on('will-navigate', (event, url) => {
     // if navigating away from your app’s origin
     if (url !== window.webContents.getURL()) {
-      logger.info('Intercepting navigation to external link:', url)
+      console.info('Intercepting navigation to external link:', url)
       event.preventDefault()
       shell.openExternal(url)
     }
@@ -188,14 +187,16 @@ async function startup() {
 
   // https://www.electronjs.org/docs/latest/api/app#appispackaged-readonly
   if (isProduction) {
-    logger.info('Serving production static build files')
+    console.info('Serving production static build files')
     // Loads the index.html and other files for the app.
     loadDirectory(window)
   }
   else {
-    logger.info(`Content: ${chalk.blue(FRONTEND_URL)}`)
+    console.info(`Content: ${chalk.blue(FRONTEND_URL)}`)
     // Load the dev server:
     window.loadURL(FRONTEND_URL)
+    // Open dev tools
+    window.webContents.openDevTools()
   }
 
   if (windowStateManager.isMaximized) {

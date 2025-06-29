@@ -3,52 +3,41 @@
 /* eslint-disable no-console */
 
 // Typescript
+import { stringify } from '@common/stringify'
 import type { LogLevel } from '@common/types'
-import type { BridgedLogFunction } from '@common/types'
 
-class Logger {
-  private transport: BridgedLogFunction
+// ////////////////////////////
+// Monkey-patch console methods
+// ////////////////////////////
 
-  constructor() {
-    if (!window.electron?.log) {
-      console.warn('Electron log binding is not available.')
-      this.transport = () => {
-        // No-op transport if electron log is not available
-      }
-      return
+if (window.electron.log) {
+  const methods: LogLevel[] = [ 'log', 'info', 'debug', 'warn', 'error' ]
+
+  methods.forEach((level) => {
+  // Keep a reference to the original
+    const original = console[level] as (...args: unknown[]) => void
+
+    console[level] = (...args: unknown[]) => {
+    // Turn args into a single string
+      const message = stringify(...args)
+
+      window.electron.log(level, message)
+
+      // Still log to the real console
+      original.apply(console, args)
     }
+  })
 
-    this.transport = window.electron.log.bind(window.electron)
-  }
+  window.addEventListener('error', (event) => {
+    const message = stringify(event.error)
+    window.electron.log('error', message)
+  })
 
-  private call(level: LogLevel, ...msgs: unknown[]) {
-    console[level](...msgs)
-    this.transport(level, ...msgs)
-  }
-
-  public log(...msgs: unknown[]): void {
-    this.call('log', ...msgs)
-  }
-  public warn(...msgs: unknown[]): void {
-    this.call('warn', ...msgs)
-  }
-  public error(...msgs: unknown[]): void {
-    this.call('error', ...msgs)
-  }
-  public info(...msgs: unknown[]): void {
-    this.call('info', ...msgs)
-  }
-  public debug(...msgs: unknown[]): void {
-    this.call('debug', ...msgs)
-  }
+  window.addEventListener('unhandledrejection', (event) => {
+    const message = stringify(event.reason)
+    window.electron.log('error', message)
+  })
 }
-
-window.logger = new Logger()
-
-// Apply the global type!
-declare global {
-  interface Window {
-    logger: Logger
-  }
-  const logger: Logger
+else {
+  console.warn('Electron log binding is not available. Console logging will not be sent to the main process.')
 }

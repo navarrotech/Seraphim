@@ -3,7 +3,6 @@
 // Core
 import chalk from 'chalk'
 import { globalShortcut } from 'electron'
-import logger from 'electron-log'
 
 // Available accelerators:
 // https://www.electronjs.org/docs/latest/api/accelerator#available-key-codes
@@ -33,7 +32,7 @@ Ctrl + Alt + Num* = Apply copied style to selection and complete function (TODO)
     console.log('Hotkey Control+Alt+num1 pressed!')
   })
 
-  logger.log(
+  console.log(
     chalk.green('Registered hotkeys!')
   )
 }

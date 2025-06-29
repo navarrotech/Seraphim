@@ -19,9 +19,12 @@ import { stringify } from '@common/stringify'
 // on Linux: ~/.config/{app name}/logs/main.log
 // on macOS: ~/Library/Logs/{app name}/main.log
 // on Windows: %USERPROFILE%\AppData\Roaming\{app name}\logs\main.log
+logger.transports.file.maxSize = 1 * 1024 * 1024 // 1 MB (default is 1 mb)
 logger.initialize()
+logger.errorHandler.startCatching()
 
-const reset = chalk.reset()
+Object.assign(console, logger.functions)
+
 const colorByLogLevel: Record<LogLevel, ChalkInstance> = {
   'log': chalk.cyan,
   'info': chalk.blue,
@@ -30,29 +33,47 @@ const colorByLogLevel: Record<LogLevel, ChalkInstance> = {
   'debug': chalk.gray
 }
 
+// Capture log events from the renderer process
 ipcMain.on('log', (_, { level, message, from }: IpcLogEvent) => {
-  logger[level](`[${from}]: ${colorByLogLevel[level](message)}${reset}`)
+  console.log(`[${from} !!]: ${message}`)
+  logger.transports.file({
+    date: new Date(),
+    level: level as any,
+    data: [ `[${from}]: ${message}` ]
+  })
 })
 
-logger.hooks = [
-  ...logger.hooks,
-  (message) => {
-    if (message?.level === 'warn') {
-      dispatch(
-        dataActions.pushWarning(
-          stringify(...message.data)
-        )
-      )
-    }
-    if (message?.level === 'error') {
-      dispatch(
-        dataActions.pushError(
-          stringify(...message.data)
-        )
-      )
-    }
-    return message
-  }
-]
 
-logger.errorHandler.startCatching()
+// Log Seraphim messages to the console
+logger.hooks.push((message, transport) => {
+  if (transport === logger.transports.console) {
+    // clone to avoid mutating the original array (used by other transports)
+    const data = [ ...message.data ]
+    // colorize only string args
+    message.data = data.map((item) =>
+      typeof item === 'string'
+        ? colorByLogLevel[message.level](item)
+        : item
+    )
+  }
+  return message
+})
+
+// Hook into all errors
+logger.hooks.push((message) => {
+  if (message.level === 'warn') {
+    dispatch(
+      dataActions.pushWarning(
+        stringify(message)
+      )
+    )
+  }
+  if (message.level === 'error') {
+    dispatch(
+      dataActions.pushError(
+        stringify(message)
+      )
+    )
+  }
+  return message
+})

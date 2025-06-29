@@ -6,7 +6,6 @@ import type { ChalkInstance } from 'chalk'
 
 // Core
 import chalk from 'chalk'
-import logger from 'electron-log'
 import { getState } from '../lib/redux-store'
 
 // Utiltiy
@@ -28,27 +27,27 @@ export function resetConsole() {
   logErrorOrWarning(state.data.errors, chalk.red, 'Errors:')
   logErrorOrWarning(state.data.warnings, chalk.yellow, 'Warnings:')
 
-  logger.log('\n')
+  console.log('\n')
 }
 
 function logServerStatus(state: RootState) {
   const { serverStatus } = state.data
-  logger.log(`+ Server on port ${PORT}: ${colorStatus(serverStatus)}`)
+  console.log(`+ Server on port ${PORT}: ${colorStatus(serverStatus)}`)
 }
 
 // function logDatabaseStatus(state: RootState) {
 //   const { databaseName } = state.data
-//   logger.log(`Database connected: ${chalk.blue(databaseName)}`)
+//   console.log(`Database connected: ${chalk.blue(databaseName)}`)
 // }
 
 function logChromeLoggingStatus(state: RootState) {
   const { chromeLogsByPage } = state.data
 
   const totalPages = Object.keys(chromeLogsByPage).length
-  logger.log(`+ Chrome: ${chalk.blue(totalPages)} pages connected`)
+  console.log(`+ Chrome: ${chalk.blue(totalPages)} pages connected`)
 
   for (const [ source, logs ] of Object.entries(chromeLogsByPage)) {
-    logger.log(`  > ${logs.length} logs total from ${chalk.blue(source)}`)
+    console.log(`  > ${logs.length} logs total from ${chalk.blue(source)}`)
   }
 }
 
@@ -56,13 +55,13 @@ function logVscodeWorkspaceStatus(state: RootState) {
   const { activeVsCodeState, vsCodeConnectionsByWorkspace } = state.data
 
   const totalConnections = Object.keys(vsCodeConnectionsByWorkspace).length
-  logger.log(`+ VS Code: ${chalk.blue(totalConnections)} workspaces connected`)
+  console.log(`+ VS Code: ${chalk.blue(totalConnections)} workspaces connected`)
 
   for (const [ workspaceName ] of Object.entries(vsCodeConnectionsByWorkspace)) {
-    logger.log(`  > ${chalk.blue(workspaceName)} connected`)
+    console.log(`  > ${chalk.blue(workspaceName)} connected`)
   }
 
-  logger.log(`+ Target VsCode workspace: ${activeVsCodeState
+  console.log(`+ Target VsCode workspace: ${activeVsCodeState
     ? chalk.blue(activeVsCodeState.workspaceName)
     : 'None'}
   `.trim())
@@ -77,9 +76,9 @@ function logErrorOrWarning(messages: Set<string>, color: ChalkInstance, prefix: 
   if (!messages.size) {
     return
   }
-  logger.error(prefix)
+  console.error(prefix)
   for (const error of messages) {
-    logger.warn(`  - ${color(error)}`)
+    console.warn(`  - ${color(error)}`)
   }
 }
 
@@ -94,7 +93,7 @@ export function colorStatus(status: SystemStatus) {
   const whichChalk = colorByStatus[status]
   const statusCapitalized = capitalize(status)
   if (!whichChalk) {
-    logger.warn(`Unknown status: ${status}. Defaulting to gray.`)
+    console.warn(`Unknown status: ${status}. Defaulting to gray.`)
     return chalk.gray(statusCapitalized)
   }
   return whichChalk(statusCapitalized)

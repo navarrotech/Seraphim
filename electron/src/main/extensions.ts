@@ -9,7 +9,6 @@ import fs from 'node:fs'
 
 // Misc
 import { extensionsDir } from '../lib/internalFiles'
-import logger from 'electron-log'
 
 export async function initExtensions(session: Session) {
   // Sanity check to ensure the extensions directory exists
@@ -19,7 +18,7 @@ export async function initExtensions(session: Session) {
 
   // Ensure it's a directory
   if (!fs.statSync(extensionsDir).isDirectory()) {
-    logger.warn(`Expected extensions directory at ${extensionsDir} but found a file instead.`)
+    console.warn(`Expected extensions directory at ${extensionsDir} but found a file instead.`)
     return
   }
 
@@ -36,10 +35,10 @@ export async function initExtensions(session: Session) {
         extensionPath,
         { allowFileAccess: true }
       )
-      logger.info(`Loaded extension: ${child.name}`)
+      console.info(`Loaded extension: ${child.name}`)
     }
     catch (error) {
-      logger.error(`Failed to load extension ${child.name}:`, error)
+      console.error(`Failed to load extension ${child.name}:`, error)
     }
   }
 }

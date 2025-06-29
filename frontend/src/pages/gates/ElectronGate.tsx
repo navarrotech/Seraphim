@@ -16,7 +16,7 @@ export function ElectronGate(props: Props) {
     </div>
   }
 
-  logger.log('🔌 Electron connection established.')
+  console.log('🔌 Electron connection established.')
 
   return props.children
 }

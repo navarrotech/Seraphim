@@ -9,7 +9,6 @@ import expressWs from 'express-ws'
 import http from 'http'
 
 // Lib
-import logger from 'electron-log'
 import { safeParseJson } from '@common/json'
 
 // Redux
@@ -37,7 +36,7 @@ app.ws('/seraphim/:sourceName/chrome', (websocket, request) => {
   websocket.on('message', (event) => {
     const asJson: WsToServerMessage<'chrome'> = safeParseJson(event.toString())
     if (!asJson) {
-      logger.error('Received invalid JSON from Chrome WebSocket:', event.toString())
+      console.error('Received invalid JSON from Chrome WebSocket:', event.toString())
       return
     }
 
@@ -63,7 +62,7 @@ app.ws('/seraphim/:sourceName/vscode', (websocket, request) => {
   websocket.on('message', (event) => {
     const asJson: WsToServerMessage<'vscode'> = safeParseJson(event.toString())
     if (!asJson) {
-      logger.error('Received invalid JSON from VS Code WebSocket:', event.toString())
+      console.error('Received invalid JSON from VS Code WebSocket:', event.toString())
       return
     }
 
@@ -83,20 +82,20 @@ app.ws('/seraphim/:sourceName/vscode', (websocket, request) => {
 let net: http.Server
 export async function startServer() {
   if (net) {
-    logger.warn(chalk.redBright('Server is already running.'))
+    console.warn(chalk.redBright('Server is already running.'))
     return null
   }
 
   return new Promise((resolve, reject) => {
     function onError(error: Error) {
       server.off('error', onError)
-      logger.error(chalk.red('Failed to start server:'), error)
+      console.error(chalk.red('Failed to start server:'), error)
       reject(error)
     }
     server.on('error', onError)
 
     net = server.listen(PORT, () => {
-      logger.log(chalk.green(`Server is running on port ${PORT}`))
+      console.log(chalk.green(`Server is running on port ${PORT}`))
       resolve(true)
     })
   })
@@ -104,12 +103,12 @@ export async function startServer() {
 
 export function stopServer() {
   if (!net) {
-    logger.warn(chalk.redBright('Cannot stop server, server is not running.'))
+    console.warn(chalk.redBright('Cannot stop server, server is not running.'))
     return
   }
 
   net.close(() => {
-    logger.log(chalk.green('Server has been stopped.'))
+    console.log(chalk.green('Server has been stopped.'))
     net = null
   })
 }

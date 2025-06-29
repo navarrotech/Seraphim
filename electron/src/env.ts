@@ -1,7 +1,5 @@
 // Copyright © 2025 Jalapeno Labs
 
-import logger from 'electron-log'
-
 function isDev() {
   if (!process.mainModule) {
     return true
@@ -10,4 +8,4 @@ function isDev() {
 }
 
 export const isProduction = !isDev()
-logger.info('Running in production mode:', isProduction)
+console.info('Running in production mode:', isProduction)

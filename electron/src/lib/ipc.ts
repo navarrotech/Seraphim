@@ -2,7 +2,6 @@
 
 import type { WebFrameMain } from 'electron'
 import { isProduction } from '../env'
-import logger from 'electron-log'
 
 // Why we do this:
 // https://www.electronjs.org/docs/latest/tutorial/security#17-validate-the-sender-of-all-ipc-messages
@@ -17,7 +16,7 @@ export function validateIpc(frame: WebFrameMain) {
   isValid = isValid || (url.hostname === 'electron' && url.protocol === 'app:')
 
   if (!isValid) {
-    logger.warn(
+    console.warn(
       `Blocked invalid IPC request from ${url.host}.`
     )
   }

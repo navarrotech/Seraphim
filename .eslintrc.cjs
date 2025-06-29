@@ -203,8 +203,7 @@ module.exports = {
     {
       files: ['**/__test__/**/*.{js,ts}', '**/*.{test,spec}.{js,ts}'],
       rules: {
-        'import/no-extraneous-dependencies': 'off',
-        'no-console': 'off',
+        'import/no-extraneous-dependencies': 'off'
       }
     },
     {
@@ -212,8 +211,7 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-require-imports': 'off',
         'import/no-default-export': 'off',
-        'no-undef': 'off',
-        'no-console': 'off',
+        'no-undef': 'off'
       }
     }
   ],
