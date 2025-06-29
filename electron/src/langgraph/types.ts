@@ -26,4 +26,5 @@ export type LanguageSpecificInstructions = {
 
 export type AgentOptions = {
   languageInstructions?: LanguageSpecificInstructions
+  shouldProceed?: (snapshot: Readonly<ContextSnapshot>) => [ boolean, string ]
 }

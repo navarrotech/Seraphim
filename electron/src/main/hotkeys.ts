@@ -6,6 +6,8 @@ import { globalShortcut } from 'electron'
 
 // Utility
 import { addJSDoc } from '../commands/addJSDoc'
+import { rewriteSelectedText } from '../commands/rewriteSelectedTExt'
+import { explainMyTextSelection } from '../commands/explainMyTextSelection'
 
 // Available accelerators:
 // https://www.electronjs.org/docs/latest/api/accelerator#available-key-codes
@@ -19,11 +21,11 @@ ${chalk.cyanBright('# Seraphim Hotkeys')}
 
 Ctrl + Alt = Num- = ${chalk.blue('Show this help message')}
 Ctrl + Alt + Num0 = ${chalk.blue('Cancel last task on stack')} (TODO)
-Ctrl + Alt + Num1 = ${chalk.blue('Explain selected text')} (TODO)
+Ctrl + Alt + Num1 = ${chalk.blue('Explain selected text')}
 Ctrl + Alt + Num2 = ${chalk.blue('Suggest alternatives for selected text')} (TODO)
 Ctrl + Alt + Num3 = ${chalk.blue('Move selected function to a dedicated file')} (TODO)
 Ctrl + Alt + Num4 = ${chalk.blue('Finish writing selected function')} (TODO)
-Ctrl + Alt + Num5 = ${chalk.blue('Rewrite selected text')} (TODO)
+Ctrl + Alt + Num5 = ${chalk.blue('Rewrite selected text')}
 Ctrl + Alt + Num6 = ${chalk.blue('JSDoc selection')}
 Ctrl + Alt + Num7 = ${chalk.blue('Analyze chrome/backend errors & fix')} (TODO)
 Ctrl + Alt + Num8 = ${chalk.blue('')}
@@ -39,9 +41,7 @@ Ctrl + Alt + Num* = ${chalk.blue('Apply copied style to selection and complete f
   })
 
   // Explain selected text
-  globalShortcut.register('Control+Alt+num1', async () => {
-    console.log('Explain command requested, but not implemented!')
-  })
+  globalShortcut.register('Control+Alt+num1', explainMyTextSelection)
 
   // Suggest alternatives for selected text
   globalShortcut.register('Control+Alt+num2', async () => {
@@ -58,12 +58,7 @@ Ctrl + Alt + Num* = ${chalk.blue('Apply copied style to selection and complete f
     console.log('Finish function command requested, but not implemented!')
   })
 
-  // Rewrite selected text
-  globalShortcut.register('Control+Alt+num5', async () => {
-    console.log('Rewrite command requested, but not implemented!')
-  })
-
-  // JSDoc selection
+  globalShortcut.register('Control+Alt+num5', rewriteSelectedText)
   globalShortcut.register('Control+Alt+num6', addJSDoc)
 
   // Analyze chrome/backend errors & fix

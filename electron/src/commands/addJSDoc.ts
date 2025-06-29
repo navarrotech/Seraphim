@@ -84,28 +84,28 @@ export async function addJSDoc() {
       }
     ],
     [ getUserTextSelection, findAndReplaceTextInFile, readFileTool, getProjectContext, readTsFile ],
-    (snapshot) => {
-      const inactiveWorkspaceError = ensureActiveWorkspace(snapshot)
-      if (inactiveWorkspaceError) {
-        return [ false, inactiveWorkspaceError ]
-      }
-
-      const selection = snapshot.state.data.activeVsCodeState.userTextSelection
-        .map((line) => line.text.trim())
-        .join(' ')
-        .trim()
-
-      // TODO: Support classes and function methods in the future?
-      if (!selection.includes('function')) {
-        return [ false, 'Cannot run JSDoc command on a selection that does not include a function.' ]
-      }
-
-      return [ true, '' ]
-    },
     {
       languageInstructions: {
         python: DeveloperPromptPython,
         typescript: DeveloperPromptTypescript
+      },
+      shouldProceed: (snapshot) => {
+        const inactiveWorkspaceError = ensureActiveWorkspace(snapshot)
+        if (inactiveWorkspaceError) {
+          return [ false, inactiveWorkspaceError ]
+        }
+
+        const selection = snapshot.state.data.activeVsCodeState.userTextSelection
+          .map((line) => line.text.trim())
+          .join(' ')
+          .trim()
+
+        // TODO: Support classes and function methods in the future?
+        if (!selection.includes('function')) {
+          return [ false, 'Cannot run JSDoc command on a selection that does not include a function.' ]
+        }
+
+        return [ true, '' ]
       }
     }
   )

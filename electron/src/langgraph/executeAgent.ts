@@ -20,14 +20,15 @@ import { isEmpty } from 'lodash-es'
 import { conjoiner } from './utility/conjoiner'
 import { OPENAI_MED_MODEL } from '@common/constants'
 import { appendLanguageInstructions } from './utility/appendLanguageInstructions'
+import { Timer } from '@common/timer'
 
 export async function executeAgent(
   messages: Messages = [],
   toolFactories: ToolFactory[],
-  shouldProceed: (snapshot: Readonly<ContextSnapshot>) => [ boolean, string ],
   options: AgentOptions = {}
 ) {
   const jobId = uuid()
+  const timer = new Timer('Job')
 
   try {
     const abortController = new AbortController()
@@ -46,10 +47,12 @@ export async function executeAgent(
       state
     })
 
-    const [ canProceed, errorMessage ] = shouldProceed(snapshot)
-    if (!canProceed) {
-      console.warn(`Graph execution aborted: ${errorMessage}`)
-      return null
+    if (options.shouldProceed) {
+      const [ canProceed, errorMessage ] = options.shouldProceed(snapshot)
+      if (!canProceed) {
+        console.warn(`Graph execution aborted: ${errorMessage}`)
+        return null
+      }
     }
 
     const llm = new ChatOpenAI({
@@ -138,6 +141,7 @@ export async function executeAgent(
     dispatch(
       jobActions.removeJob(jobId)
     )
+    timer.stop()
   }
 
   return null

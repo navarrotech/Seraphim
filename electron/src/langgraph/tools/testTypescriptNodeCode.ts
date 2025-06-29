@@ -51,6 +51,12 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot) {
         )
       }
 
+      if (typescriptContent.includes('child_process')) {
+        throw new Error(
+          'Accessing child_process is prohibited in this tool.'
+        )
+      }
+
       if (typescriptContent.includes('.env')) {
         throw new Error(
           'Accessing .env files is prohibited in this tool.'
