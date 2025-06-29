@@ -31,6 +31,7 @@ jobs:
 
       # This gets proxied using the Seraphim root package.json, to the Microsoft package.json
       - name: Install dependencies
+        if: steps.cacheNodeModules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
   test:

@@ -14,6 +14,8 @@ import { jobActions } from '../jobReducer'
 
 // Misc
 import { v7 as uuid } from 'uuid'
+import { isEmpty } from 'lodash-es'
+import { conjoiner } from './utility/conjoiner'
 import { OPENAI_MED_MODEL } from '@common/constants'
 
 // export type FunctionPointer = {
@@ -81,11 +83,34 @@ export async function executeGraph(
       tools
     })
 
-    const finalResult = await agent.invoke({ messages }, {
-      signal: abortController.signal
+    // const finalResult = await agent.invoke({ messages }, {
+    //   signal: abortController.signal,
+    //   debug: true
+    // })
+
+    const stream = await agent.stream({ messages }, {
+      signal: abortController.signal,
+      streamMode: 'updates',
+      recursionLimit: 50,
+      debug: true
     })
 
-    return finalResult
+    const responses = []
+    for await (const update of stream) {
+      const { agent, tools, ...other } = update
+      if (agent) {
+        console.log('🦜 From agent:', conjoiner(agent.messages as any))
+      }
+      if (tools) {
+        console.log('🔧 Tool response:', conjoiner(tools.messages as any))
+      }
+      if (!isEmpty(other)) {
+        console.log('🦜 Other updates:', other)
+      }
+      responses.push(update.messages)
+    }
+
+    return responses
   }
   catch (error) {
     console.error(`Graph execution failed: ${error.message}`)
