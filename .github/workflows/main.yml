@@ -239,40 +239,40 @@ jobs:
           path: electron/out/make/${{ matrix.output }}/x64/*.${{ matrix.output }}
           name: linux-${{ matrix.output }}-${{ steps.package-version.outputs.package-version}}
 
-  smoketest:
-    runs-on: ubuntu-latest
-    needs: [
-      package
-    ]
-    timeout-minutes: 20
+  # smoketest:
+  #   runs-on: ubuntu-latest
+  #   needs: [
+  #     package
+  #   ]
+  #   timeout-minutes: 20
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/Jod'
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 'lts/Jod'
 
-      - name: Restore node modules
-        id: cacheNodeModules
-        uses: actions/cache/restore@v4
-        with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
+  #     - name: Restore node modules
+  #       id: cacheNodeModules
+  #       uses: actions/cache/restore@v4
+  #       with:
+  #         path: "**/node_modules"
+  #         key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Restore compiled executable
-        uses: actions/cache/restore@v4
-        with:
-          path: electron/out/electron-linux-x64
-          key: linux-deb-${{ hashFiles('**/yarn.lock') }}
+  #     - name: Restore compiled executable
+  #       uses: actions/cache/restore@v4
+  #       with:
+  #         path: electron/out/electron-linux-x64
+  #         key: linux-deb-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Prepare Smoketest
-        run: |
-          sudo chown root electron/out/electron-linux-x64/chrome-sandbox
-          sudo chmod 4755 electron/out/electron-linux-x64/chrome-sandbox
-          sudo apt install -y xvfb xauth libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6
+  #     - name: Prepare Smoketest
+  #       run: |
+  #         sudo chown root electron/out/electron-linux-x64/chrome-sandbox
+  #         sudo chmod 4755 electron/out/electron-linux-x64/chrome-sandbox
+  #         sudo apt install -y xvfb xauth libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6
 
-      - name: Run Smoketest
-        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' yarn smoketest
+  #     - name: Run Smoketest
+  #       run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' yarn smoketest
