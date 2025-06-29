@@ -11,6 +11,14 @@ export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 
 // ////////////////////////// //
+//          Seraphim          //
+// ////////////////////////// //
+
+export type SeraphimProjectConfiguration = {
+  openAiApiToken?: string
+}
+
+// ////////////////////////// //
 //         Common Adv         //
 // ////////////////////////// //
 
@@ -24,6 +32,7 @@ export type VsCodeUserState = {
   workspacePaths: Workspace[]
   focusedFilePath: AbsoluteFilePath | undefined
   userTextSelection: string[]
+  lastActiveTime: number
 }
 
 export type ChromeLogPayload = {

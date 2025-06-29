@@ -2,15 +2,6 @@
 
 import { REGISTERED_ACTIONS } from './constants'
 
-export type SeraphimProjectConfiguration = {
-  monitorChrome?: boolean
-  monitorTerminal?: boolean
-  monitorVSCode?: boolean
-  openAiApiToken?: string
-  frontendUrl?: string
-  dockerContainers?: string[]
-}
-
 export type ActionContext = {
   id: string
   vscodeWorkspace: WorkspaceSource

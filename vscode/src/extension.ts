@@ -30,6 +30,8 @@ let outputChannel: vscode.OutputChannel
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('Seraphim')
 
+  let lastActiveTime: number = Date.now()
+
   function sendUpdate(caller: string) {
     if (rws.readyState !== ReconnectingWebsocket.OPEN) {
       log('WebSocket is not open, cannot send update from ' + caller)
@@ -47,7 +49,8 @@ export function activate(context: vscode.ExtensionContext) {
         workspaceName,
         workspacePaths: getWorkspaceFolders(),
         focusedFilePath: getFocusedFilePath(),
-        userTextSelection: getAllTextSelections()
+        userTextSelection: getAllTextSelections(),
+        lastActiveTime
       }
     }
 
@@ -75,6 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (event.textEditor !== vscode.window.activeTextEditor) {
         return
       }
+      lastActiveTime = Date.now()
       debouncedSendUpdate('Text editor selection changed')
     },
     null,
@@ -82,7 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
   )
 
   vscode.window.onDidChangeActiveTextEditor(
-    () => debouncedSendUpdate('Active text editor changed'),
+    () => {
+      lastActiveTime = Date.now()
+      debouncedSendUpdate('Active text editor changed')
+    },
     null,
     context.subscriptions
   )

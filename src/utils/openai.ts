@@ -2,14 +2,14 @@
 
 // Core
 import { OpenAI } from 'openai'
-import { OPENAI_API_TOKEN } from '../env'
+import { OPENAI_API_KEY } from '../env'
 import { safeParseJson, safeStringifyJson } from './json'
 
 // Utility
 import { loadCache, saveCache } from './cachinator'
 
 export const openai = new OpenAI({
-  apiKey: OPENAI_API_TOKEN
+  apiKey: OPENAI_API_KEY
 })
 
 // We override the chat completions create method to add caching functionality

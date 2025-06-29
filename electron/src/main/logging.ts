@@ -14,6 +14,7 @@ import { dataActions } from '../dataReducer'
 
 // Utility
 import { stringify } from '@common/stringify'
+import { isProduction } from '../env'
 
 // By default, logs are written to the following locations:
 // on Linux: ~/.config/{app name}/logs/main.log
@@ -25,9 +26,9 @@ logger.errorHandler.startCatching()
 
 Object.assign(console, logger.functions)
 
-const colorByLogLevel: Record<LogLevel, ChalkInstance> = {
+const colorByLogLevel: Record<LogLevel, ChalkInstance | null> = {
   'log': chalk.cyan,
-  'info': chalk.blue,
+  'info': null,
   'warn': chalk.yellow,
   'error': chalk.red,
   'debug': chalk.gray
@@ -35,12 +36,18 @@ const colorByLogLevel: Record<LogLevel, ChalkInstance> = {
 
 // Capture log events from the renderer process
 ipcMain.on('log', (_, { level, message, from }: IpcLogEvent) => {
-  console.log(`[${from} !!]: ${message}`)
-  logger.transports.file({
-    date: new Date(),
-    level: level as any,
-    data: [ `[${from}]: ${message}` ]
-  })
+  if (isProduction) {
+    // Write the renderer logs directly to the file transport
+    logger.transports.file({
+      date: new Date(),
+      level: level as any,
+      data: [ `[${from}]: ${message}` ]
+    })
+    return
+  }
+
+  // In development mode, re-log renderer logs to the console
+  console.log(`[${from}]: ${message}`)
 })
 
 
@@ -51,7 +58,7 @@ logger.hooks.push((message, transport) => {
     const data = [ ...message.data ]
     // colorize only string args
     message.data = data.map((item) =>
-      typeof item === 'string'
+      typeof item === 'string' && colorByLogLevel[message.level]
         ? colorByLogLevel[message.level](item)
         : item
     )

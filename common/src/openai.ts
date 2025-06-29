@@ -5,8 +5,11 @@ import { OpenAI } from 'openai'
 import { safeParseJson, safeStringifyJson } from './json'
 
 // Utility
-import { loadCache, saveCache } from './cachinator'
+import { loadCache, saveCache } from '../../electron/src/langgraph/utility/promptCache'
 
+// THIS FILE IS TO BE DEPRECATED, IN FAVOR OF LANGGRAPH
+
+// This requires the OPENAI_API_KEY environment variable to be set
 export const openai = new OpenAI()
 
 // We override the chat completions create method to add caching functionality

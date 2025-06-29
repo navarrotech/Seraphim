@@ -1,34 +1,27 @@
 // Copyright © 2025 Jalapeno Labs
 
-import fs from 'fs'
-import path from 'path'
+import type { Stats } from 'fs'
 
-export function getFileFromAnyPath(paths: string[]) {
-  for (let filePath of paths) {
-    filePath = path.resolve(filePath)
-    if (fs.existsSync(filePath)) {
-      return filePath
-    }
-  }
-  return null
-}
+// Node.js
+import { existsSync, readdirSync, statSync } from 'fs'
+import { resolve, join } from 'path'
 
 // This will recursively search for a file with the given filename starting from the baseDir.
 export function recursiveSearchForFileName(
   filename: string,
   baseDir: string = process.cwd()
 ): string | null {
-  const absoluteBaseDir: string = path.resolve(baseDir)
+  const absoluteBaseDir: string = resolve(baseDir)
 
-  if (!fs.existsSync(absoluteBaseDir)) {
+  if (!existsSync(absoluteBaseDir)) {
     return null
   }
 
-  const items: string[] = fs.readdirSync(absoluteBaseDir)
+  const items: string[] = readdirSync(absoluteBaseDir)
 
   for (const item of items) {
-    const itemPath: string = path.join(absoluteBaseDir, item)
-    const stats: fs.Stats = fs.statSync(itemPath)
+    const itemPath: string = join(absoluteBaseDir, item)
+    const stats: Stats = statSync(itemPath)
 
     // Explore directories first
     if (stats.isDirectory()) {
