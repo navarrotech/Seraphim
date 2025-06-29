@@ -20,7 +20,7 @@ export function registerHotkeys() {
 ${chalk.cyanBright('# Seraphim Hotkeys')}
 
 Ctrl + Alt = Num- = ${chalk.blue('Show this help message')}
-Ctrl + Alt + Num0 = ${chalk.blue('Cancel last task on stack')} (TODO)
+Ctrl + Alt + Num0 = ${chalk.blue('Cancel last task on stack')}
 Ctrl + Alt + Num1 = ${chalk.blue('Explain selected text')}
 Ctrl + Alt + Num2 = ${chalk.blue('Suggest alternatives for selected text')} (TODO)
 Ctrl + Alt + Num3 = ${chalk.blue('Move selected function to a dedicated file')} (TODO)
