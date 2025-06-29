@@ -2,9 +2,15 @@
 
 import type { VitestEnvironment } from 'vitest/node'
 
+// Core
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
 
+// Plugins:
+import tsconfigPaths from 'vite-tsconfig-paths'
+
+
+// Env
 const IS_CI = process.env.GITHUB_ACTIONS === 'true'
 const TEST_RUNNING_DIR = process.env.TEST_RUNNING_DIR || 'all'
 const IS_SMOKETEST = process.env.SMOKETEST === 'true'
@@ -12,7 +18,11 @@ const environment: VitestEnvironment = ['frontend', 'vscode', 'chrome'].includes
   ? 'happy-dom'
   : 'node'
 
+
 export default defineConfig({
+  plugins: [
+    tsconfigPaths()
+  ],
   test: {
     include: IS_SMOKETEST
       ? [ '**/*.spec.ts' ]
@@ -63,7 +73,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@common': resolve(__dirname, '../common/src'),
+      '@common': resolve(__dirname, 'common/src'),
       '@': resolve(__dirname, 'src')
     },
   }

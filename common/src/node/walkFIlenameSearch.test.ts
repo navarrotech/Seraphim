@@ -1,9 +1,14 @@
 // Copyright © 2025 Jalapeno Labs
 
+// Core
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
+
+// Node.js
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
+
+// Lib to test
 import { walkFilenameSearch } from './walkFilenameSearch'
 
 describe('walkFilenameSearch', () => {
