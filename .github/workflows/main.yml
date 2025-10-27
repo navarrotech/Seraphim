@@ -233,7 +233,7 @@ jobs:
 
       # Upload the linux artifact
       - name: Upload linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         # Only run this on the main branch
         if: github.ref == 'refs/heads/main'
         with:
