@@ -24,7 +24,7 @@ jobs:
 
       - name: Cache node modules
         id: cacheNodeModules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Restore node modules
         id: cacheNodeModules
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Restore node modules
         id: cacheNodeModules
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
@@ -226,7 +226,7 @@ jobs:
         run: yarn compile:${{ matrix.output }}
 
       - name: Save compiled executable as cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: electron/out/electron-linux-x64
           key: linux-${{ matrix.output }}-${{ hashFiles('**/yarn.lock') }}
@@ -258,13 +258,13 @@ jobs:
 
   #     - name: Restore node modules
   #       id: cacheNodeModules
-  #       uses: actions/cache/restore@v4
+  #       uses: actions/cache/restore@v5
   #       with:
   #         path: "**/node_modules"
   #         key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
 
   #     - name: Restore compiled executable
-  #       uses: actions/cache/restore@v4
+  #       uses: actions/cache/restore@v5
   #       with:
   #         path: electron/out/electron-linux-x64
   #         key: linux-deb-${{ hashFiles('**/yarn.lock') }}
