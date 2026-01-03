@@ -10,6 +10,7 @@
   "license": "MIT",
   "private": true,
   "repository": "https://github.com/jalapenolabs/seraphim",
+  "packageManager": "yarn@4.12.0",
   "engines": {
     "node": ">=22.16.0",
     "yarn": ">=1.22.0"
@@ -25,7 +26,7 @@
     "dev": "concurrently --kill-others \"yarn --cwd froncodextend dev\" \"yarn --cwd electron dev\"",
     "build": "bash ./scripts/build.sh",
     "compile:deb": "yarn cross-env TARGET_MAKER=deb bash ./scripts/compile.sh",
-    "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh", 
+    "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh",
     "typecheck": "yarn workspaces run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",
@@ -57,7 +58,7 @@
     "@types/hjson": "^2.4.6",
     "@types/humanize-duration": "^3.27.4",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^22.15.29",
+    "@types/node": "^24.0.6",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",

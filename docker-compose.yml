@@ -1,0 +1,20 @@
+# Copyright 2026 Jalapeno Labs
+
+services:
+  transcriber:
+    build:
+      context: services/transcriber
+    restart: unless-stopped
+    ports:
+      - "2700:2700"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/2700"]
+      interval: 3s
+      timeout: 10s
+      retries: 6
+      start_period: 1s
+    networks:
+      - main
+
+networks:
+  main:

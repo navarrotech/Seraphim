@@ -136,6 +136,7 @@ async function getLocallyInstalledVitest(cwd: string): Promise<CommandSet> {
   const nodeModules = path.resolve(cwd, 'node_modules')
 
   if (!existsSync(nodeModules)) {
+    console.debug(`No node_modules found at: ${nodeModules}`)
     return null
   }
 

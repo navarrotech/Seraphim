@@ -12,3 +12,10 @@ $null
 !.vscode/tasks.json
 !.vscode/launch.json
 *.vsix
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/patches
+!.yarn/install-state.gz
+!.yarn/build-state.yml
