@@ -2,13 +2,18 @@
 
 // Core
 import { configureStore, Action } from '@reduxjs/toolkit'
+import {
+  useDispatch as useDefaultDispatch,
+  useSelector as useDefaultSelector,
+} from 'react-redux'
 
 // Typescript
 import type { ThunkAction } from '@reduxjs/toolkit'
+import type { TypedUseSelectorHook } from 'react-redux'
 
 // Reducers
-import { slice as data } from '../../../common/src/redux/stores/context'
-import { slice as jobs } from '../jobReducer'
+import { slice as authSlice } from '@frontend/stores/auth/reducer'
+import { slice as dataSlice } from '@frontend/stores/data/reducer'
 
 // /////////////////////// //
 //          Store          //
@@ -16,14 +21,15 @@ import { slice as jobs } from '../jobReducer'
 
 export const store = configureStore({
   reducer: {
-    data: data.reducer,
-    jobs: jobs.reducer,
+    auth: authSlice.reducer,
+    data: dataSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       thunk: true,
       serializableCheck: false,
     }),
+  devTools: import.meta.env.DEV,
 })
 
 // /////////////////////// //
@@ -32,6 +38,9 @@ export const store = configureStore({
 
 export const dispatch = store.dispatch
 export const getState = store.getState
+
+export const useDispatch: () => AppDispatch = useDefaultDispatch
+export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
 
 // /////////////////////// //
 //    Typescript Types     //

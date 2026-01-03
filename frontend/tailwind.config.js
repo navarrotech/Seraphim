@@ -1,4 +1,4 @@
-// Copyright Ac 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { heroui } from '@heroui/react'
 
@@ -12,10 +12,12 @@ export default {
     '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
+    fontFamily: {
+      sans: [
+        '"Noto Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif',
+      ],
+    },
     extend: {
-      fontFamily: {
-        sans: ['"Noto Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
-      },
       container: {
         center: true,
         padding: '1rem',

@@ -1,4 +1,4 @@
-// Copyright Ac 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { Navigate, Routes, Route } from 'react-router'
 import { useNavigate, useHref } from 'react-router-dom'

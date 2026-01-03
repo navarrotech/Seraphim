@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { createSlice } from '@reduxjs/toolkit'
+import { createEnhancedSlice } from '../createEnhancedSlice'
 
 // Typescript
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -12,22 +12,22 @@ import type {
   SystemStatus,
 } from '@common/types'
 
-export type DataState = {
+export type ContextState = {
   serverStatus: SystemStatus
   chromeLogsByPage: Record<string, ChromeLogPayload[]>
   activeVsCodeState: VsCodeUserState | null
   vsCodeConnectionsByWorkspace: Record<string, VsCodeUserState>
 }
 
-const initialState: DataState = {
+const initialState: ContextState = {
   serverStatus: 'offline',
   chromeLogsByPage: {},
   activeVsCodeState: null,
   vsCodeConnectionsByWorkspace: {},
 } as const
 
-export const slice = createSlice({
-  name: 'data',
+export const slice = createEnhancedSlice({
+  name: 'context',
   initialState,
   reducers: {
     addChromeLogs: (state, action: PayloadAction<WsToServerMessage<'chrome'>>) => {
@@ -70,10 +70,7 @@ export const slice = createSlice({
     setServerStatus: (state, action: PayloadAction<SystemStatus>) => {
       state.serverStatus = action.payload
     },
-    resetData: () => ({
-      ...initialState,
-    }),
   },
 })
 
-export const dataActions = slice.actions
+export const contextActions = slice.actions

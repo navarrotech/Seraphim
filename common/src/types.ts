@@ -1,5 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { ThunkAction, Action, Dispatch } from '@reduxjs/toolkit'
+import type { AppStore, AppDispatch, AppGetState } from './redux/store'
+
 // ////////////////////////// //
 //        Common Basic        //
 // ////////////////////////// //
@@ -16,6 +19,7 @@ export type ProgrammingLanguage =
   | 'javascript-react'
   | 'python'
   | 'other'
+export type UnsubscribeFunction = () => any
 
 // ////////////////////////// //
 //          Seraphim          //
@@ -128,4 +132,18 @@ declare global {
     electron: ElectronIpcBridge
     version: VersionIpcVersion
   }
+}
+
+export type ReduxState = ReturnType<AppGetState>
+
+export type ReduxIpcBridge = {
+  getState: () => ReduxState
+  dispatch: Dispatch<Action>
+  subscribe: (listener: (state: ReduxState) => void) => UnsubscribeFunction
+}
+export type Thunk = ThunkAction<void, ReduxState, unknown, Action>
+export {
+  AppDispatch,
+  AppGetState,
+  AppStore,
 }

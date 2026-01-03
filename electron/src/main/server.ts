@@ -13,7 +13,7 @@ import { safeParseJson } from '@common/json'
 
 // Redux
 import { dispatch } from '../lib/redux-store'
-import { dataActions } from '../dataReducer'
+import { contextActions } from '../../../common/src/redux/stores/context'
 
 // Misc
 import { v7 as uuid } from 'uuid'
@@ -45,14 +45,14 @@ app.ws('/seraphim/:sourceName/chrome', (websocket, request) => {
     asJson.source = sessionId
 
     dispatch(
-      dataActions.addChromeLogs(asJson),
+      contextActions.addChromeLogs(asJson),
     )
   })
 
   websocket.on('close', () => {
     // Clear the active Chrome state for this source
     dispatch(
-      dataActions.clearChromeLogsForSource(sessionId),
+      contextActions.clearChromeLogsForSource(sessionId),
     )
   })
 })
@@ -67,14 +67,14 @@ app.ws('/seraphim/:sourceName/vscode', (websocket, request) => {
     }
 
     dispatch(
-      dataActions.setActiveVsCodeState(asJson),
+      contextActions.setActiveVsCodeState(asJson),
     )
   })
 
   websocket.on('close', () => {
     // Clear the active VS Code state for this source
     dispatch(
-      dataActions.clearActiveVsCodeStateForSource(sourceName),
+      contextActions.clearActiveVsCodeStateForSource(sourceName),
     )
   })
 })

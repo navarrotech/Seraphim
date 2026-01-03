@@ -22,5 +22,5 @@ root.render(
     <BrowserRouter>
       <Router />
     </BrowserRouter>
-  </ElectronGate>
+  </ElectronGate>,
 )
