@@ -34,7 +34,7 @@
     "use": "code --install-extension seraphim-vscode-0.0.1.vsix"
   },
   "devDependencies": {
-    "@types/node": "^24.0.6",
+    "@types/node": "^25.0.3",
     "@types/vscode": "^1.100.0",
     "cross-env": "^7.0.3",
     "typescript": "^5.8.3",
