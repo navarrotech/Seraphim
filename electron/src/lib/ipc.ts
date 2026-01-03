@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { WebFrameMain } from 'electron'
 import { isProduction } from '../env'
@@ -17,7 +17,7 @@ export function validateIpc(frame: WebFrameMain) {
 
   if (!isValid) {
     console.warn(
-      `Blocked invalid IPC request from ${url.host}.`
+      `Blocked invalid IPC request from ${url.host}.`,
     )
   }
 

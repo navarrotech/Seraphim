@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { SystemStatus } from '@common/types'
 import type { RootState } from '../lib/redux-store'
@@ -86,7 +86,7 @@ const colorByStatus: Record<SystemStatus, ChalkInstance> = {
   operational: chalk.green,
   degraded: chalk.yellow,
   failure: chalk.red,
-  offline: chalk.gray
+  offline: chalk.gray,
 }
 
 /**
@@ -109,13 +109,12 @@ export function colorStatus(status: SystemStatus) {
 }
 
 export function logSeraphim() {
-  /* eslint-disable no-useless-escape */
   console.info(
     chalk.cyanBright(`
 
   ____  ____ _____   ____  _____  _   _  _  __  __ 
  (_ (_\`| ===|| () ) / () \\ | ()_)| |_| || ||  \\/  |
 .__)__)|____||_|\\_\\/__/\\__\\|_|   |_| |_||_||_|\\/|_|
-  `)
+  `),
   )
 }

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { BaseMessageLike } from '@langchain/core/messages'
 import type { LanguageSpecificInstructions, ContextSnapshot } from '../types'
@@ -9,7 +9,7 @@ import { isPython, isJavascriptish, isReact } from '@common/getLanguage'
 export function appendLanguageInstructions(
   messages: BaseMessageLike | BaseMessageLike[],
   context: Readonly<ContextSnapshot>,
-  instructions?: LanguageSpecificInstructions
+  instructions?: LanguageSpecificInstructions,
 ): BaseMessageLike[] {
   // If there is a system prompt, add the language instructions to it AFTER the system prompt
   // Add them as developer prompts

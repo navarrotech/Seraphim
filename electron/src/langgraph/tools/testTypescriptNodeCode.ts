@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -21,8 +21,8 @@ const schema = z.object({
   typescriptContent: z
     .string()
     .describe(
-      'The raw typescript code to test, will be written directly to the temporary testing file.'
-    )
+      'The raw typescript code to test, will be written directly to the temporary testing file.',
+    ),
 })
 
 // Write a temporary javascript file into the user's workspace
@@ -35,31 +35,31 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot) {
 
       if (typescriptContent.includes('writeFile')) {
         throw new Error(
-          'Writing files is prohibited in this tool.'
+          'Writing files is prohibited in this tool.',
         )
       }
 
       if (typescriptContent.includes('process.env')) {
         throw new Error(
-          'Accessing process.env is prohibited in this tool.'
+          'Accessing process.env is prohibited in this tool.',
         )
       }
 
       if (typescriptContent.includes('dotenv')) {
         throw new Error(
-          'Accessing .env files via dotenv is prohibited in this tool.'
+          'Accessing .env files via dotenv is prohibited in this tool.',
         )
       }
 
       if (typescriptContent.includes('child_process')) {
         throw new Error(
-          'Accessing child_process is prohibited in this tool.'
+          'Accessing child_process is prohibited in this tool.',
         )
       }
 
       if (typescriptContent.includes('.env')) {
         throw new Error(
-          'Accessing .env files is prohibited in this tool.'
+          'Accessing .env files is prohibited in this tool.',
         )
       }
 
@@ -79,14 +79,14 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot) {
           cwd: executionDir,
           // Security: we don't want to run this in a production environment
           env: {
-            NODE_ENV: 'test'
-          }
+            NODE_ENV: 'test',
+          },
         })
         return {
           output,
           exitCode,
           fullCommand,
-          executionDir
+          executionDir,
         }
       }
       finally {
@@ -103,7 +103,7 @@ export function testTypescriptNodeCode(snapshot: ContextSnapshot) {
       description: 'Test ephemeral typescript node.js content for a result, runs raw typescript code with \'tsx\'.'
         + 'The tool will return all stdout & stderr output. Using write file commands are prohibited.'
         + `This will run in a temporary file in the root of the user's workspace, on ${os.platform()}.`,
-      schema
-    }
+      schema,
+    },
   )
 }

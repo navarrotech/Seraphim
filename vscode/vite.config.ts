@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { defineConfig } from 'vite'
 import { builtinModules } from 'module'
@@ -11,13 +11,13 @@ export default defineConfig(() => ({
     lib: {
       entry: path.resolve(__dirname, 'src/extension.ts'),
       formats: [
-        'cjs'
+        'cjs',
       ],
 
       // always emit exactly `extension.js`
       fileName() {
         return 'extension.js'
-      }
+      },
     },
     target: 'node16',
     outDir: 'dist',
@@ -27,17 +27,17 @@ export default defineConfig(() => ({
       external: [
         'vscode',
         ...builtinModules,
-        ...builtinModules.map((m) => `node:${m}`)
+        ...builtinModules.map((m) => `node:${m}`),
       ],
 
       output: {
-        exports: 'auto'
-      }
-    }
+        exports: 'auto',
+      },
+    },
   },
   resolve: {
     alias: {
-      '@common': path.resolve(__dirname, '../common/src')
+      '@common': path.resolve(__dirname, '../common/src'),
     },
-  }
+  },
 }))

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { configureStore, Action } from '@reduxjs/toolkit'
@@ -17,13 +17,13 @@ import { slice as jobs } from '../jobReducer'
 export const store = configureStore({
   reducer: {
     data: data.reducer,
-    jobs: jobs.reducer
+    jobs: jobs.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       thunk: true,
-      serializableCheck: false
-    })
+      serializableCheck: false,
+    }),
 })
 
 // /////////////////////// //

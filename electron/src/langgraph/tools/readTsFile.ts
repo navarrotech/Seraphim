@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -22,8 +22,8 @@ const schema = z.object({
     .optional()
     .describe(
       'Optional, an array of exported string names to filter the response by.'
-      + ' Useful for large files with multiple exports.'
-    )
+      + ' Useful for large files with multiple exports.',
+    ),
 })
 
 export function readTsFile(snapshot: ContextSnapshot) {
@@ -44,7 +44,7 @@ export function readTsFile(snapshot: ContextSnapshot) {
       if (!filterExports?.length) {
         return {
           filePath,
-          content: fileContents
+          content: fileContents,
         }
       }
 
@@ -58,19 +58,19 @@ export function readTsFile(snapshot: ContextSnapshot) {
           continue
         }
         results.push(
-          extractExportTsMorph(fileContents, exportName)
+          extractExportTsMorph(fileContents, exportName),
         )
       }
 
       return {
         filePath,
-        exports: results
+        exports: results,
       }
     },
     {
       name: 'readTsFile',
       description: 'Read the source code from a file at a specified path.',
-      schema
-    }
+      schema,
+    },
   )
 }

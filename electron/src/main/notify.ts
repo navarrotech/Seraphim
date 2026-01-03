@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { NotificationConstructorOptions } from 'electron'
 
@@ -16,7 +16,7 @@ export function osToast(params: NotificationConstructorOptions) {
   // check platform support
   if (!Notification.isSupported()) {
     console.warn(
-      chalk.yellow('Notifications not supported on this platform')
+      chalk.yellow('Notifications not supported on this platform'),
     )
     return null
   }

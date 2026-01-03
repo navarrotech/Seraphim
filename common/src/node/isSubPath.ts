@@ -1,11 +1,11 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { sep, normalize } from 'path'
 import { realpath } from 'fs/promises'
 
 export async function isSubPath(
   parentPath: string,
-  childPath: string
+  childPath: string,
 ): Promise<boolean> {
   // resolve any symlinks, normalize, and make absolute
   const realParent = normalize(await realpath(parentPath))

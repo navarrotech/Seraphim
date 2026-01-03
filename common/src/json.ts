@@ -1,5 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
-
+// Copyright © 2026 Jalapeno Labs
 
 export function safeParseJson<Type = Record<string, any>>(jsonString: string, ...opts: any[]): Type | null {
   try {
@@ -14,7 +13,7 @@ export function safeParseJson<Type = Record<string, any>>(jsonString: string, ..
 export function safeStringifyJson<Type = Record<string, any>>(
   obj: Type,
   replacer?: (this: any, key: string, value: any) => any,
-  space?: string | number
+  space?: string | number,
 ): string {
   try {
     return JSON.stringify(obj, replacer, space)

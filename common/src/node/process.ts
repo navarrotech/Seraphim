@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { spawn, type SpawnOptions } from 'child_process'
@@ -16,7 +16,7 @@ import path from 'path'
 export async function runCommand(
   command: string,
   args: string[] = [],
-  options: SpawnOptions = {}
+  options: SpawnOptions = {},
 ): Promise<[string, number, string]> {
   return new Promise<[string, number, string]>((resolve) => {
     options.stdio = [ 'ignore', 'pipe', 'pipe' ]
@@ -85,7 +85,7 @@ export async function runCommand(
 export function stripAnsiColors(input: string): string {
   // Regular expression to match ANSI escape sequences for colors
 
-  /* eslint-disable no-control-regex */
+
   const ansiRegex = /\x1B\[[0-9;]*m/g
 
   // Replace all matches with empty string

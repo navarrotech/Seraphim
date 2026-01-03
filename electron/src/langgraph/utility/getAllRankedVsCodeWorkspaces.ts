@@ -1,16 +1,16 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { RootState } from '../../lib/redux-store'
 import { getState } from '../../lib/redux-store'
 
 export function getAllRankedVsCodeWorkspaces(
   includeUnfocused: boolean,
-  state: RootState = getState()
+  state: RootState = getState(),
 ): string[] {
   const allVscodeStates = []
   if (includeUnfocused) {
     allVscodeStates.push(
-      ...Object.values(state.data.vsCodeConnectionsByWorkspace)
+      ...Object.values(state.data.vsCodeConnectionsByWorkspace),
     )
   }
 

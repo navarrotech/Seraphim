@@ -1,4 +1,5 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
+
 type SelectionAtPosition = {
   startLine: number
   endLine: number
@@ -23,7 +24,7 @@ function countMatches(haystack: string, needle: RegExp) {
 // get the zero‐based start/end lines, expanding to full lines
 export function getSelection(
   fullText: string,
-  selection: string
+  selection: string,
 ): SelectionAtPosition {
   // normalize CRLF to LF
   const normalizedFull = fullText.replace(/\r\n/g, '\n')
@@ -51,16 +52,16 @@ export function getSelection(
   // compute zero-based line numbers
   const startLine = countMatches(
     normalizedFull.slice(0, startOfLineIndex),
-    /\n/g
+    /\n/g,
   )
   const endLine = countMatches(
     normalizedFull.slice(0, endOfLineIndex),
-    /\n/g
+    /\n/g,
   )
 
   return {
     startLine,
     endLine,
-    text: snippet
+    text: snippet,
   }
 }

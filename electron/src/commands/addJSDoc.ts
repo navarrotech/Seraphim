@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { executeAgent } from '../langgraph/executeAgent'
@@ -76,18 +76,18 @@ export async function addJSDoc() {
     [
       {
         role: 'system',
-        content: SystemPrompt
+        content: SystemPrompt,
       },
       {
         role: 'user',
-        content: 'Generate JSDoc for my active text selection in VSCode.'
-      }
+        content: 'Generate JSDoc for my active text selection in VSCode.',
+      },
     ],
     [ getUserTextSelection, findAndReplaceTextInFile, readFileTool, getProjectContext, readTsFile ],
     {
       languageInstructions: {
         python: DeveloperPromptPython,
-        typescript: DeveloperPromptTypescript
+        typescript: DeveloperPromptTypescript,
       },
       shouldProceed: (snapshot) => {
         const inactiveWorkspaceError = ensureActiveWorkspace(snapshot)
@@ -106,7 +106,7 @@ export async function addJSDoc() {
         }
 
         return [ true, '' ]
-      }
-    }
+      },
+    },
   )
 }

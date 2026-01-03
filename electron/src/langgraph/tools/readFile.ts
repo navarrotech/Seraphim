@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -13,7 +13,7 @@ import { readFile } from 'fs/promises'
 const schema = z.object({
   filePath: z
     .string()
-    .describe('The absolute path to the file to read.')
+    .describe('The absolute path to the file to read.'),
 })
 
 export function readFileTool(snapshot: ContextSnapshot) {
@@ -31,7 +31,7 @@ export function readFileTool(snapshot: ContextSnapshot) {
     {
       name: 'readFile',
       description: 'Read content from a file in the project directory.',
-      schema
-    }
+      schema,
+    },
   )
 }

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
@@ -55,7 +55,7 @@ describe('walkFilenameSearch', () => {
     const results = await walkFilenameSearch(
       baseDir,
       '\\.txt$',
-      [ 'excludeDir' ]
+      [ 'excludeDir' ],
     )
 
     // file4.txt lives under excludeDir, so it should be skipped
@@ -68,7 +68,7 @@ describe('walkFilenameSearch', () => {
       baseDir,
       'file2\\.js$',
       [], // no extra excludes
-      [ 'file2.js' ] // forbid file2.js
+      [ 'file2.js' ], // forbid file2.js
     )
 
     // even though the pattern matches, it’s forbidden

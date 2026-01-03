@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { VitestEnvironment } from 'vitest/node'
 
@@ -14,22 +14,22 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 const IS_CI = process.env.GITHUB_ACTIONS === 'true'
 const TEST_RUNNING_DIR = process.env.TEST_RUNNING_DIR || 'all'
 const IS_SMOKETEST = process.env.SMOKETEST === 'true'
-const environment: VitestEnvironment = ['frontend', 'vscode', 'chrome'].includes(TEST_RUNNING_DIR)
+const environment: VitestEnvironment = [ 'frontend', 'vscode', 'chrome' ].includes(TEST_RUNNING_DIR)
   ? 'happy-dom'
   : 'node'
 
 
 export default defineConfig({
   plugins: [
-    tsconfigPaths()
+    tsconfigPaths(),
   ],
   test: {
     include: IS_SMOKETEST
       ? [ '**/*.spec.ts' ]
       : [ '**/*.test.ts' ],
     reporters: IS_CI
-      ? ['junit', 'verbose']
-      : ['verbose'],
+      ? [ 'junit', 'verbose' ]
+      : [ 'verbose' ],
     outputFile: {
       'junit': `.test/${TEST_RUNNING_DIR}-results.xml`,
     },
@@ -57,7 +57,7 @@ export default defineConfig({
     testTimeout: 60_000,
 
     // Debugging:
-    onStackTrace(error, { file, }): boolean | void {
+    onStackTrace(error, { file }): boolean | void {
       // If we've encountered a ReferenceError, show the whole stack.
       if (error.name === 'ReferenceError') {
         return false
@@ -74,7 +74,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@common': resolve(__dirname, 'common/src'),
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, 'src'),
     },
-  }
+  },
 })

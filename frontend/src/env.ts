@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 export const NODE_ENV: string = import.meta.env.NODE_ENV || 'development'
 export const IS_DEV = NODE_ENV === 'development'

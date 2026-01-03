@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import 'dotenv/config'
 import dotenv from 'dotenv'
@@ -17,7 +17,7 @@ console.info('Running in production mode:', isProduction)
 // In dev, the environment variables are loaded from the parent directory
 if (!isProduction) {
   dotenv.config({
-    path: resolve(process.cwd(), '..', '.env')
+    path: resolve(process.cwd(), '..', '.env'),
   })
 }
 

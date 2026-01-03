@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import chalk from 'chalk'
@@ -87,6 +87,6 @@ Ctrl + Alt + Num* = ${chalk.blue('Apply copied style to selection and complete f
   })
 
   console.log(
-    chalk.green('Registered hotkeys!')
+    chalk.green('Registered hotkeys!'),
   )
 }

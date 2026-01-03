@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { executeAgent } from '../langgraph/executeAgent'
@@ -26,8 +26,8 @@ export async function explainMyTextSelection() {
     [
       {
         role: 'user',
-        content: UserPrompt
-      }
+        content: UserPrompt,
+      },
     ],
     [ getUserTextSelection, findAndReplaceTextInFile, readFileTool, getProjectContext, readTsFile ],
     {
@@ -38,7 +38,7 @@ export async function explainMyTextSelection() {
         }
 
         return [ true, '' ]
-      }
-    }
+      },
+    },
   )
 }

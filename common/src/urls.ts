@@ -1,15 +1,15 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Urls
 export const UrlTree = {
   root: '/',
   main: '/',
-  settings: '/settings'
+  settings: '/settings',
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 
 export const ExternalLinks = {
-  JalapenoLabsHome: 'https://jalapenolabs.io'
+  JalapenoLabsHome: 'https://jalapenolabs.io',
 } as const
 export type ExternalLinkValue = typeof ExternalLinks[keyof typeof ExternalLinks]
 

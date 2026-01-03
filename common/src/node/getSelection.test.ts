@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // import testing utilities from vitest
 import { describe, it, expect } from 'vitest'
@@ -44,7 +44,7 @@ describe('getSelection', () => {
     const fullText = 'hello world'
     const selection = 'foo'
     expect(() => getSelection(fullText, selection)).toThrowError(
-      'Selection was not found in the full text.'
+      'Selection was not found in the full text.',
     )
   })
 
@@ -55,7 +55,7 @@ describe('getSelection', () => {
     expect(result).toEqual({
       startLine: 1,
       endLine: 2,
-      text: 'line 2\nline 3'
+      text: 'line 2\nline 3',
     })
   })
 })

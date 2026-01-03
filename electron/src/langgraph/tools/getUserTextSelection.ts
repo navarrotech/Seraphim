@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -16,12 +16,12 @@ export function getUserTextSelection(snapshot: Readonly<ContextSnapshot>) {
 
       return {
         focusedFilePath,
-        userTextSelection
+        userTextSelection,
       }
     },
     {
       name: 'getUserTextSelection',
-      description: 'Return the user\'s text selection in VS Code, at the time of the request.'
-    }
+      description: 'Return the user\'s text selection in VS Code, at the time of the request.',
+    },
   )
 }

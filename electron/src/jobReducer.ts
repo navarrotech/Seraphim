@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { createSlice } from '@reduxjs/toolkit'
@@ -12,7 +12,7 @@ export type JobsState = {
 }
 
 const initialState: JobsState = {
-  jobs: []
+  jobs: [],
 } as const
 
 export const slice = createSlice({
@@ -31,8 +31,8 @@ export const slice = createSlice({
         job.controller.abort('Job cancelled by user')
         state.jobs = state.jobs.filter((job) => job.id !== action.payload)
       }
-    }
-  }
+    },
+  },
 })
 
 export const jobActions = slice.actions

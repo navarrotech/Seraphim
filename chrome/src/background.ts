@@ -1,3 +1,3 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 console.log('Hello from Chrome background script!')

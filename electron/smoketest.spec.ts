@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { describe, it, beforeEach, afterEach, expect } from 'vitest'
 
@@ -21,20 +21,20 @@ type Context = {
 const executable = resolve(
   join(
     __dirname,
-    'out/electron-linux-x64/electron'
-  )
+    'out/electron-linux-x64/electron',
+  ),
 )
 if (!fs.existsSync(executable)) {
   throw new Error(
-    `No executable found in ${executable}. Please compile the Electron app first.`
+    `No executable found in ${executable}. Please compile the Electron app first.`,
   )
 }
 
 const chromeSandbox = resolve(
   join(
     __dirname,
-    'out/electron-linux-x64/chrome-sandbox'
-  )
+    'out/electron-linux-x64/chrome-sandbox',
+  ),
 )
 
 if (!fs.existsSync(chromeSandbox)) {
@@ -53,7 +53,7 @@ if (owner !== 0 || (stats.mode & 0o4777) !== 0o4755) {
         Please run:
         sudo chown root ${chromeSandbox}
         sudo chmod 4755 ${chromeSandbox}
-        `
+        `,
   )
 }
 
@@ -66,8 +66,8 @@ describe('Electron smoke test', () => {
         '--no-sandbox',
         '--disable-dev-shm-usage',
         '--disable-setuid-sandbox',
-        '--headless'
-      ]
+        '--headless',
+      ],
     })
 
     // grab the first BrowserWindow

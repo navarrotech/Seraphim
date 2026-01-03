@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ChalkInstance } from 'chalk'
 import type { LogLevel, IpcLogEvent } from '@common/types'
@@ -26,7 +26,7 @@ const colorByLogLevel: Record<LogLevel, ChalkInstance | null> = {
   'info': null,
   'warn': chalk.yellow,
   'error': chalk.red,
-  'debug': chalk.gray
+  'debug': chalk.gray,
 }
 
 // Capture log events from the renderer process
@@ -36,7 +36,7 @@ ipcMain.on('log', (_, { level, message, from }: IpcLogEvent) => {
     logger.transports.file({
       date: new Date(),
       level: level as any,
-      data: [ `[${from}]: ${message}` ]
+      data: [ `[${from}]: ${message}` ],
     })
     return
   }
@@ -55,7 +55,7 @@ logger.hooks.push((message, transport) => {
     message.data = data.map((item) =>
       typeof item === 'string' && colorByLogLevel[message.level]
         ? colorByLogLevel[message.level](item)
-        : item
+        : item,
     )
   }
   return message

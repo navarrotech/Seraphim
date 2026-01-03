@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import {
   Project,
@@ -9,7 +9,7 @@ import {
   InterfaceDeclaration,
   TypeAliasDeclaration,
   EnumDeclaration,
-  ClassDeclaration
+  ClassDeclaration,
 } from 'ts-morph'
 import ts from 'typescript'
 
@@ -19,7 +19,7 @@ import ts from 'typescript'
 //  • the function declaration itself
 export function extractFunctionTsMorph(
   rawFileContents: string,
-  functionName: string
+  functionName: string,
 ): string {
   // 1) Create an in-memory ts-morph Project (no tsconfig needed on disk)
   const project = new Project({
@@ -28,14 +28,14 @@ export function extractFunctionTsMorph(
       allowJs: true,
       target: ts.ScriptTarget.ES2015,
       module: ts.ModuleKind.CommonJS,
-      strict: true
-    }
+      strict: true,
+    },
   })
 
   // 2) Add a “virtual” source file named source.ts
   const sourceFile = project.createSourceFile(
     'source.ts',
-    rawFileContents.trim()
+    rawFileContents.trim(),
   )
 
   // 3) Find the named top-level function

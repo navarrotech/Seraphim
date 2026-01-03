@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { WsToServerMessage, WsFromServerMessage, Workspace, TextSelection } from '@common/types'
 
@@ -50,12 +50,12 @@ export function activate(context: vscode.ExtensionContext) {
         workspacePaths: getWorkspaceFolders(),
         focusedFilePath: getFocusedFilePath(),
         userTextSelection: getAllTextSelections(),
-        lastActiveTime
-      }
+        lastActiveTime,
+      },
     }
 
     rws.send(
-      JSON.stringify(payload)
+      JSON.stringify(payload),
     )
   }
   const debouncedSendUpdate = debounce(sendUpdate, 100)
@@ -82,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
       debouncedSendUpdate('Text editor selection changed')
     },
     null,
-    context.subscriptions
+    context.subscriptions,
   )
 
   vscode.window.onDidChangeActiveTextEditor(
@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
       debouncedSendUpdate('Active text editor changed')
     },
     null,
-    context.subscriptions
+    context.subscriptions,
   )
 
   rws.addEventListener('message', (event) => {
@@ -132,7 +132,7 @@ function getWorkspaceFolders(): Workspace[] {
   for (const workspace of folders) {
     workspaces.push({
       name: workspace.name,
-      path: workspace.uri.fsPath
+      path: workspace.uri.fsPath,
     })
   }
 
@@ -148,7 +148,7 @@ function log(message: any) {
   message = stringify(message)
 
   outputChannel.appendLine(
-    String(message)
+    String(message),
   )
   console.log(message)
 }
@@ -190,13 +190,13 @@ function getAllTextSelections(): TextSelection[] {
         selection.start.line,
         0,
         selection.end.line,
-        editor.document.lineAt(selection.end.line).text.length
+        editor.document.lineAt(selection.end.line).text.length,
       )
 
       return {
         startLine: selection.start.line,
         endLine: selection.end.line,
-        text: editor.document.getText(fullLineSelection)
+        text: editor.document.getText(fullLineSelection),
       }
     })
 
@@ -224,7 +224,7 @@ async function openInThisWindow(filePath: string): Promise<boolean> {
     const doc = await vscode.workspace.openTextDocument(uri)
     vscode.window.showTextDocument(doc, {
       preview: false, // open as a proper tab, not a preview
-      preserveFocus: false // false → move focus into the editor group
+      preserveFocus: false, // false → move focus into the editor group
     })
     return true
   }

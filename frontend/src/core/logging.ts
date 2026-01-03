@@ -1,6 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
-
-/* eslint-disable no-console */
+// Copyright © 2026 Jalapeno Labs
 
 // Typescript
 import { stringify } from '@common/stringify'

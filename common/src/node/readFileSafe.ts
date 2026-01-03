@@ -1,10 +1,10 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { readFile } from 'fs/promises'
 
 export async function readFileSafe(
   filePath: string,
-  encoding: BufferEncoding = 'utf-8'
+  encoding: BufferEncoding = 'utf-8',
 ): Promise<string | null> {
   try {
     return await readFile(filePath, { encoding })

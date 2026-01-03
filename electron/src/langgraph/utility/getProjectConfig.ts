@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { SeraphimProjectConfiguration } from '@common/types'
 
@@ -17,7 +17,7 @@ import { CONFIG_FILE_NAME } from '@common/constants'
 import { OPENAI_API_KEY } from '../../env'
 
 const defaultProjectConfig: SeraphimProjectConfiguration = {
-  openAiApiToken: OPENAI_API_KEY
+  openAiApiToken: OPENAI_API_KEY,
 }
 
 export function getProjectConfig(): [ SeraphimProjectConfiguration, string ] {
@@ -41,7 +41,7 @@ function searchDirectory(base: string): SeraphimProjectConfiguration | null {
   // First look in the most expected locations (for efficiency)
   let configFile = getFileFromAnyPath([
     join(base, CONFIG_FILE_NAME),
-    join(base, '.vscode', CONFIG_FILE_NAME)
+    join(base, '.vscode', CONFIG_FILE_NAME),
   ])
 
   if (!configFile) {

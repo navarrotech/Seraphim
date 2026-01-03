@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { readdirSync } from 'fs'
 import { relative, join } from 'path'
@@ -8,7 +8,7 @@ export function walkFilenameSearch(
   baseDir: string,
   filenamePattern: string,
   exclude: string[] = COMMON_EXCLUDE_FILES,
-  forbiddenFiles: string[] = FORBIDDEN_FILES
+  forbiddenFiles: string[] = FORBIDDEN_FILES,
 ): string[] {
   // Create a regex from the filename pattern
   const regex = new RegExp(filenamePattern)

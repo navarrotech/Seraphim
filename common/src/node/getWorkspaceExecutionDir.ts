@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { searchUpwardsForFile } from './searchUpwardsForFile'
 import { dirname } from 'path'
@@ -12,7 +12,7 @@ export function getWorkspaceExecutionDir(filePath?: string): string | null {
   const packageJson = searchUpwardsForFile(
     filePath,
     'package.json',
-    false
+    false,
   )
 
   if (!packageJson) {

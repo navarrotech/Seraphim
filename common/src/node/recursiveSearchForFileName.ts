@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { Stats } from 'fs'
 
@@ -9,7 +9,7 @@ import { resolve, join } from 'path'
 // This will recursively search for a file with the given filename starting from the baseDir.
 export function recursiveSearchForFileName(
   filename: string,
-  baseDir: string = process.cwd()
+  baseDir: string = process.cwd(),
 ): string | null {
   const absoluteBaseDir: string = resolve(baseDir)
 
@@ -27,7 +27,7 @@ export function recursiveSearchForFileName(
     if (stats.isDirectory()) {
       const found: string | null = recursiveSearchForFileName(
         filename,
-        itemPath
+        itemPath,
       )
 
       if (found !== null) {

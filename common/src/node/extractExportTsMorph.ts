@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import {
   Project,
@@ -6,13 +6,13 @@ import {
   InterfaceDeclaration,
   TypeAliasDeclaration,
   EnumDeclaration,
-  ClassDeclaration
+  ClassDeclaration,
 } from 'ts-morph'
 import ts from 'typescript'
 
 export function extractExportTsMorph(
   rawFileContents: string,
-  exportName: string
+  exportName: string,
 ): string {
   const project = new Project({
     useInMemoryFileSystem: true,
@@ -20,13 +20,13 @@ export function extractExportTsMorph(
       allowJs: true,
       target: ts.ScriptTarget.ES2015,
       module: ts.ModuleKind.CommonJS,
-      strict: true
-    }
+      strict: true,
+    },
   })
 
   const sourceFile = project.createSourceFile(
     'source.ts',
-    rawFileContents.trim()
+    rawFileContents.trim(),
   )
 
   // try grabbing a top-level variable/const

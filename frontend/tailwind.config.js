@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 const { heroui } = require('@heroui/react')
 
@@ -6,7 +6,7 @@ const { heroui } = require('@heroui/react')
 export default {
   content: [
     './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
-    '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}'
+    '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -17,13 +17,13 @@ export default {
           sm: '100%',
           md: '960px',
           lg: '1140px',
-          xl: '1200px'
-        }
-      }
-    }
+          xl: '1200px',
+        },
+      },
+    },
   },
   darkMode: 'class',
   plugins: [
-    heroui()
-  ]
+    heroui(),
+  ],
 }

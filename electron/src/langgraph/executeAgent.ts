@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot, ToolFactory, AgentOptions } from './types'
 import type { Messages } from '@langchain/langgraph'
@@ -25,7 +25,7 @@ import { Timer } from '@common/timer'
 export async function executeAgent(
   messages: Messages = [],
   toolFactories: ToolFactory[],
-  options: AgentOptions = {}
+  options: AgentOptions = {},
 ) {
   const jobId = uuid()
   const timer = new Timer('Job')
@@ -44,7 +44,7 @@ export async function executeAgent(
       jobId,
       projectConfig,
       projectConfigPath,
-      state
+      state,
     })
 
     if (options.shouldProceed) {
@@ -57,7 +57,7 @@ export async function executeAgent(
 
     const llm = new ChatOpenAI({
       apiKey: projectConfig.openAiApiToken,
-      modelName: OPENAI_MED_MODEL
+      modelName: OPENAI_MED_MODEL,
     })
     const embeddings = new OpenAIEmbeddings()
 
@@ -73,25 +73,25 @@ export async function executeAgent(
     dispatch(
       jobActions.addJob({
         id: jobId,
-        controller: abortController
-      })
+        controller: abortController,
+      }),
     )
 
     const agent = createReactAgent({
       llm,
-      tools
+      tools,
     })
 
     messages = appendLanguageInstructions(
       messages,
       snapshot,
-      options.languageInstructions
+      options.languageInstructions,
     )
 
     if (snapshot.projectConfig.additionalContext) {
       messages.push({
         role: 'human',
-        content: 'Additional project context from the user:\n' + snapshot.projectConfig.additionalContext
+        content: 'Additional project context from the user:\n' + snapshot.projectConfig.additionalContext,
       })
     }
 
@@ -104,7 +104,7 @@ export async function executeAgent(
       signal: abortController.signal,
       streamMode: 'updates',
       recursionLimit: 50,
-      debug: true
+      debug: true,
     })
 
     const responses = []
@@ -116,7 +116,7 @@ export async function executeAgent(
           console.log('🦜 From agent:', conjoined)
           osToast({
             title: 'Seraphim Agent',
-            body: conjoined
+            body: conjoined,
           })
         }
         else {
@@ -139,7 +139,7 @@ export async function executeAgent(
   }
   finally {
     dispatch(
-      jobActions.removeJob(jobId)
+      jobActions.removeJob(jobId),
     )
     timer.stop()
   }

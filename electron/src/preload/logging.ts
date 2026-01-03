@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { ipcRenderer } from 'electron'
@@ -27,7 +27,7 @@ export const preloadLogger: BridgedLogFunction = (level: LogLevel, ...messages: 
   const event: IpcLogEvent = {
     from: 'renderer',
     level,
-    message
+    message,
   }
 
   // This will send the log event to the main process

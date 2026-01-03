@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { defineConfig } from 'vite'
 import { builtinModules } from 'module'
@@ -10,9 +10,9 @@ export default defineConfig({
     {
       // This will tell Electron to restart the app when the main process code changes.
       // https://github.com/electron/forge/issues/682#issuecomment-1793552649
-      name: "restart",
+      name: 'restart',
       closeBundle() {
-        process.stdin.emit("data", "rs");
+        process.stdin.emit('data', 'rs')
       },
     },
   ],
@@ -25,18 +25,18 @@ export default defineConfig({
         'express',
         'express-ws',
         ...builtinModules,
-        ...builtinModules.map((m) => `node:${m}`)
+        ...builtinModules.map((m) => `node:${m}`),
       ],
 
       output: {
-        exports: 'auto'
-      }
-    }
+        exports: 'auto',
+      },
+    },
   },
   resolve: {
     alias: {
       '@common': path.resolve(__dirname, '../common/src'),
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(__dirname, 'src'),
     },
-  }
+  },
 })

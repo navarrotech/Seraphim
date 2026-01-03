@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -21,7 +21,7 @@ const schema = z.object({
   replace: z
     .string()
     .describe('The new content to replace the found text with.')
-    .min(1)
+    .min(1),
 })
 
 export function findAndReplaceTextInFile(snapshot: ContextSnapshot) {
@@ -52,7 +52,7 @@ export function findAndReplaceTextInFile(snapshot: ContextSnapshot) {
     {
       name: 'findAndReplaceTextInFile',
       description: 'Find and replace text in a file.',
-      schema
-    }
+      schema,
+    },
   )
 }

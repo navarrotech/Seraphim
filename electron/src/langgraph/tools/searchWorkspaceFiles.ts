@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -19,8 +19,8 @@ const schema = z.object({
     .array(z.string())
     .default([])
     .describe(
-      'An array of additional directory names to exclude from the search.'
-    )
+      'An array of additional directory names to exclude from the search.',
+    ),
 })
 
 export function searchWorkspaceFiles(snapshot: Readonly<ContextSnapshot>) {
@@ -34,14 +34,14 @@ export function searchWorkspaceFiles(snapshot: Readonly<ContextSnapshot>) {
         snapshot.state.data.activeVsCodeState.workspacePaths[0].path,
         searchPattern,
         allExclude,
-        FORBIDDEN_FILES
+        FORBIDDEN_FILES,
       )
     },
     {
       name: 'searchWorkspaceFiles',
       description: 'Search workspace files for all files matching a file name pattern.'
       + ' Returns an array of file paths.',
-      schema
-    }
+      schema,
+    },
   )
 }

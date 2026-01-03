@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -34,7 +34,7 @@ const schema = z.object({
     .number()
     .min(0)
     .optional()
-    .describe('Optional, the file line number to replace at.')
+    .describe('Optional, the file line number to replace at.'),
 })
 
 export function writeToFile(snapshot: ContextSnapshot) {
@@ -66,7 +66,7 @@ export function writeToFile(snapshot: ContextSnapshot) {
           await writeFile(
             filePath,
             content + '\n' + fileContents,
-            'utf-8'
+            'utf-8',
           )
           return 'Successfully prepended content to file at ' + filePath
         }
@@ -78,7 +78,7 @@ export function writeToFile(snapshot: ContextSnapshot) {
     {
       name: 'writeToFile',
       description: 'Write content to a file in the project directory.',
-      schema
-    }
+      schema,
+    },
   )
 }

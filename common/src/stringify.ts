@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 export function stringify(...values: any[]): string {
   if (values.length === 0) {

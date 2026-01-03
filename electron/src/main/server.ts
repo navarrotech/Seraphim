@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { WsToServerMessage } from '@common/types'
 
@@ -45,14 +45,14 @@ app.ws('/seraphim/:sourceName/chrome', (websocket, request) => {
     asJson.source = sessionId
 
     dispatch(
-      dataActions.addChromeLogs(asJson)
+      dataActions.addChromeLogs(asJson),
     )
   })
 
   websocket.on('close', () => {
     // Clear the active Chrome state for this source
     dispatch(
-      dataActions.clearChromeLogsForSource(sessionId)
+      dataActions.clearChromeLogsForSource(sessionId),
     )
   })
 })
@@ -67,14 +67,14 @@ app.ws('/seraphim/:sourceName/vscode', (websocket, request) => {
     }
 
     dispatch(
-      dataActions.setActiveVsCodeState(asJson)
+      dataActions.setActiveVsCodeState(asJson),
     )
   })
 
   websocket.on('close', () => {
     // Clear the active VS Code state for this source
     dispatch(
-      dataActions.clearActiveVsCodeStateForSource(sourceName)
+      dataActions.clearActiveVsCodeStateForSource(sourceName),
     )
   })
 })

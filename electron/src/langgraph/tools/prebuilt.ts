@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ToolFactory } from '../types'
 import type { DynamicStructuredTool } from '@langchain/core/tools'
@@ -25,7 +25,7 @@ export function getPrebuiltTool(toolname: AvailableTools): ToolFactory {
     // https://js.langchain.com/docs/integrations/tools/webbrowser/
     return (snapshot, llm, embeddings) => new WebBrowser({
       model: llm,
-      embeddings
+      embeddings,
     }) as any as DynamicStructuredTool
   case 'calculator':
     // https://v03.api.js.langchain.com/classes/_langchain_community.tools_calculator.Calculator.html

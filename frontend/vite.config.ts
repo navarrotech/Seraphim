@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import { defineConfig } from 'vite'
 
@@ -29,7 +29,7 @@ export default defineConfig({
     // Tailwind CSS:
     tailwindcss(),
     // Full reload when i18next en/translation.json changes:
-    fullReload(['public/locales/**/*.json']),
+    fullReload([ 'public/locales/**/*.json' ]),
   ],
   css: {
     preprocessorOptions: {
@@ -54,7 +54,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@common': path.resolve(__dirname, '../common/src'),
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(__dirname, 'src'),
     },
-  }
+  },
 })

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import path from 'path'
 import fs from 'fs'
@@ -6,14 +6,14 @@ import fs from 'fs'
 export function searchUpwardsForFile(
   startPath: string,
   filename: string = 'package.json',
-  getHighestFile: boolean = false
+  getHighestFile: boolean = false,
 ): string | null {
   // Resolve the starting path to an absolute path
   let currentDir = path.resolve(startPath)
   let foundTarget: string | null = null
 
   // Traverse upward until the filesystem root is reached
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     // Build the path to the target file in the current directory
     const targetPath = path.join(currentDir, filename)
@@ -53,7 +53,7 @@ export function searchUpwardsForFile(
 export function searchUpwardsForFiles(
   startPath: string,
   filenames: string[],
-  getHighestFile: boolean = false
+  getHighestFile: boolean = false,
 ): string | null {
   for (const filename of filenames) {
     const foundFile = searchUpwardsForFile(startPath, filename, getHighestFile)

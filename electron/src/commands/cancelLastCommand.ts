@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { osToast } from '../main/notify'
@@ -9,10 +9,10 @@ import { jobActions } from '../jobReducer'
 
 export function cancelLastCommand() {
   dispatch(
-    jobActions.cancelJob()
+    jobActions.cancelJob(),
   )
   osToast({
     title: 'Seraphim Agent',
-    body: 'Your last command has been cancelled.'
+    body: 'Your last command has been cancelled.',
   })
 }

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Typescript
 import type { Session } from 'electron'
@@ -33,7 +33,7 @@ export async function initExtensions(session: Session) {
     try {
       await session.extensions.loadExtension(
         extensionPath,
-        { allowFileAccess: true }
+        { allowFileAccess: true },
       )
       console.info(`Loaded extension: ${child.name}`)
     }

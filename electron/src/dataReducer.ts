@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { createSlice } from '@reduxjs/toolkit'
@@ -9,7 +9,7 @@ import type {
   ChromeLogPayload,
   VsCodeUserState,
   WsToServerMessage,
-  SystemStatus
+  SystemStatus,
 } from '@common/types'
 
 export type DataState = {
@@ -23,7 +23,7 @@ const initialState: DataState = {
   serverStatus: 'offline',
   chromeLogsByPage: {},
   activeVsCodeState: null,
-  vsCodeConnectionsByWorkspace: {}
+  vsCodeConnectionsByWorkspace: {},
 } as const
 
 export const slice = createSlice({
@@ -71,9 +71,9 @@ export const slice = createSlice({
       state.serverStatus = action.payload
     },
     resetData: () => ({
-      ...initialState
-    })
-  }
+      ...initialState,
+    }),
+  },
 })
 
 export const dataActions = slice.actions

@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ContextSnapshot } from '../types'
 
@@ -28,13 +28,13 @@ export function getProjectContext(snapshot: ContextSnapshot) {
         pyproject: allPyProjectTomls,
         vitest: allVitestConfigs,
         vite: allViteConfigs,
-        readme: allReadmeMd
+        readme: allReadmeMd,
       }
     },
     {
       name: 'getProjectContext',
       description: 'Get context about the project.'
-      + ' tsconfig.json paths, and some basic project paths.'
-    }
+      + ' tsconfig.json paths, and some basic project paths.',
+    },
   )
 }

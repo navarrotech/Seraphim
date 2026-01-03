@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
@@ -52,7 +52,7 @@ function promptToCacheFile(input: ChatCompletionMessageParam[]): string | null {
   const cacheKey = createHashForText(prompt)
   const cacheFile = getSeraphimHomeDirectory(
     PROMPT_CACHE_DIRNAME,
-    `${cacheKey}.json`
+    `${cacheKey}.json`,
   )
 
   return cacheFile

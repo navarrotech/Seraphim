@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 export const devCsp: string[] = [
   // everything from our own origin…
@@ -10,7 +10,7 @@ export const devCsp: string[] = [
   // images from localhost:5173 and data URIs
   'img-src \'self\' http://localhost:5173 data:',
   // HMR websocket & XHR
-  'connect-src \'self\' http://localhost:5173 ws://localhost:5173'
+  'connect-src \'self\' http://localhost:5173 ws://localhost:5173',
 ]
 
 export const prodCsp: string[] = [
@@ -21,5 +21,5 @@ export const prodCsp: string[] = [
   // only load bundled styles
   'style-src \'self\' app://electron',
   // images via protocol or data URIs
-  'img-src \'self\' app://electron data:'
+  'img-src \'self\' app://electron data:',
 ]

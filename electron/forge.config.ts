@@ -1,6 +1,6 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
-/// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
+// / <reference types="@electron-forge/plugin-vite/forge-vite-env" />
 
 // Core
 import { VitePlugin } from '@electron-forge/plugin-vite'
@@ -37,7 +37,7 @@ switch (process.env.TARGET_MAKER) {
     makers.push(
       windowsMaker,
       redhatMaker,
-      debMaker
+      debMaker,
     )
 }
 
@@ -62,7 +62,7 @@ const config: ForgeConfig = {
           entry: 'src/preload/preload.ts',
           config: 'vite.config.ts',
           target: 'preload',
-        }
+        },
       ],
       renderer: [],
     }),
@@ -75,7 +75,7 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: true,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
 }

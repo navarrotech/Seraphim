@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { ChatModel } from 'openai/resources'
 
@@ -31,18 +31,18 @@ export const COMMON_EXCLUDE_FILES = [
   'coverage',
   'logs',
   'temp',
-  'tmp'
+  'tmp',
 ]
 
 export const FORBIDDEN_FILES = [
   '.env',
   '.git',
   'yarn.lock',
-  'package-lock.json'
+  'package-lock.json',
 ]
 
 export const IGNORE_CHROME_LOGS_MATCHES: string[] = [
   'Download the React DevTools for a better development experience',
   'If you want to write it to the DOM, pass a string instead',
-  '[vite]'
+  '[vite]',
 ]

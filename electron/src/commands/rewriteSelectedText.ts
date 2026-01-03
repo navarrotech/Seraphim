@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { executeAgent } from '../langgraph/executeAgent'
@@ -67,17 +67,17 @@ export async function rewriteSelectedText() {
     [
       {
         role: 'system',
-        content: SystemPrompt
+        content: SystemPrompt,
       },
       {
         role: 'user',
-        content: 'Rewrite & refactor my active text selection in VSCode.'
-      }
+        content: 'Rewrite & refactor my active text selection in VSCode.',
+      },
     ],
     [ getUserTextSelection, findAndReplaceTextInFile, readFileTool, getProjectContext, readTsFile ],
     {
       languageInstructions: {
-        typescript: DeveloperPromptTypescript
+        typescript: DeveloperPromptTypescript,
       },
       shouldProceed: (snapshot) => {
         const inactiveWorkspaceError = ensureActiveWorkspace(snapshot)
@@ -86,7 +86,7 @@ export async function rewriteSelectedText() {
         }
 
         return [ true, '' ]
-      }
-    }
+      },
+    },
   )
 }

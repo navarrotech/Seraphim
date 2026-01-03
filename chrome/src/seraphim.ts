@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { WsToServerMessage, ChromeLogPayload, LogLevel } from '@common/types'
 
@@ -18,7 +18,7 @@ console.log('Seraphim is watching this page\'s console output and errors.')
 
 const websocketUri = `ws://localhost:${PORT}/seraphim/${window.location.host}/chrome`
 const rws = new ReconnectingWebsocket(websocketUri, [], {
-  debug: false
+  debug: false,
 })
 const buffer: ChromeLogPayload[] = []
 
@@ -40,12 +40,12 @@ function send(payload: WsToServerMessage<'chrome'>['payload']): boolean {
     id: uuid(),
     source: window.location.href,
     timestamp: Date.now(),
-    payload
+    payload,
   }
 
   try {
     rws.send(
-      JSON.stringify(message)
+      JSON.stringify(message),
     )
   }
   catch {
@@ -67,7 +67,7 @@ function sendChromeLogReports() {
   for (const log of buffer) {
     const isSent = send({
       type: 'chrome-log-report',
-      log
+      log,
     })
     if (isSent) {
       // If the message was sent successfully, remove it from the buffer
@@ -99,7 +99,7 @@ window.addEventListener('error', (event) => {
   buffer.push({
     timestamp: Date.now(),
     type: 'error',
-    message
+    message,
   })
   sendChromeLogReports()
 })
@@ -116,7 +116,7 @@ window.addEventListener('unhandledrejection', (event) => {
   buffer.push({
     timestamp: Date.now(),
     type: 'error',
-    message
+    message,
   })
   sendChromeLogReports()
 })
@@ -143,7 +143,7 @@ methods.forEach((level) => {
     buffer.push({
       timestamp: Date.now(),
       type: level,
-      message
+      message,
     })
 
     // Still log to the real console

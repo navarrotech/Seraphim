@@ -1,4 +1,4 @@
-// Copyright © 2025 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import './main/logging'
@@ -36,7 +36,7 @@ let window: BrowserWindow
 const loadDirectory = serve({
   scheme: 'app',
   hostname: 'electron',
-  directory: browserDir
+  directory: browserDir,
 })
 
 // //////////////////////////// //
@@ -77,7 +77,7 @@ async function gracefulShutdown(exitCode: number = 0) {
   isShuttingDown = true
 
   console.info(
-    chalk.yellow('Graceful shutdown initiated')
+    chalk.yellow('Graceful shutdown initiated'),
   )
 
   const forceExitTimer = setTimeout(() => {
@@ -88,11 +88,11 @@ async function gracefulShutdown(exitCode: number = 0) {
 
   // Add some cleanup code here!
   await Promise.allSettled([
-    stopServer()
+    stopServer(),
   ])
 
   console.info(
-    chalk.green('Graceful shutdown complete')
+    chalk.green('Graceful shutdown complete'),
   )
   app.quit()
 }
@@ -111,7 +111,6 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(err: any
     console.error('Fatal Electron crash', JSON.stringify(process.versions))
   }
   catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Fatal error logging failed', error)
   }
   await gracefulShutdown(1)
@@ -134,7 +133,7 @@ if (process.platform === 'win32') {
 
 async function startup() {
   await Promise.all([
-    startServer()
+    startServer(),
   ])
 
   registerHotkeys()
@@ -145,7 +144,7 @@ async function startup() {
   const windowStateManager = windowStateKeeper({
     defaultWidth: 1280,
     defaultHeight: 720,
-    fullScreen: false
+    fullScreen: false,
   })
 
   // Create the window using the state information
@@ -172,8 +171,8 @@ async function startup() {
       // https://www.electronjs.org/docs/latest/tutorial/security#3-enable-context-isolation
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
-      preload: getSourceFile('preload.js')
-    }
+      preload: getSourceFile('preload.js'),
+    },
   })
 
   // What if the user attempts to navigate away from the application?
@@ -207,8 +206,8 @@ async function startup() {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': [ csp.join('; ') ]
-      }
+        'Content-Security-Policy': [ csp.join('; ') ],
+      },
     })
   })
 
