@@ -13,8 +13,8 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import svgr from 'vite-plugin-svgr'
 // https://www.npmjs.com/package/vite-plugin-full-reload
 import fullReload from 'vite-plugin-full-reload'
-// https://tailwindcss.com/docs/installation/using-vite
-import tailwindcss from '@tailwindcss/vite'
+// https://stackoverflow.com/questions/74987006/tailwindcss-not-working-with-vite-react
+import tailwindcss from 'tailwindcss'
 
 // https://vitejs.dev/config/
 
@@ -26,29 +26,14 @@ export default defineConfig({
     react(),
     // Svgs:
     svgr(),
-    // Tailwind CSS:
-    tailwindcss(),
     // Full reload when i18next en/translation.json changes:
     fullReload([ 'public/locales/**/*.json' ]),
   ],
   css: {
-    preprocessorOptions: {
-      sass: {
-        api: 'modern-compiler',
-        quietDeps: true,
-        additionalData: `
-          @use '@/styles/theme.sass' as *
-          @use 'sass:color'
-        `,
-      },
-      scss: {
-        api: 'modern-compiler',
-        quietDeps: true,
-        additionalData: `
-          @use '@/styles/theme.sass' as *;
-          @use 'sass:color';
-        `,
-      },
+    postcss: {
+      plugins: [
+        tailwindcss(),
+      ],
     },
   },
   resolve: {

@@ -36,7 +36,10 @@
   "i18next.i18nPaths": "frontend/public/locales",
   "files.exclude": {
     ".yarn": true,
-    // ".yarnrc": true,
+    ".yarnrc.yml": true,
+    "LICENSE": true,
+    "yarn.lock": true,
+    "**/yarn.lock": true,
     "yarn.config.cjs": true
   }
 }

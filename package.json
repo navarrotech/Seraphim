@@ -23,7 +23,7 @@
     "vscode/"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others \"yarn --cwd froncodextend dev\" \"yarn --cwd electron dev\"",
+    "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
     "build": "bash ./scripts/build.sh",
     "compile:deb": "yarn cross-env TARGET_MAKER=deb bash ./scripts/compile.sh",
     "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh",
@@ -64,8 +64,8 @@
     "@vitest/ui": "^3.2.4",
     "chalk": "^5.4.1",
     "concurrently": "^9.2.0",
-    "cross-env": "^7.0.3",
-    "dotenv": "^16.5.0",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "happy-dom": "^18.0.1",
     "rimraf": "^6.0.1",

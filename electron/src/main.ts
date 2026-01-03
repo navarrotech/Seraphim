@@ -14,8 +14,8 @@ import chalk from 'chalk'
 
 // Process
 import { browserDir, logoPath, getSourceFile } from './lib/internalFiles'
-import { startServer, stopServer } from './main/server'
-import { registerHotkeys } from './main/hotkeys'
+// import { startServer, stopServer } from './main/server'
+// import { registerHotkeys } from './main/hotkeys'
 import { logSeraphim } from './main/console'
 
 // Browser
@@ -132,11 +132,11 @@ if (process.platform === 'win32') {
 // //////////////////////////// //
 
 async function startup() {
-  await Promise.all([
-    startServer(),
-  ])
+  // await Promise.all([
+  //   startServer(),
+  // ])
 
-  registerHotkeys()
+  // registerHotkeys()
 
   console.info('Spawning main window')
 
@@ -171,7 +171,7 @@ async function startup() {
       // https://www.electronjs.org/docs/latest/tutorial/security#3-enable-context-isolation
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
-      preload: getSourceFile('preload.js'),
+      preload: getSourceFile('preload'),
     },
   })
 
