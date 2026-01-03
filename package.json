@@ -22,7 +22,7 @@
     "vscode/"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
+    "dev": "concurrently --kill-others \"yarn --cwd froncodextend dev\" \"yarn --cwd electron dev\"",
     "build": "bash ./scripts/build.sh",
     "compile:deb": "yarn cross-env TARGET_MAKER=deb bash ./scripts/compile.sh",
     "compile:rpm": "yarn cross-env TARGET_MAKER=rpm bash ./scripts/compile.sh", 

@@ -1,13 +1,23 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "module": "commonjs",
+    "ignoreDeprecations": "5.0",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "target": "ESnext",
     "allowJs": true,
     "outDir": "dist",
-    "moduleResolution": "node"
+    "types": [
+      "node",
+      "electron"
+    ],
+    "composite": false
   },
   "include": [
-    "src",
-    "../common/src",
+    "src"
   ]
 }

@@ -43,6 +43,17 @@ const loadDirectory = serve({
 //         Initialization       //
 // //////////////////////////// //
 
+// https://www.electronjs.org/docs/latest/api/app#apprequestsingleinstancelockadditionaldata
+if (isProduction) {
+  const isFirstInstanceLock = app.requestSingleInstanceLock()
+  if (!isFirstInstanceLock) {
+    // Deny other instances from spawning
+    console.error('Another instance of the app is already running.')
+    app.quit()
+    process.exit(0)
+  }
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (squirrelStartup) {
   app.quit()
@@ -58,30 +69,38 @@ if (!isProduction) {
 // //////////////////////////// //
 
 let isShuttingDown = false
-async function gracefulShutdown() {
-  console.info(
-    chalk.yellow('Graceful shutdown initiated')
-  )
+async function gracefulShutdown(exitCode: number = 0) {
   // Prevent multiple calls to this function
   if (isShuttingDown) {
     return
   }
   isShuttingDown = true
 
+  console.info(
+    chalk.yellow('Graceful shutdown initiated')
+  )
+
+  const forceExitTimer = setTimeout(() => {
+    console.warn('Graceful shutdown timed out, forcing exit')
+    process.exit(exitCode)
+  }, 10_000)
+  forceExitTimer.unref?.()
+
   // Add some cleanup code here!
-  await Promise.all([
-    stopServer(),
-    app.quit()
+  await Promise.allSettled([
+    stopServer()
   ])
 
   console.info(
     chalk.green('Graceful shutdown complete')
   )
-  process.exit(0)
+  app.quit()
 }
 
 process.on('SIGINT', gracefulShutdown)
 process.on('SIGTERM', gracefulShutdown)
+process.on('SIGQUIT', gracefulShutdown)
+process.on('SIGHUP', gracefulShutdown)
 process.on('exit', gracefulShutdown)
 process.on('uncaughtException', async function ElectronGracefulShutdown(err: any) {
   if (err) {
@@ -95,7 +114,7 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(err: any
     // eslint-disable-next-line no-console
     console.error('Fatal error logging failed', error)
   }
-  await gracefulShutdown()
+  await gracefulShutdown(1)
 })
 
 // Exit cleanly on request from parent process.
@@ -114,7 +133,10 @@ if (process.platform === 'win32') {
 // //////////////////////////// //
 
 async function startup() {
-  await startServer()
+  await Promise.all([
+    startServer()
+  ])
+
   registerHotkeys()
 
   console.info('Spawning main window')
@@ -123,7 +145,6 @@ async function startup() {
   const windowStateManager = windowStateKeeper({
     defaultWidth: 1280,
     defaultHeight: 720,
-    maximize: true,
     fullScreen: false
   })
 
@@ -131,9 +152,16 @@ async function startup() {
   window = new BrowserWindow({
     x: windowStateManager.x,
     y: windowStateManager.y,
+    minHeight: 500,
+    minWidth: 750,
     width: windowStateManager.width,
     height: windowStateManager.height,
+    titleBarStyle: 'default',
+    frame: true,
+    title: 'Seraphim',
+    center: false,
     resizable: true,
+    autoHideMenuBar: true,
     icon: logoPath,
     webPreferences: {
       webgl: true,
@@ -144,9 +172,8 @@ async function startup() {
       // https://www.electronjs.org/docs/latest/tutorial/security#3-enable-context-isolation
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
-      preload: getSourceFile('preload')
-    },
-    autoHideMenuBar: true
+      preload: getSourceFile('preload.js')
+    }
   })
 
   // What if the user attempts to navigate away from the application?
@@ -220,12 +247,35 @@ app.on('window-all-closed', async () => {
   }
 })
 
+// If a second instance is launched, we should focus the existing window. This is because we request a
+// single instance lock, this will only ever be called when the user tries to open a second instance.
+// https://www.electronjs.org/docs/latest/api/app#event-second-instance
+app.on('second-instance', () => {
+  if (!window) {
+    console.warn('Second instance requested, but there is no window to focus on')
+    return
+  }
+
+  const isMinimized = window.isMinimized()
+  if (isMinimized) {
+    window.restore()
+  }
+
+  window.focus()
+})
+
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     startup()
   }
+})
+
+app.on('before-quit', async (event) => {
+  event.preventDefault()
+  await gracefulShutdown()
+  process.exit(0)
 })
 
 app.on('ready', startup)
