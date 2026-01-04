@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@heroui/react'
 
-export function Navbar() {
-  const [ isMuted, setIsMuted ] = useState(false)
+export function Toolbar() {
+  const [ isMuted, setIsMuted ] = useState<boolean>(false)
 
   const toggleMute = () => setIsMuted((prev) => !prev)
 

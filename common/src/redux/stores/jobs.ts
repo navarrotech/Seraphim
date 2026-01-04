@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { createSlice } from '@reduxjs/toolkit'
+import { createEnhancedSlice } from '../createEnhancedSlice'
 
 // Typescript
 import type { PayloadAction } from '@reduxjs/toolkit'
@@ -15,7 +15,7 @@ const initialState: JobsState = {
   jobs: [],
 } as const
 
-export const slice = createSlice({
+export const slice = createEnhancedSlice({
   name: 'jobs',
   initialState,
   reducers: {

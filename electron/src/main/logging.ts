@@ -15,7 +15,7 @@ import { isProduction } from '../env'
 // on Linux: ~/.config/{app name}/logs/main.log
 // on macOS: ~/Library/Logs/{app name}/main.log
 // on Windows: %USERPROFILE%\AppData\Roaming\{app name}\logs\main.log
-logger.transports.file.maxSize = 1 * 1024 * 1024 // 1 MB (default is 1 mb)
+logger.transports.file.maxSize = 10 * 1024 * 1024 // 10 MB (default is 1 mb)
 logger.initialize()
 logger.errorHandler.startCatching()
 
@@ -27,6 +27,8 @@ const colorByLogLevel: Record<LogLevel, ChalkInstance | null> = {
   'warn': chalk.yellow,
   'error': chalk.red,
   'debug': chalk.gray,
+  'verbose': null,
+  'silly': null,
 }
 
 // Capture log events from the renderer process

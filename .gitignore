@@ -19,3 +19,4 @@ $null
 !.yarn/patches
 !.yarn/install-state.gz
 !.yarn/build-state.yml
+/legacy/**

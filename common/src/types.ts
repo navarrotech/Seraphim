@@ -10,7 +10,7 @@ import type { AppStore, AppDispatch, AppGetState } from './redux/store'
 export type DateISO = string
 export type AbsoluteFilePath = string
 export type Theme = 'light' | 'dark'
-export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug'
+export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug' | 'verbose' | 'silly'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 export type ProgrammingLanguage =
   | 'typescript'

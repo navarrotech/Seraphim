@@ -5,6 +5,7 @@ import { configureStore } from '@reduxjs/toolkit'
 
 // Reducers
 import { slice as contextSlice } from './stores/context'
+import { slice as jobsSlice } from './stores/jobs'
 
 // /////////////////////// //
 //          Store          //
@@ -14,6 +15,7 @@ export const store = configureStore({
   // For all type inferrence to work correctly, we must write these out explicitly
   reducer: {
     context: contextSlice.reducer,
+    jobs: jobsSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -45,6 +47,7 @@ export type AppSubscribe = typeof store.subscribe
 
 const motherload = {
   context: contextSlice,
+    jobs: jobsSlice,
 } as const satisfies Record<keyof ReturnType<AppGetState>, any>
 
 export function getDefaultState() {

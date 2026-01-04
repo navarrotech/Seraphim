@@ -1,8 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
+process.noDeprecation = true
+
 // Core
 import './main/logging'
-import './lib/redux-store'
+import './redux'
 import { app, BrowserWindow, shell } from 'electron'
 import { initExtensions } from './main/extensions'
 
@@ -24,7 +26,6 @@ import { FRONTEND_URL } from '@common/constants'
 
 // Misc
 import { isProduction } from './env'
-
 
 // //////////////////////////// //
 //            Globals           //
@@ -88,7 +89,7 @@ async function gracefulShutdown(exitCode: number = 0) {
 
   // Add some cleanup code here!
   await Promise.allSettled([
-    stopServer(),
+    // stopServer(),
   ])
 
   console.info(

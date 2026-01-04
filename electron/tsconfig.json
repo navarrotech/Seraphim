@@ -18,6 +18,7 @@
   },
   "include": [
     "src",
-    "../common/src/redux/stores/context.ts"
+    "../common/src/redux/stores/context.ts",
+    "../common/src/redux/stores/jobs.ts"
   ]
 }

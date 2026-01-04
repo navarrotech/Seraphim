@@ -12,7 +12,7 @@ import { osToast } from '../main/notify'
 
 // Redux
 import { dispatch, getState } from '../lib/redux-store'
-import { jobActions } from '../jobReducer'
+import { jobActions } from '../../../common/src/redux/stores/jobs'
 
 // Misc
 import { v7 as uuid } from 'uuid'
