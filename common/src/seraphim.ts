@@ -1,15 +1,16 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { homedir } from 'os'
-import { LOCAL_HOME } from '@common/constants'
+import { SUBDIR_APP_NAME } from '@common/constants'
+import { getState } from './redux/store'
 
 // Utility
 import { join, resolve } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 
-export function getSeraphimHomeDirectory(...additionalPath: string[]): string {
-  const directory = join(homedir(), LOCAL_HOME)
+export function getSeraphimWorkingDirectory(...additionalPath: string[]): string {
+  const snapshot = getState()
+  const directory = join(snapshot.context.appDir, SUBDIR_APP_NAME)
 
   // Ensure it exists before continuing:
   if (!existsSync(directory)) {

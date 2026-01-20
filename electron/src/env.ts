@@ -20,13 +20,3 @@ if (!isProduction) {
     path: resolve(process.cwd(), '..', '.env'),
   })
 }
-
-// This is NOT required, but it is used as the "default" API key
-// If not set, the it will need to be defined in the seraphim config file per-project
-export const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-
-if (!OPENAI_API_KEY) {
-  console.warn(`The OPENAI_API_KEY is not set in the environment!
-The end user will be required to enter openai key into each seraphim project configuration file.
-  `.trim())
-}

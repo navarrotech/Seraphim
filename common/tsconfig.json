@@ -10,6 +10,6 @@
   },
   "include": [
     "src",
-    "../electron/src/langgraph/utility/promptCache.ts"
+    "src/promptCache.ts"
   ]
 }

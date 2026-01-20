@@ -23,13 +23,13 @@ export const devCsp: string[] = [
 
 export const prodCsp: string[] = [
   // lock everything down to your custom protocol
-  'default-src \'self\' mooreslabai://app',
+  'default-src \'self\' app://electron',
   // only run bundled scripts
-  'script-src \'self\' mooreslabai://app \'unsafe-inline\'',
+  'script-src \'self\' app://electron \'unsafe-inline\'',
   // allow inline styles (for bundled styles) (unsafe inline needed for Monaco editor styles)
-  'style-src \'self\' mooreslabai://app https://fonts.googleapis.com \'unsafe-inline\'',
+  'style-src \'self\' app://electron https://fonts.googleapis.com \'unsafe-inline\'',
   // Fonts
   'font-src \'self\' https://fonts.gstatic.com data:',
   // images via protocol or data URIs
-  'img-src \'self\' mooreslabai://app data:',
+  'img-src \'self\' app://electron data:',
 ]

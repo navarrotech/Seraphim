@@ -12,8 +12,8 @@ import http from 'http'
 import { safeParseJson } from '@common/json'
 
 // Redux
-import { dispatch } from '../lib/redux-store'
-import { contextActions } from '../../../common/src/redux/stores/context'
+import { dispatch } from '@common/redux/store'
+import { contextActions } from '@common/redux/stores/context'
 
 // Misc
 import { v7 as uuid } from 'uuid'

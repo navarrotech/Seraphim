@@ -2,13 +2,19 @@
 
 import type { ChatModel } from 'openai/resources'
 
+export const Seraphim = `
+  ____  ____ _____   ____  _____  _   _  _  __  __ 
+ (_ (_\`| ===|| () ) / () \\ | ()_)| |_| || ||  \\/  |
+.__)__)|____||_|\\_\\/__/\\__\\|_|   |_| |_||_||_|\\/|_|
+`
+
 // URL & Web Settings
 export const PORT = 9841
 export const FRONTEND_PORT = 5173
 export const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 
 // Project Configuration
-export const LOCAL_HOME = '.seraphim' as const
+export const SUBDIR_APP_NAME = 'seraphim' as const
 export const CONFIG_FILE_NAME = 'seraphim.jsonc' as const
 export const PROMPT_CACHE_DIRNAME = 'prompt-cache' as const
 

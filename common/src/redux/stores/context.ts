@@ -14,6 +14,7 @@ import type {
 
 export type ContextState = {
   serverStatus: SystemStatus
+  appDir: string | null
   chromeLogsByPage: Record<string, ChromeLogPayload[]>
   activeVsCodeState: VsCodeUserState | null
   vsCodeConnectionsByWorkspace: Record<string, VsCodeUserState>
@@ -21,6 +22,7 @@ export type ContextState = {
 
 const initialState: ContextState = {
   serverStatus: 'offline',
+  appDir: null,
   chromeLogsByPage: {},
   activeVsCodeState: null,
   vsCodeConnectionsByWorkspace: {},
@@ -69,6 +71,9 @@ export const slice = createEnhancedSlice({
     },
     setServerStatus: (state, action: PayloadAction<SystemStatus>) => {
       state.serverStatus = action.payload
+    },
+    setAppDirectory: (state, action: PayloadAction<string>) => {
+      state.appDir = action.payload
     },
   },
 })

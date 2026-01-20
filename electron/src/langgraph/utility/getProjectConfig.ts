@@ -14,10 +14,9 @@ import { getAllRankedVsCodeWorkspaces } from './getAllRankedVsCodeWorkspaces'
 
 // Misc
 import { CONFIG_FILE_NAME } from '@common/constants'
-import { OPENAI_API_KEY } from '../../env'
 
 const defaultProjectConfig: SeraphimProjectConfiguration = {
-  openAiApiToken: OPENAI_API_KEY,
+  openAiApiToken: 'OPENAI_API_KEY',
 }
 
 export function getProjectConfig(): [ SeraphimProjectConfiguration, string ] {

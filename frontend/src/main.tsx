@@ -8,6 +8,7 @@ import './env'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
+// Gates
 import { ElectronGate } from './pages/gates/ElectronGate'
 import { Router } from './Router'
 

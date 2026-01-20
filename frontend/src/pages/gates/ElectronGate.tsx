@@ -15,7 +15,7 @@ export function ElectronGate(props: Props) {
     return <main className='flex flex-col w-screen h-screen items-center justify-center gap-6'>
       <section className='text-center'>
         <h1 className='text-3xl font-bold compact'>Electron environment not detected</h1>
-        <p>Please ensure you are running this application in the MooreslabAI Electron environment.</p>
+        <p>Please ensure you are running this application in the Electron environment.</p>
       </section>
     </main>
   }

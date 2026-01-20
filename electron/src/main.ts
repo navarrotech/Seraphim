@@ -14,11 +14,13 @@ import windowStateKeeper from 'electron-window-state'
 import serve from 'electron-serve'
 import chalk from 'chalk'
 
+// Redux
+import { dispatch } from '@common/redux/store'
+import { contextActions } from '@common/redux/stores/context'
+
 // Process
 import { browserDir, logoPath, getSourceFile } from './lib/internalFiles'
-// import { startServer, stopServer } from './main/server'
-// import { registerHotkeys } from './main/hotkeys'
-import { logSeraphim } from './main/console'
+import { startServer, stopServer } from './server'
 
 // Browser
 import { devCsp, prodCsp } from './constants'
@@ -26,6 +28,7 @@ import { FRONTEND_URL } from '@common/constants'
 
 // Misc
 import { isProduction } from './env'
+import { Seraphim } from '@common/constants'
 
 // //////////////////////////// //
 //            Globals           //
@@ -54,6 +57,12 @@ if (isProduction) {
     process.exit(0)
   }
 }
+
+dispatch(
+  contextActions.setAppDirectory(
+    app.getAppPath(),
+  ),
+)
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (squirrelStartup) {
@@ -89,7 +98,7 @@ async function gracefulShutdown(exitCode: number = 0) {
 
   // Add some cleanup code here!
   await Promise.allSettled([
-    // stopServer(),
+    stopServer(),
   ])
 
   console.info(
@@ -133,9 +142,9 @@ if (process.platform === 'win32') {
 // //////////////////////////// //
 
 async function startup() {
-  // await Promise.all([
-  //   startServer(),
-  // ])
+  await Promise.all([
+    startServer(),
+  ])
 
   // registerHotkeys()
 
@@ -235,7 +244,7 @@ async function startup() {
   // and restore the maximized or full screen state
   windowStateManager.manage(window)
 
-  logSeraphim()
+  console.log('\n' + Seraphim)
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
