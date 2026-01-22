@@ -12575,7 +12575,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prisma@npm:^7.0.0":
+"prisma@npm:7":
   version: 7.3.0
   resolution: "prisma@npm:7.3.0"
   dependencies:
@@ -13543,6 +13543,7 @@ __metadata:
     lodash-es: "npm:^4.17.21"
     node-global-key-listener: "npm:^0.3.0"
     openai: "npm:^5.7.0"
+    prisma: "npm:7"
     rimraf: "npm:^6.0.1"
     ts-morph: "npm:^26.0.0"
     tsx: "npm:^4.19.4"
@@ -13588,8 +13589,8 @@ __metadata:
     express-rate-limit: "npm:^8.2.1"
     helmet: "npm:^8.1.0"
     hpp: "npm:^0.2.3"
+    ky: "npm:^1.14.2"
     playwright: "npm:^1.53.1"
-    prisma: "npm:^7.0.0"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.8.3"
   languageName: unknown

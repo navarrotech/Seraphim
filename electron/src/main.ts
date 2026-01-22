@@ -9,7 +9,9 @@ import { gracefulShutdown } from './lib/shutdown'
 
 // Lib
 import { startDatabase } from './database'
+import { databaseMigrations } from './lib/migrations'
 import { startApi } from './api'
+import { registerVoiceHotkeyListener } from './transcriber'
 
 // https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
@@ -30,8 +32,11 @@ async function startup() {
     return
   }
 
+  await databaseMigrations()
+
   await Promise.all([
     startApi(),
+    registerVoiceHotkeyListener(),
   ])
 
   newWindow()

@@ -38,7 +38,8 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
-    "hpp": "^0.2.3"
+    "hpp": "^0.2.3",
+    "ky": "^1.14.2"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
@@ -59,7 +60,6 @@
     "cross-env": "^10.0.0",
     "electron": "^38.2.0",
     "playwright": "^1.53.1",
-    "prisma": "^7.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

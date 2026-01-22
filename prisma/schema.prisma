@@ -7,5 +7,40 @@ datasource db {
 }
 
 model Thread {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  expiresAt DateTime? @map("expires_at")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  settings UserSettings?
+  threads  Thread[]
+
+  username String @unique
+  name     String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model UserSettings {
+  id String @id @default(uuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  voiceEnabled Boolean @default(true)
+  voiceHotkey  String  @default("Control+Num0")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_settings")
 }

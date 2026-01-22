@@ -7,3 +7,7 @@ export const DEV_FRONTEND_ORIGIN = 'http://localhost:5173'
 export const APP_PROTOCOL = 'app'
 export const APP_HOSTNAME = 'seraphim'
 export const APP_ORIGIN = `${APP_PROTOCOL}://${APP_HOSTNAME}`
+
+export const TRANSCRIBER_BASE_URL = 'http://localhost:991'
+export const TRANSCRIBER_START_PATH = 'transcribe/start'
+export const TRANSCRIBER_STOP_PATH = 'transcribe/stop'

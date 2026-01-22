@@ -7,10 +7,10 @@ import { PrismaClient } from '@prisma/client'
 import { DATABASE_URL } from './env'
 import { logFailed, logSuccess, logWarning } from './lib/logging'
 
-let databaseClient: PrismaClient | null = null
+let prisma: PrismaClient | null = null
 
 export async function startDatabase(): Promise<boolean> {
-  if (databaseClient) {
+  if (prisma) {
     logWarning('Database already started, skipping new connection')
     return true
   }
@@ -21,29 +21,29 @@ export async function startDatabase(): Promise<boolean> {
     return null
   }
 
-  databaseClient = new PrismaClient()
+  prisma = new PrismaClient()
 
   try {
-    await databaseClient.$connect()
+    await prisma.$connect()
     logSuccess('Database connected')
     return true
   }
   catch (error) {
     logFailed('Database failed to connect')
     console.error(error)
-    databaseClient = null
+    prisma = null
     return false
   }
 }
 
 export async function stopDatabase(): Promise<void> {
-  if (!databaseClient) {
+  if (!prisma) {
     logWarning('Database stop requested, but no connection is running')
     return
   }
 
-  const prismaClient = databaseClient
-  databaseClient = null
+  const prismaClient = prisma
+  prisma = null
 
   try {
     await prismaClient.$disconnect()
@@ -53,4 +53,13 @@ export async function stopDatabase(): Promise<void> {
     logFailed('Database failed to disconnect cleanly')
     console.error(error)
   }
+}
+
+export function getDatabaseClient(): PrismaClient | null {
+  if (!prisma) {
+    logWarning('Database client requested before initialization')
+    return null
+  }
+
+  return prisma
 }

@@ -2,11 +2,12 @@
 
 services:
   transcriber:
+    container_name: seraphim-transcriber
     build:
-      context: services/transcriber
+      context: transcriber
     restart: unless-stopped
     ports:
-      - "2700:2700"
+      - "991:2700"
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/2700"]
       interval: 3s
@@ -16,5 +17,29 @@ services:
     networks:
       - main
 
+  database:
+    container_name: seraphim-database
+    image: postgres:17.2
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    ports:
+      - "992:5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    networks:
+      - main
+
 networks:
   main:
+
+volumes:
+  database_data:
