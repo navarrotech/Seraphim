@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "target": "ESnext",
+    "allowJs": true,
+    "outDir": "dist",
+    "types": [
+      "node",
+      "electron"
+    ],
+    "composite": false
+  },
+  "include": [
+    "src"
+  ]
+}

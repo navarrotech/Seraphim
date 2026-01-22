@@ -1,9 +1,9 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { ReduxState } from '../../../common/src/types'
+import type { ReduxState } from '@common/types'
 
 // Core
-import { store } from '../framework/store'
+import { store } from '../store'
 
 type Recall = () => void
 

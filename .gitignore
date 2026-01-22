@@ -20,3 +20,10 @@ $null
 !.yarn/install-state.gz
 !.yarn/build-state.yml
 /legacy/**
+*.deb
+*.rpm
+*.exe
+*.msi
+electron/out/
+electron/public/browser/
+frontend/dist/

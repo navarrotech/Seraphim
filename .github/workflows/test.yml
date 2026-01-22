@@ -1,0 +1,180 @@
+name: Code tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+env:
+  CI: 1
+  FORCE_COLOR: 1
+  NODE_OPTIONS: --max-old-space-size=6144
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Tests and checks
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
+          set-safe-directory: true
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          # Point to a named LTS release: https://nodejs.org/en/about/previous-releases
+          node-version: "lts/Jod"
+          cache: yarn
+
+      - name: Setup yarn
+        run: npm run get-yarn
+
+      - name: Yarn constraints
+        run: yarn constraints
+
+      - name: Restore node modules cache
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .yarn/cache
+            ~/.cache/yarn
+            **/node_modules
+          key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      # This gets proxied using the Mooreslab root package.json, to the Microsoft package.json
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # Immediately save cache after install to capture any changes
+      # Otherwise, they only get cached if the job is successful
+      - name: Save node modules cache
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .yarn/cache
+            ~/.cache/yarn
+            **/node_modules
+          key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Ensure clean
+        id: clean
+        run: yarn clean
+
+      # We allow the following to fail, so we can run all of the checks without having to fix one at a time
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: yarn eslint frontend bifrost electron .github/scripts
+
+      - name: Typescript check
+        id: typecheck
+        continue-on-error: true
+        run: yarn workspaces foreach -A -p run typecheck
+
+      - name: Unit test
+        continue-on-error: true
+        id: unit-test
+        run: yarn vitest run
+
+      - name: Build
+        continue-on-error: true
+        # Build will always fail if the typecheck fails, so we can save some time by skipping it if it fails
+        if: ${{ steps.typecheck.outcome == 'success' }}
+        id: build
+        run: yarn build
+
+      - name: Upload unit test results
+        if: ${{ steps.unit-test.outcome == 'success' }}
+        continue-on-error: true
+        uses: dorny/test-reporter@v2
+        with:
+          name: unit-test-results
+          path: ./.test/all-results.xml
+          reporter: jest-junit
+
+      - name: Check if any of the previous steps failed
+        shell: bash
+        if: ${{ always() }}
+        run: |
+          has_failed=false
+
+          if [[ "${{ steps.lint.outcome }}" != "success" ]]; then
+            echo -e "\033[0;31m✖ lint: failed\033[0m"
+            has_failed=true
+          else
+            echo -e "\033[0;32m✔ lint: success\033[0m"
+          fi
+
+          if [[ "${{ steps.unit-test.outcome }}" != "success" ]]; then
+            echo -e "\033[0;31m✖ test: failed\033[0m"
+            has_failed=true
+          else
+            echo -e "\033[0;32m✔ test: success\033[0m"
+          fi
+
+          if [[ "${{ steps.typecheck.outcome }}" != "success" ]]; then
+            echo -e "\033[0;31m✖ typescript: failed\033[0m"
+            has_failed=true
+          else
+            echo -e "\033[0;32m✔ typescript: success\033[0m"
+          fi
+
+          if [[ "${{ steps.build.outcome }}" != "success" ]]; then
+            echo -e "\033[0;31m✖ build: failed\033[0m"
+            has_failed=true
+          else
+            echo -e "\033[0;32m✔ build: success\033[0m"
+          fi
+
+          if [[ "$has_failed" == "true" ]]; then
+            echo "One or more steps failed, exiting with code 1"
+            exit 1
+          fi
+
+  compile:
+    name: Earthly build
+    runs-on: ubuntu-latest
+    # Only run on main or devel branches:
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/devel' }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        output: [debian, redhat, windows]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
+          set-safe-directory: true
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - uses: earthly/actions-setup@v1
+        with:
+          version: v0.8.0
+
+      # https://www.electronforge.io/config/makers/deb#debugging
+      # https://www.electronforge.io/config/makers/rpm#debugging
+      - name: Earthly build ${{ matrix.output }}
+        id: compile
+        run: earthly +${{ matrix.output }}
+        env:
+          NODE_ENV: production
+          DEBUG: electron-installer-*
