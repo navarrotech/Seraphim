@@ -7,6 +7,10 @@ import { app, BrowserWindow } from 'electron'
 import { newWindow } from './window'
 import { gracefulShutdown } from './lib/shutdown'
 
+// Lib
+import { startDatabase } from './database'
+import { startApi } from './api'
+
 // https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
 
@@ -18,6 +22,18 @@ if (squirrelStartup) {
 
 async function startup() {
   console.info('App starting up')
+
+  const databaseConnected = await startDatabase()
+  if (!databaseConnected) {
+    console.error('App failed to start due to database connection failure')
+    gracefulShutdown()
+    return
+  }
+
+  await Promise.all([
+    startApi(),
+  ])
+
   newWindow()
 }
 

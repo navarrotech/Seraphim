@@ -123,6 +123,10 @@ export function newWindow() {
     window.webContents.toggleDevTools()
   })
 
+  electronLocalshortcut.register(window, 'Ctrl+N', () => {
+    newWindow()
+  })
+
   electronLocalshortcut.register(window, 'Ctrl+R', () => {
     window.webContents.reload()
   })

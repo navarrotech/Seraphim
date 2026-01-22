@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
-    "typecheck": "yarn workspaces run typecheck",
+    "typecheck": "yarn workspaces foreach -Apt run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",
     "test:dev": "vitest watch --coverage.enabled=false --reporter verbose",

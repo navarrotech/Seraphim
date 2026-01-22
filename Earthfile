@@ -2,11 +2,12 @@ VERSION --try 0.8
 FROM node:lts-jod
 WORKDIR /app
 
-RUN apt update -y && apt install -y \
+RUN dpkg --add-architecture i386 && apt update -y && apt install -y \
   libnotify-dev libasound2-dev libcap-dev \
   libcups2-dev libxtst-dev \
   libxss1 libnss3-dev gcc-multilib g++-multilib curl \
   gperf bison python3-dbusmock dpkg fakeroot rpm \
+  wine wine64 wine32:i386 mono-complete \
   xvfb xauth \
   libgtk-3-0 libnotify4 libnss3 libnspr4 \
   libasound2 libgbm1 libdrm2 libxdamage1 libxrandr2 libxfixes3 \
@@ -14,6 +15,7 @@ RUN apt update -y && apt install -y \
   libx11-6 libx11-xcb1 libxcb1 \
   libatk-bridge2.0-0 libatk1.0-0 libglib2.0-0 libpango-1.0-0 libcairo2 \
   libgdk-pixbuf2.0-0 rpm2cpio cpio
+RUN if [ ! -x /usr/bin/wine64 ]; then echo "wine64 not found, linking wine -> wine64"; ln -s /usr/bin/wine /usr/bin/wine64; fi
 
 COPY .yarn/releases .yarn/releases
 COPY .yarnrc.yml yarn.config.cjs .
@@ -84,15 +86,8 @@ redhat:
 windows:
   FROM +electron
 
-  # Compile Redhat
-  RUN cd electron && TARGET_MAKER=windows yarn make
-  RUN cd electron/out/make/rpm/x64 && mv *.rpm seraphim.rpm
+  # Compile Windows
+  RUN cd electron && TARGET_MAKER=windows yarn make --platform=win32 --arch=x64
 
-  # Save .deb
-  SAVE ARTIFACT electron/out/make/rpm/x64/seraphim.rpm AS LOCAL seraphim.rpm
-
-  # Save testable binary
-  RUN chown root electron/out/seraphim-linux-x64/chrome-sandbox
-  RUN chmod 4755 electron/out/seraphim-linux-x64/chrome-sandbox
-  SAVE ARTIFACT electron/out/make/rpm AS LOCAL electron/out/make/rpm
-  SAVE ARTIFACT electron/out/seraphim-linux-x64 AS LOCAL electron/out/seraphim-linux-x64
+  # Save Windows artifacts
+  SAVE ARTIFACT electron/out/make/squirrel.windows/x64 AS LOCAL electron/out/make/squirrel.windows/x64

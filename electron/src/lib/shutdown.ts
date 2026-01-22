@@ -3,6 +3,10 @@
 // Core
 import { app } from 'electron'
 
+// Lib
+import { stopApi } from '../api'
+import { stopDatabase } from '../database'
+
 let isShuttingDown = false
 export async function gracefulShutdown(exitCode: number = 0) {
   // Prevent multiple calls to this function
@@ -18,6 +22,11 @@ export async function gracefulShutdown(exitCode: number = 0) {
     process.exit(exitCode)
   }, 10_000)
   forceExitTimer.unref?.()
+
+  await Promise.allSettled([
+    stopDatabase(),
+    stopApi(),
+  ])
 
   console.info('Graceful shutdown complete')
   app.quit()

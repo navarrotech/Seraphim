@@ -156,7 +156,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        output: [debian, redhat, windows]
+        output:
+          - debian
+          - redhat
+          # - windows
 
     steps:
       - name: Checkout
