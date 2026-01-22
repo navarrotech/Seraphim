@@ -18,9 +18,7 @@
   "workspaces": [
     "electron/",
     "frontend/",
-    "common/",
-    "chrome/",
-    "vscode/"
+    "common/"
   ],
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",

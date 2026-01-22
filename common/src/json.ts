@@ -23,11 +23,3 @@ export function safeStringifyJson<Type = Record<string, any>>(
     return undefined
   }
 }
-
-export function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-}

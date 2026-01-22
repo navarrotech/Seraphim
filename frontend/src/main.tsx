@@ -1,7 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Globals
-import './core/logging'
 import './env'
 
 // Core
@@ -9,7 +8,6 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 // Gates
-import { ElectronGate } from './pages/gates/ElectronGate'
 import { Router } from './Router'
 
 // Styles
@@ -19,9 +17,7 @@ const container = document.getElementById('root') as HTMLElement
 const root = createRoot(container)
 
 root.render(
-  <ElectronGate>
-    <BrowserRouter>
-      <Router />
-    </BrowserRouter>
-  </ElectronGate>,
+  <BrowserRouter>
+    <Router />
+  </BrowserRouter>,
 )

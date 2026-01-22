@@ -1,31 +1,33 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { ReduxState } from '@common/types'
+import type { ReduxState } from '../../../common/src/types'
 
 // Core
-import { store } from './store'
+import { store } from '../framework/store'
+
+type Recall = () => void
 
 export function select<Value>(
   selector: (state: ReduxState) => Value,
-  listener: (value: Value) => void,
+  listener: (value: Value, recall: Recall) => void,
 ) {
   // grab the initial value
   let current = selector(store.getState())
 
   // on every store update, re-run the selector…
-  function handleChange() {
+  function handleChange(recall: boolean = false) {
     const next = selector(store.getState())
 
     // …and only fire if it really changed
-    if (!Object.is(next, current)) {
+    if (recall || !Object.is(next, current)) {
       current = next
-      listener(next)
+      listener(next, () => handleChange(true))
     }
   }
 
   // subscribe & kick off the first call
   const unsubscribe = store.subscribe(handleChange)
-  listener(current)
+  listener(current, () => handleChange(true))
 
   return unsubscribe
 }

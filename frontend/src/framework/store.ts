@@ -1,11 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { ThunkAction, Action } from '@reduxjs/toolkit'
+import type { TypedUseSelectorHook } from 'react-redux'
+
 // Core
 import { configureStore } from '@reduxjs/toolkit'
+import {
+  useDispatch as useDefaultDispatch,
+  useSelector as useDefaultSelector,
+} from 'react-redux'
 
 // Reducers
-import { slice as contextSlice } from './stores/context'
-import { slice as jobsSlice } from './stores/jobs'
+import { slice as jobsSlice } from './redux/stores/jobs'
 
 // /////////////////////// //
 //          Store          //
@@ -14,7 +20,6 @@ import { slice as jobsSlice } from './stores/jobs'
 export const store = configureStore({
   // For all type inferrence to work correctly, we must write these out explicitly
   reducer: {
-    context: contextSlice.reducer,
     jobs: jobsSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -42,12 +47,18 @@ export const subscribe = store.subscribe
 export type AppSubscribe = typeof store.subscribe
 
 // /////////////////////// //
+//    Common functions     //
+// /////////////////////// //
+
+export const useDispatch: () => AppDispatch = useDefaultDispatch
+export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
+
+// /////////////////////// //
 //   Advanced functions    //
 // /////////////////////// //
 
 const motherload = {
-  context: contextSlice,
-    jobs: jobsSlice,
+  jobs: jobsSlice,
 } as const satisfies Record<keyof ReturnType<AppGetState>, any>
 
 export function getDefaultState() {
@@ -63,3 +74,10 @@ export function resetStore() {
     )
   }
 }
+
+// /////////////////////// //
+//    Typescript Types     //
+// /////////////////////// //
+
+export type RootState = ReturnType<typeof store.getState>
+export type Thunk = ThunkAction<void, RootState, unknown, Action>

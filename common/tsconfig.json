@@ -10,6 +10,8 @@
   },
   "include": [
     "src",
-    "src/promptCache.ts"
+    "src/promptCache.ts",
+    "../frontend/src/redux",
+    "../frontend/src/framework/store.ts"
   ]
 }
