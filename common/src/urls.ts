@@ -3,8 +3,12 @@
 // Urls
 export const UrlTree = {
   root: '/',
-  main: '/',
   settings: '/settings',
+  workspacesList: '/workspaces',
+  workspaceView: '/workspace/:workspaceId',
+  workspaceEdit: '/workspace/:workspaceId/edit',
+  workspaceTasksList: '/workspaces/:workspaceId/tasks',
+  workspaceTaskView: '/workspaces/:workspaceId/tasks/:taskId',
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 
@@ -16,4 +20,4 @@ export type ExternalLinkValue = typeof ExternalLinks[keyof typeof ExternalLinks]
 export type ValidApplicationLink = UrlValue | ExternalLinkValue
 
 // Settings
-export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = '/' as const
+export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.workspacesList

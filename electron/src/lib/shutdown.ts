@@ -6,6 +6,7 @@ import { app } from 'electron'
 // Lib
 import { stopApi } from '../api'
 import { stopDatabase } from '../database'
+import { disconnectFromDocker } from '../docker/docker'
 
 let isShuttingDown = false
 export async function gracefulShutdown(exitCode: number = 0) {
@@ -24,6 +25,7 @@ export async function gracefulShutdown(exitCode: number = 0) {
   forceExitTimer.unref?.()
 
   await Promise.allSettled([
+    disconnectFromDocker(),
     stopDatabase(),
     stopApi(),
   ])

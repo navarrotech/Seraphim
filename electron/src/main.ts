@@ -11,6 +11,7 @@ import { gracefulShutdown } from './lib/shutdown'
 import { startDatabase } from './database'
 import { databaseMigrations } from './lib/migrations'
 import { startApi } from './api'
+import { connectToDocker } from './docker/docker'
 import { registerVoiceHotkeyListener } from './transcriber'
 
 // https://www.npmjs.com/package/electron-squirrel-startup
@@ -36,6 +37,7 @@ async function startup() {
 
   await Promise.all([
     startApi(),
+    connectToDocker(),
     registerVoiceHotkeyListener(),
   ])
 

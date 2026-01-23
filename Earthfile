@@ -15,9 +15,9 @@ RUN dpkg --add-architecture i386 && apt update -y && apt install -y \
   libx11-6 libx11-xcb1 libxcb1 \
   libatk-bridge2.0-0 libatk1.0-0 libglib2.0-0 libpango-1.0-0 libcairo2 \
   libgdk-pixbuf2.0-0 rpm2cpio cpio
-RUN if [ ! -x /usr/bin/wine64 ]; then echo "wine64 not found, linking wine -> wine64"; ln -s /usr/bin/wine /usr/bin/wine64; fi
+RUN ln -s /usr/bin/wine /usr/bin/wine64
 
-COPY .yarn/releases .yarn/releases
+COPY --dir .yarn/releases .yarn/plugins .yarn/
 COPY .yarnrc.yml yarn.config.cjs .
 RUN corepack enable
 
