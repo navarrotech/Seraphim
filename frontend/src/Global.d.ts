@@ -2,17 +2,17 @@
 
 import type { NavigateOptions } from 'react-router-dom'
 import type { ValidApplicationLink } from '@common/urls'
-import type {
-  ElectronIpcBridge,
-  VersionIpcVersion,
-  ReduxIpcBridge,
-} from '@common/types'
 
 declare global {
   interface Window {
-    electron: ElectronIpcBridge
-    version: VersionIpcVersion
-    redux: ReduxIpcBridge
+    version: {
+      node: string
+      chrome: string
+      electron: string
+    },
+    config: {
+      getApiUrl: () => string
+    },
   }
 }
 

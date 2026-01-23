@@ -17,7 +17,7 @@ import { protectedApiMiddleware } from './middleware/protectedApiMiddleware'
 import { notFoundMiddleware } from './middleware/notFoundMiddleware'
 import { errorMiddleware } from './middleware/errorMiddleware'
 import { createPublicRouter } from './routes/public/publicRouter'
-import { createProtectedRouter } from './routes/protected/protectedRouter'
+import { createProtectedRouter } from './routes/v1/protected/protectedRouter'
 
 // Misc
 import { API_BASE_PATH } from '../constants'

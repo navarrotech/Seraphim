@@ -41,7 +41,7 @@ export const dispatch = store.dispatch
 export type AppDispatch = typeof store.dispatch
 
 export const getState = store.getState
-export type AppGetState = typeof store.getState
+export type ReduxState = typeof store.getState
 
 export const subscribe = store.subscribe
 export type AppSubscribe = typeof store.subscribe
@@ -59,12 +59,12 @@ export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
 
 const motherload = {
   jobs: jobsSlice,
-} as const satisfies Record<keyof ReturnType<AppGetState>, any>
+} as const satisfies Record<keyof ReturnType<ReduxState>, any>
 
 export function getDefaultState() {
   return Object.fromEntries(
     Object.entries(motherload).map(([ key, slice ]) => [ key, slice.getInitialState() ]),
-  ) as ReturnType<AppGetState>
+  ) as ReturnType<ReduxState>
 }
 
 export function resetStore() {

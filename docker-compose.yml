@@ -4,10 +4,10 @@ services:
   transcriber:
     container_name: seraphim-transcriber
     build:
-      context: transcriber
+      context: services/transcriber
     restart: unless-stopped
     ports:
-      - "991:2700"
+      - "9901:2700"
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/2700"]
       interval: 3s
@@ -32,9 +32,31 @@ services:
       retries: 6
       start_period: 1s
     ports:
-      - "992:5432"
+      - "9902:5432"
     volumes:
       - database_data:/var/lib/postgresql/data
+    networks:
+      - main
+
+  prisma-studio:
+    container_name: seraphim-prisma-studio
+    build:
+      context: .
+      dockerfile: services/prisma_studio/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/5555"]
+      interval: 2s
+      timeout: 5s
+      retries: 6
+      start_period: 2s
+    ports:
+      - "5555:5555"
+    depends_on:
+      database:
+        condition: service_healthy
     networks:
       - main
 

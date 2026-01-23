@@ -13,6 +13,8 @@ model Workspace {
   description    String   @default("")
   repository     String
   setupScript    String   @default("") @map("setup_script")
+  postScript     String   @default("") @map("post_script")
+  cacheFiles     String[] @default([]) @map("cache_files")
   env            String[] @default([])
   secrets        String[] @default([])
   containerImage String   @map("container_image")

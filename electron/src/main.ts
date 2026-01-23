@@ -7,6 +7,9 @@ import { app, BrowserWindow } from 'electron'
 import { newWindow } from './window'
 import { gracefulShutdown } from './lib/shutdown'
 
+// IPC
+import './lib/ipc'
+
 // Lib
 import { startDatabase } from './database'
 import { databaseMigrations } from './lib/migrations'

@@ -36,7 +36,7 @@ function buildDatabaseUrlFromParts(): string {
   const password = process.env.POSTGRES_PASSWORD ?? ''
   const database = process.env.POSTGRES_DB ?? ''
   const host = process.env.POSTGRES_HOST ?? 'localhost'
-  const port = process.env.POSTGRES_PORT ?? '992'
+  const port = process.env.POSTGRES_PORT ?? '9902'
 
   if (!user || !password || !database) {
     console.debug('Database credentials missing for DATABASE_URL composition', {
@@ -83,7 +83,7 @@ if (!DATABASE_URL) {
   throw Error('Database failed to start due to invalid DATABASE_URL')
 }
 
-export const API_PORT = parseEnvInt(process.env.API_PORT, 990)
+export const API_PORT = parseEnvInt(process.env.API_PORT, 9900)
 
 if (!API_PORT) {
   throw Error('API server failed to start due to invalid API_PORT')

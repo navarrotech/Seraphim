@@ -1,5 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
+import { API_PORT } from '@electron/env'
+
 /* CSP notes:
  *
  * style-src
@@ -23,13 +25,14 @@ export const devCsp: string[] = [
   // everything from our own origin…
   'default-src \'self\'',
   // …but load & run scripts (including inline & eval’d HMR code) from localhost:5173
-  'script-src \'self\' http://localhost:5173 \'unsafe-inline\' \'unsafe-eval\'',
+  `script-src 'self' http://localhost:5173 http://localhost:${API_PORT} 'unsafe-inline' 'unsafe-eval'`,
   // styles (including inline HMR style updates) from localhost:5173
-  'style-src \'self\' http://localhost:5173 \'unsafe-inline\'',
+  `style-src 'self' http://localhost:5173 http://localhost:${API_PORT} 'unsafe-inline' https://fonts.googleapis.com`,
+  'font-src https://fonts.gstatic.com',
   // images from localhost:5173 and data URIs
-  'img-src \'self\' http://localhost:5173 data:',
+  `img-src 'self' http://localhost:5173 http://localhost:${API_PORT} data:`,
   // HMR websocket & XHR
-  'connect-src \'self\' http://localhost:5173 ws://localhost:5173',
+  `connect-src 'self' http://localhost:5173 http://localhost:${API_PORT} ws://localhost:5173`,
 ]
 
 export const prodCsp: string[] = [
@@ -38,7 +41,8 @@ export const prodCsp: string[] = [
   // only run bundled scripts
   'script-src \'self\' seraphim://app \'unsafe-inline\' \'unsafe-eval\'',
   // allow inline styles (for bundled styles) (unsafe inline needed for Monaco editor styles)
-  'style-src \'self\' seraphim://app \'unsafe-inline\'',
+  'style-src \'self\' seraphim://app \'unsafe-inline\' https://fonts.googleapis.com',
+  'font-src https://fonts.gstatic.com',
   // images via protocol or data URIs
   'img-src \'self\' seraphim://app data:',
 ]

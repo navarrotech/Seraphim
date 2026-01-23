@@ -16,6 +16,12 @@ export default defineConfig({
     },
   ],
   build: {
+    rollupOptions: {
+      external: [
+        'cpu-features',
+        'dockerode',
+      ],
+    },
     // (In KB) We don't need to worry about large assets, as this is a desktop app deployed via GUI.
     // The only reason we would be concerned about this is if it was being served over a network.
     // It's served straight from the disk so it's not a big deal.

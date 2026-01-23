@@ -64,3 +64,12 @@ export function getDatabaseClient(): PrismaClient | null {
 
   return prisma
 }
+
+export function requireDatabaseClient(context: string): PrismaClient {
+  if (!prisma) {
+    logWarning(`Database client requested before initialization: ${context}`)
+    throw new Error('Database client is not initialized')
+  }
+
+  return prisma
+}
