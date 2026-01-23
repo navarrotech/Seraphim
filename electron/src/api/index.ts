@@ -61,7 +61,6 @@ export async function stopApi(): Promise<void> {
       }
 
       logSuccess('API server stopped')
-      console.info({ port: API_PORT })
       resolve()
     }
 

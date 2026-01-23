@@ -18,8 +18,8 @@ import { DisplayErrors } from '../DisplayErrors'
 
 type Props = {
   id: string
-  items: Environment[]
-  onChange: (env: Environment[]) => void
+  entries: Environment[]
+  onEntriesChange: (entries: Environment[]) => void
   firstKeyPlaceholder?: string
   firstValuePlaceholder?: string
   className?: string
@@ -32,28 +32,28 @@ export function EnvironmentInputs(props: Props) {
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure()
 
   const {
-    items,
+    entries,
     // onChange is very likely to not be memoized, it's not that important to be memoized
     // So don't use it in the deps array
-    onChange,
+    onEntriesChange,
     isDisabled = false,
   } = props
 
   const onValue = useCallback((index: number, key: keyof Environment, value: string) => {
-    const newEnv = [ ...items ]
+    const newEnv = [ ...entries ]
     newEnv[index] = { ...newEnv[index], [key]: value }
-    onChange(newEnv)
-  }, [ items ])
+    onEntriesChange(newEnv)
+  }, [ entries ])
 
   const addEntry = useCallback(() => {
-    const newEnv = [ ...items, { key: '', value: '' }]
-    onChange(newEnv)
-  }, [ items ])
+    const newEnv = [ ...entries, { key: '', value: '' }]
+    onEntriesChange(newEnv)
+  }, [ entries ])
 
   const removeEntry = useCallback((index: number) => {
-    const newEnv = items.filter((_, i) => i !== index)
-    onChange(newEnv)
-  }, [ items ])
+    const newEnv = entries.filter((_, i) => i !== index)
+    onEntriesChange(newEnv)
+  }, [ entries ])
 
   return <div id={props.id} className={props.className}>
     {/* Header */}
@@ -68,7 +68,7 @@ export function EnvironmentInputs(props: Props) {
     </div>
 
     {/* Items list */}
-    { items.map((entry, index) => <div key={index} className='level-centered items-start compact'>
+    { entries.map((entry, index) => <div key={index} className='level-centered items-start compact'>
       <div className='w-full'>
         <Input
           id={`${props.id}-${index}-key`}
@@ -140,8 +140,8 @@ export function EnvironmentInputs(props: Props) {
       onOpen={onOpen}
       onClose={onClose}
       onOpenChange={onOpenChange}
-      environment={items}
-      onChange={onChange}
+      environment={entries}
+      onChange={onEntriesChange}
     />
   </div>
 }
