@@ -1,35 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-
-// Lib
-import { z } from 'zod'
+import type { TaskCreateRequest } from '@common/schema'
 
 // Utility
 import { parseRequestBody } from '../../validation'
-import { userIdSchema, workspaceIdSchema } from '@electron/validators'
+import { taskCreateSchema } from '@common/schema'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 
-export type RequestBody = {
-  userId: string
-  workspaceId: string
-  name: string
-  branch: string
-  container: string
-  archived?: boolean
-}
-
-const createTaskBodySchema = z.object({
-  userId: userIdSchema,
-  workspaceId: workspaceIdSchema,
-  name: z.string().trim().min(1),
-  branch: z.string().trim().min(1),
-  container: z.string().trim().min(1),
-  archived: z.boolean().optional().default(false),
-}).strict()
+export type RequestBody = TaskCreateRequest
 
 export async function handleCreateTaskRequest(
   request: Request<Record<string, never>, unknown, RequestBody>,
@@ -38,7 +20,7 @@ export async function handleCreateTaskRequest(
   const databaseClient = requireDatabaseClient('Create task API')
 
   const body = parseRequestBody(
-    createTaskBodySchema,
+    taskCreateSchema,
     request,
     response,
     {

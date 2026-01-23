@@ -56,9 +56,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      # This gets proxied using the Mooreslab root package.json, to the Microsoft package.json
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Prisma generate
+        run: yarn prisma generate
 
       # Immediately save cache after install to capture any changes
       # Otherwise, they only get cached if the job is successful
@@ -79,12 +81,12 @@ jobs:
       - name: Lint
         id: lint
         continue-on-error: true
-        run: yarn eslint frontend bifrost electron .github/scripts
+        run: yarn eslint frontend common electron .github/scripts
 
       - name: Typescript check
         id: typecheck
         continue-on-error: true
-        run: yarn workspaces foreach -A -p run typecheck
+        run: yarn typecheck
 
       - name: Unit test
         continue-on-error: true

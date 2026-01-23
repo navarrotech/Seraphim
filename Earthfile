@@ -28,6 +28,7 @@ COPY common/package.json common/package.json
 COPY scripts/postinstall.sh scripts/postinstall.sh
 
 RUN yarn install
+RUN yarn prisma generate
 
 ARG VERSION=$(cd electron && node -p "require('./package.json').version")
 ENV NODE_ENV=production

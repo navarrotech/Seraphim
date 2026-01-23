@@ -1,23 +1,20 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { TaskUpdateRequest } from '@common/schema'
 
 // Lib
 import { z } from 'zod'
 
 // Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
+import { taskUpdateSchema } from '@common/schema'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 
-export type RequestBody = {
-  name?: string
-  branch?: string
-  container?: string
-  archived?: boolean
-}
+export type RequestBody = TaskUpdateRequest
 
 type RouteParams = {
   taskId: string
@@ -25,15 +22,6 @@ type RouteParams = {
 
 const taskParamsSchema = z.object({
   taskId: z.string().trim().min(1),
-})
-
-const updateTaskBodySchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  branch: z.string().trim().min(1).optional(),
-  container: z.string().trim().min(1).optional(),
-  archived: z.boolean().optional(),
-}).strict().refine((data) => Object.keys(data).length > 0, {
-  message: 'No valid fields provided for update',
 })
 
 export async function handleUpdateTaskRequest(
@@ -56,7 +44,7 @@ export async function handleUpdateTaskRequest(
   }
 
   const updateData = parseRequestBody(
-    updateTaskBodySchema,
+    taskUpdateSchema,
     request,
     response,
     {

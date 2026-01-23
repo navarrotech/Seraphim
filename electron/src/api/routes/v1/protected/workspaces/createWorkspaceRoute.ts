@@ -1,43 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-
-// Lib
-import { z } from 'zod'
+import type { WorkspaceCreateRequest } from '@common/schema'
 
 // Utility
 import { parseRequestBody } from '../../validation'
+import { workspaceCreateSchema } from '@common/schema'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 
-export type RequestBody = {
-  name: string
-  repository: string
-  containerImage: string
-  description?: string
-  setupScript?: string
-  postScript?: string
-  cacheFiles?: string[]
-  envEntries?: Array<{ key: string; value: string }>
-}
-
-const envEntrySchema = z.object({
-  key: z.string().trim().min(1).max(256),
-  value: z.string().trim().min(1).max(2048),
-})
-
-const createWorkspaceBodySchema = z.object({
-  name: z.string().trim().min(1),
-  repository: z.string().trim().min(1),
-  containerImage: z.string().trim().min(1),
-  description: z.string().trim().optional().default(''),
-  setupScript: z.string().trim().optional().default(''),
-  postScript: z.string().trim().optional().default(''),
-  cacheFiles: z.array(z.string().trim()).optional().default([]),
-  envEntries: z.array(envEntrySchema).optional().default([]),
-}).strict()
+export type RequestBody = WorkspaceCreateRequest
 
 export async function handleCreateWorkspaceRequest(
   request: Request<Record<string, never>, unknown, RequestBody>,
@@ -46,7 +20,7 @@ export async function handleCreateWorkspaceRequest(
   const databaseClient = requireDatabaseClient('Create workspace API')
 
   const body = parseRequestBody(
-    createWorkspaceBodySchema,
+    workspaceCreateSchema,
     request,
     response,
     {

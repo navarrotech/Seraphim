@@ -24,6 +24,10 @@ export const slice = createEnhancedSlice({
       state.items = action.payload
       return state
     },
+    removeWorkspace: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((workspace) => workspace.id !== action.payload)
+      return state
+    },
   },
 })
 

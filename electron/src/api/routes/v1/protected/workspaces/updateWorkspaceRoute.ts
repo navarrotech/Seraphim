@@ -1,28 +1,21 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { WorkspaceUpdateRequest } from '@common/schema'
 
 // Lib
 import { z } from 'zod'
 
 // Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
+import { workspaceUpdateSchema } from '@common/schema'
 import { workspaceIdSchema } from '@electron/validators'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 
-export type RequestBody = {
-  name?: string
-  repository?: string
-  containerImage?: string
-  description?: string
-  setupScript?: string
-  postScript?: string
-  cacheFiles?: string[]
-  envEntries?: Array<{ key: string; value: string }>
-}
+export type RequestBody = WorkspaceUpdateRequest
 
 type RouteParams = {
   workspaceId: string
@@ -30,24 +23,6 @@ type RouteParams = {
 
 const workspaceParamsSchema = z.object({
   workspaceId: workspaceIdSchema,
-})
-
-const envEntrySchema = z.object({
-  key: z.string().trim().min(1).max(256),
-  value: z.string().trim().min(1).max(2048),
-})
-
-const updateWorkspaceBodySchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  repository: z.string().trim().min(1).optional(),
-  containerImage: z.string().trim().min(1).optional(),
-  description: z.string().trim().optional(),
-  setupScript: z.string().trim().optional(),
-  postScript: z.string().trim().optional(),
-  cacheFiles: z.array(z.string().trim()).optional(),
-  envEntries: z.array(envEntrySchema).optional(),
-}).strict().refine((data) => Object.keys(data).length > 0, {
-  message: 'No valid fields provided for update',
 })
 
 export async function handleUpdateWorkspaceRequest(
@@ -70,7 +45,7 @@ export async function handleUpdateWorkspaceRequest(
   }
 
   const updateData = parseRequestBody(
-    updateWorkspaceBodySchema,
+    workspaceUpdateSchema,
     request,
     response,
     {

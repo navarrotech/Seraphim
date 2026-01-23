@@ -1,13 +1,15 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Environment } from '@common/schema'
 import type { Workspace, WorkspaceEnv } from '@prisma/client'
 
 // Lib
 import { z } from 'zod'
 
 // Utility
-import { environmentSchema } from '@common/schema'
+import {
+  workspaceCreateSchema,
+  workspaceUpdateSchema,
+} from '@common/schema'
 
 // Misc
 import { apiClient } from '../api'
@@ -38,18 +40,9 @@ type CreateWorkspaceResponse = {
   workspace: WorkspaceResponse
 }
 
-export const createWorkspaceSchema = z.object({
-  name: z.string().min(1),
-  repository: z.string().min(1),
-  containerImage: z.string().min(1),
-  description: z.string().optional(),
-  setupScript: z.string().optional(),
-  postScript: z.string().optional(),
-  cacheFiles: z.array(z.string()).optional(),
-  envEntries: z.array(environmentSchema).optional(),
-})
+export const createWorkspaceSchema = workspaceCreateSchema
 
-export type CreateWorkspaceRequest = z.infer<typeof createWorkspaceSchema>
+export type CreateWorkspaceRequest = z.infer<typeof workspaceCreateSchema>
 
 export function createWorkspace(body: CreateWorkspaceRequest) {
   return apiClient
@@ -57,16 +50,7 @@ export function createWorkspace(body: CreateWorkspaceRequest) {
     .json<CreateWorkspaceResponse>()
 }
 
-type UpdateWorkspaceRequestBody = {
-  name?: string
-  repository?: string
-  containerImage?: string
-  description?: string
-  setupScript?: string
-  postScript?: string
-  cacheFiles?: string[]
-  envEntries?: Environment[]
-}
+type UpdateWorkspaceRequestBody = z.infer<typeof workspaceUpdateSchema>
 
 type UpdateWorkspaceResponse = {
   workspace: WorkspaceResponse
