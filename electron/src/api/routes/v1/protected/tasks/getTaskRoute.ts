@@ -5,9 +5,11 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
+// Utility
+import { parseRequestParams } from '../../validation'
+
 // Misc
 import { requireDatabaseClient } from '@electron/database'
-import { parseRequestParams } from '../../validation'
 
 type RouteParams = {
   taskId: string

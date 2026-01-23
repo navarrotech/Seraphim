@@ -5,9 +5,12 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
+// Utility
 import { parseRequestBody } from '../../validation'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 export type RequestBody = {
   name: string
@@ -15,8 +18,8 @@ export type RequestBody = {
   containerImage: string
   description?: string
   setupScript?: string
-  env?: string[]
-  secrets?: string[]
+  postScript?: string
+  cacheFiles?: string[]
 }
 
 const createWorkspaceBodySchema = z.object({
@@ -25,8 +28,8 @@ const createWorkspaceBodySchema = z.object({
   containerImage: z.string().trim().min(1),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
-  env: z.array(z.string().trim()).optional().default([]),
-  secrets: z.array(z.string().trim()).optional().default([]),
+  postScript: z.string().trim().optional().default(''),
+  cacheFiles: z.array(z.string().trim()).optional().default([]),
 }).strict()
 
 export async function handleCreateWorkspaceRequest(
@@ -54,8 +57,8 @@ export async function handleCreateWorkspaceRequest(
     containerImage,
     description,
     setupScript,
-    env,
-    secrets,
+    postScript,
+    cacheFiles,
   } = body
 
   try {
@@ -66,10 +69,17 @@ export async function handleCreateWorkspaceRequest(
         containerImage,
         description,
         setupScript,
-        env,
-        secrets,
+        postScript,
+        cacheFiles,
       },
     })
+
+    broadcastSseChange({
+      type: 'create',
+      kind: 'workspaces',
+      data: [ workspace ],
+    })
+
     response.status(201).json({ workspace })
   }
   catch (error) {
@@ -77,5 +87,3 @@ export async function handleCreateWorkspaceRequest(
     response.status(500).json({ error: 'Failed to create workspace' })
   }
 }
-
-

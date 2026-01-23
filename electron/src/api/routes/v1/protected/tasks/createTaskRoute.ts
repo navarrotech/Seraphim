@@ -5,10 +5,13 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
-import { userIdSchema, workspaceIdSchema } from '@electron/validators'
+// Utility
 import { parseRequestBody } from '../../validation'
+import { userIdSchema, workspaceIdSchema } from '@electron/validators'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 export type RequestBody = {
   userId: string
@@ -67,6 +70,13 @@ export async function handleCreateTaskRequest(
         archived,
       },
     })
+
+    broadcastSseChange({
+      type: 'create',
+      kind: 'tasks',
+      data: [ task ],
+    })
+
     response.status(201).json({ task })
   }
   catch (error) {

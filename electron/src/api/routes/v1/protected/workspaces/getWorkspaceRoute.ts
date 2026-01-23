@@ -5,10 +5,12 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
+// Utility
+import { parseRequestParams } from '../../validation'
+import { workspaceIdSchema } from '@electron/validators'
+
 // Misc
 import { requireDatabaseClient } from '@electron/database'
-import { workspaceIdSchema } from '@electron/validators'
-import { parseRequestParams } from '../../validation'
 
 type RouteParams = {
   workspaceId: string
@@ -57,4 +59,3 @@ export async function handleGetWorkspaceRequest(
     response.status(500).json({ error: 'Failed to fetch workspace' })
   }
 }
-

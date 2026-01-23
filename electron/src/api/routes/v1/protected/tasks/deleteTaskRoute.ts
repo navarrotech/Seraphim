@@ -5,9 +5,12 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
+// Utility
 import { parseRequestParams } from '../../validation'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 type RouteParams = {
   taskId: string
@@ -55,6 +58,12 @@ export async function handleDeleteTaskRequest(
       where: { id: taskId },
     })
 
+    broadcastSseChange({
+      type: 'delete',
+      kind: 'tasks',
+      data: [ existingTask ],
+    })
+
     response.status(200).json({ deleted: true, taskId })
   }
   catch (error) {
@@ -62,4 +71,3 @@ export async function handleDeleteTaskRequest(
     response.status(500).json({ error: 'Failed to delete task' })
   }
 }
-

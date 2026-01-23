@@ -7,6 +7,7 @@ import { Router as createRouter } from 'express'
 
 // Misc
 import { createTasksRouter } from './tasksRouter'
+import { createUsersRouter } from './usersRouter'
 import { createWorkspacesRouter } from './workspacesRouter'
 
 export function createProtectedRouter(): Router {
@@ -14,6 +15,7 @@ export function createProtectedRouter(): Router {
 
   protectedRouter.use('/workspaces', createWorkspacesRouter())
   protectedRouter.use('/tasks', createTasksRouter())
+  protectedRouter.use('/users', createUsersRouter())
 
   return protectedRouter
 }

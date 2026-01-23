@@ -60,6 +60,23 @@ export function newWindow() {
     },
   })
 
+  let windowStateSaveTimer: NodeJS.Timeout | null = null
+
+  function scheduleWindowStateSave() {
+    if (windowStateSaveTimer) {
+      clearTimeout(windowStateSaveTimer)
+    }
+
+    windowStateSaveTimer = setTimeout(() => {
+      windowStateManager.saveState(window)
+      windowStateSaveTimer = null
+    }, 350)
+  }
+
+  function handleWindowClose() {
+    windowStateManager.saveState(window)
+  }
+
   window.once('ready-to-show', () => {
     window.setResizable(true)
   })
@@ -163,6 +180,10 @@ export function newWindow() {
   electronLocalshortcut.register(window, 'Ctrl+Shift+R', () => {
     window.webContents.reloadIgnoringCache()
   })
+
+  window.on('resize', scheduleWindowStateSave)
+  window.on('move', scheduleWindowStateSave)
+  window.on('close', handleWindowClose)
 
   // https://www.electronjs.org/docs/latest/api/app#appispackaged-readonly
   if (isProduction) {

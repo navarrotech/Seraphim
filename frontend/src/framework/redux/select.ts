@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { ReduxState } from '@common/types'
+import type { RootState } from '@frontend/framework/store'
 
 // Core
 import { store } from '../store'
@@ -8,7 +8,7 @@ import { store } from '../store'
 type Recall = () => void
 
 export function select<Value>(
-  selector: (state: ReduxState) => Value,
+  selector: (state: RootState) => Value,
   listener: (value: Value, recall: Recall) => void,
 ) {
   // grab the initial value

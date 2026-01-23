@@ -11,7 +11,8 @@ import {
 } from 'react-redux'
 
 // Reducers
-import { slice as jobsSlice } from './redux/stores/jobs'
+import { slice as tasksSlice } from './redux/stores/tasks'
+import { slice as workspacesSlice } from './redux/stores/workspaces'
 
 // /////////////////////// //
 //          Store          //
@@ -20,7 +21,8 @@ import { slice as jobsSlice } from './redux/stores/jobs'
 export const store = configureStore({
   // For all type inferrence to work correctly, we must write these out explicitly
   reducer: {
-    jobs: jobsSlice.reducer,
+    tasks: tasksSlice.reducer,
+    workspaces: workspacesSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -58,7 +60,8 @@ export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
 // /////////////////////// //
 
 const motherload = {
-  jobs: jobsSlice,
+  tasks: tasksSlice,
+  workspaces: workspacesSlice,
 } as const satisfies Record<keyof ReturnType<ReduxState>, any>
 
 export function getDefaultState() {

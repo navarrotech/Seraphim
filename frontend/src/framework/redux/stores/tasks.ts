@@ -1,28 +1,30 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Task } from '@prisma/client'
+
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
 // Typescript
 import type { PayloadAction } from '@reduxjs/toolkit'
 
-export type JobsState = {
-  todo: null
+export type TasksState = {
+  items: Task[]
 }
 
-const initialState: JobsState = {
-  todo: null,
+const initialState: TasksState = {
+  items: [],
 } as const
 
 export const slice = createEnhancedSlice({
-  name: 'jobs',
+  name: 'tasks',
   initialState,
   reducers: {
-    todo: (state, action: PayloadAction<null>) => {
-      state.todo = action.payload
+    setTasks: (state, action: PayloadAction<Task[]>) => {
+      state.items = action.payload
       return state
     },
   },
 })
 
-export const jobActions = slice.actions
+export const taskActions = slice.actions

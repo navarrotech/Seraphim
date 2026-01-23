@@ -2,10 +2,10 @@
 
 // Core
 import { Navigate, Routes, Route } from 'react-router'
-import { useNavigate, useHref } from 'react-router-dom'
 
 // User interface
-import { HeroUIProvider, ToastProvider } from '@heroui/react'
+import { DashboardGate } from './pages/gates/DashboardGate'
+import { CreateWorkspace } from './pages/workspaces/CreateWorkspace'
 import { EditWorkspace } from './pages/workspaces/EditWorkspace'
 import { ListWorkspaces } from './pages/workspaces/ListWorkspaces'
 import { ListWorkspaceTasks } from './pages/workspaces/ListWorkspaceTasks'
@@ -17,16 +17,13 @@ import { ViewWorkspaceTask } from './pages/workspaces/ViewWorkspaceTask'
 import { UrlTree, UNKNOWN_ROUTE_REDIRECT_TO } from '@common/urls'
 
 export function Router() {
-  // Note: useNavigate can only be used in the context (child) of a Router
-  const navigate = useNavigate()
-
-  return <HeroUIProvider navigate={navigate} useHref={useHref}>
-    <ToastProvider />
+  return <>
     <Routes>
-      <Route path={UrlTree.root}>
+      <Route path={UrlTree.root} element={<DashboardGate />}>
         <Route index element={<Navigate to={UrlTree.workspacesList} replace />} />
         <Route path={UrlTree.settings} element={<Settings />} />
         <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
+        <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
         <Route path={UrlTree.workspaceEdit} element={<EditWorkspace />} />
         <Route path={UrlTree.workspaceView} element={<ViewWorkspace />} />
         <Route path={UrlTree.workspaceTasksList} element={<ListWorkspaceTasks />} />
@@ -34,5 +31,5 @@ export function Router() {
       </Route>
       <Route path='*' element={<Navigate to={UNKNOWN_ROUTE_REDIRECT_TO} />} />
     </Routes>
-  </HeroUIProvider>
+  </>
 }

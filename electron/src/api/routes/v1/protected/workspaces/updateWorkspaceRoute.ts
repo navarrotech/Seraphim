@@ -5,10 +5,13 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
-import { workspaceIdSchema } from '@electron/validators'
+// Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
+import { workspaceIdSchema } from '@electron/validators'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 export type RequestBody = {
   name?: string
@@ -16,8 +19,8 @@ export type RequestBody = {
   containerImage?: string
   description?: string
   setupScript?: string
-  env?: string[]
-  secrets?: string[]
+  postScript?: string
+  cacheFiles?: string[]
 }
 
 type RouteParams = {
@@ -34,8 +37,8 @@ const updateWorkspaceBodySchema = z.object({
   containerImage: z.string().trim().min(1).optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),
-  env: z.array(z.string().trim()).optional(),
-  secrets: z.array(z.string().trim()).optional(),
+  postScript: z.string().trim().optional(),
+  cacheFiles: z.array(z.string().trim()).optional(),
 }).strict().refine((data) => Object.keys(data).length > 0, {
   message: 'No valid fields provided for update',
 })
@@ -91,6 +94,13 @@ export async function handleUpdateWorkspaceRequest(
       where: { id: workspaceId },
       data: updateData,
     })
+
+    broadcastSseChange({
+      type: 'update',
+      kind: 'workspaces',
+      data: [ workspace ],
+    })
+
     response.status(200).json({ workspace })
   }
   catch (error) {
@@ -98,4 +108,3 @@ export async function handleUpdateWorkspaceRequest(
     response.status(500).json({ error: 'Failed to update workspace' })
   }
 }
-

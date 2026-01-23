@@ -15,14 +15,23 @@ model Workspace {
   setupScript    String   @default("") @map("setup_script")
   postScript     String   @default("") @map("post_script")
   cacheFiles     String[] @default([]) @map("cache_files")
-  env            String[] @default([])
-  secrets        String[] @default([])
   containerImage String   @map("container_image")
 
+  envEntries WorkspaceEnv[]
   tasks Task[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model WorkspaceEnv {
+  id String @id @default(uuid())
+
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  key   String
+  value String
 }
 
 model Task {

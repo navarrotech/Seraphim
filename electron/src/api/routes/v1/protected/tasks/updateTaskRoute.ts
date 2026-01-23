@@ -5,9 +5,12 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
+// Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 export type RequestBody = {
   name?: string
@@ -84,6 +87,13 @@ export async function handleUpdateTaskRequest(
       where: { id: taskId },
       data: updateData,
     })
+
+    broadcastSseChange({
+      type: 'update',
+      kind: 'tasks',
+      data: [ task ],
+    })
+
     response.status(200).json({ task })
   }
   catch (error) {
@@ -91,4 +101,3 @@ export async function handleUpdateTaskRequest(
     response.status(500).json({ error: 'Failed to update task' })
   }
 }
-

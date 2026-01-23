@@ -41,9 +41,6 @@
       "@electron/*": [
         "electron/src/*"
       ],
-      "@api/*": [
-        "electron/src/api/*"
-      ]
     }
   },
   "include": [

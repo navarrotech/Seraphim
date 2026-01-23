@@ -5,10 +5,13 @@ import type { Request, Response } from 'express'
 // Lib
 import { z } from 'zod'
 
-// Misc
-import { requireDatabaseClient } from '@electron/database'
-import { workspaceIdSchema } from '@electron/validators'
+// Utility
 import { parseRequestParams } from '../../validation'
+import { workspaceIdSchema } from '@electron/validators'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
 type RouteParams = {
   workspaceId: string
@@ -56,6 +59,12 @@ export async function handleDeleteWorkspaceRequest(
       where: { id: workspaceId },
     })
 
+    broadcastSseChange({
+      type: 'delete',
+      kind: 'workspaces',
+      data: [ existingWorkspace ],
+    })
+
     response.status(200).json({ deleted: true, workspaceId })
   }
   catch (error) {
@@ -63,4 +72,3 @@ export async function handleDeleteWorkspaceRequest(
     response.status(500).json({ error: 'Failed to delete workspace' })
   }
 }
-

@@ -3,9 +3,11 @@
 // Lib
 import ky from 'ky'
 
-const API_ROOT = window?.config?.getApiUrl?.() || 'http://localhost'
+export function getApiRoot(): string {
+  return window?.config?.getApiUrl?.() || 'http://localhost'
+}
 
 export const apiClient = ky.create({
-  prefixUrl: `${API_ROOT}/api`,
+  prefixUrl: `${getApiRoot()}/api`,
   throwHttpErrors: true,
 })

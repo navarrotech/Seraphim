@@ -1,58 +1,23 @@
 // Copyright © 2026 Jalapeno Labs
 
-// Lib
-import useSWR from 'swr'
+// Core
+import { Link } from 'react-router-dom'
 
 // User interface
 import { Button, Card } from '@heroui/react'
 
+// Utility
+import { useSelector } from '@frontend/framework/store'
+
 // Misc
-import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
+import { UrlTree } from '@common/urls'
+
+function getWorkspaceLink(workspaceId: string) {
+  return UrlTree.workspaceView.replace(':workspaceId', workspaceId)
+}
 
 export function ListWorkspaces() {
-  const { data, error, isLoading, mutate } = useSWR(
-    'workspaces',
-    listWorkspaces,
-  )
-  const workspaces = data?.workspaces
-
-  function handleRefresh() {
-    void mutate()
-  }
-
-  let content = null
-
-  if (isLoading) {
-    content = <p className='opacity-80'>Loading workspaces...</p>
-  }
-  else if (error) {
-      content = <Card className='p-4'>
-        <p className='relaxed'>Unable to load workspaces.</p>
-        <Button onPress={handleRefresh}>Try again</Button>
-      </Card>
-    }
-  else if (!workspaces || workspaces.length === 0) {
-      content = <Card className='p-4'>
-        <p className='opacity-80'>No workspaces yet. Create your first one.</p>
-      </Card>
-    }
-  else {
-    content = <div className='relaxed'>
-      {workspaces.map(function renderWorkspace(workspace) {
-        return <Card key={workspace.id} className='relaxed p-4'>
-          <div className='level'>
-            <div>
-              <div className='relaxed'>{
-                workspace.name || 'Untitled workspace'
-              }</div>
-              <div className='opacity-80'>ID: {workspace.id}</div>
-            </div>
-            <Button>Open</Button>
-          </div>
-        </Card>
-      })}
-    </div>
-  }
+  const workspaces = useSelector((state) => state.workspaces.items)
 
   return <section className='container p-6'>
     <div className='level relaxed'>
@@ -60,8 +25,27 @@ export function ListWorkspaces() {
         <h2 className='relaxed'>Workspaces</h2>
         <p className='opacity-80'>Manage all workspaces here.</p>
       </div>
-      <Button>Create Workspace</Button>
+      <Button as={Link} to={UrlTree.workspaceCreate}>Create Workspace</Button>
     </div>
-    {content}
+    <div className='relaxed'>{
+      workspaces.map((workspace) =>
+        <Card key={workspace.id} className='relaxed p-4'>
+          <div className='level'>
+            <div>
+              <div className='relaxed'>{
+                workspace.name || 'Untitled workspace'
+              }</div>
+              <div className='opacity-80'>ID: {workspace.id}</div>
+            </div>
+            <Button
+              as={Link}
+              to={getWorkspaceLink(workspace.id)}
+            >
+              <span>Open</span>
+            </Button>
+          </div>
+        </Card>,
+      )
+    }</div>
   </section>
 }
