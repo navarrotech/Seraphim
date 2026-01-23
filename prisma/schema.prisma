@@ -3,26 +3,63 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
-model Thread {
+model Workspace {
+  id String @id @default(uuid())
+
+  name           String
+  description    String   @default("")
+  repository     String
+  setupScript    String   @default("") @map("setup_script")
+  env            String[] @default([])
+  secrets        String[] @default([])
+  containerImage String   @map("container_image")
+
+  tasks Task[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Task {
   id String @id @default(uuid())
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  messages Message[]
+
   name      String
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  expiresAt DateTime? @map("expires_at")
+  branch    String
+  container String  @map("container")
+  archived  Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Message {
+  id String @id @default(uuid())
+
+  taskId String @map("task_id")
+  task   Task   @relation(fields: [taskId], references: [id])
+
+  role    String
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
 }
 
 model User {
   id String @id @default(uuid())
 
   settings UserSettings?
-  threads  Thread[]
+  threads  Task[]
 
   username String @unique
   name     String

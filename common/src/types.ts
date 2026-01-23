@@ -13,6 +13,7 @@ export type Theme = 'light' | 'dark' | 'system'
 export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug' | 'verbose' | 'silly'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 export type UnsubscribeFunction = () => any
+export type StandardFilePointer = string | string[]
 
 // ////////////////////////// //
 //            Redux           //

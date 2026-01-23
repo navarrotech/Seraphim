@@ -17,7 +17,6 @@ $null
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/patches
-!.yarn/install-state.gz
 !.yarn/build-state.yml
 /legacy/**
 *.deb
@@ -27,3 +26,4 @@ $null
 electron/out/
 electron/public/browser/
 frontend/dist/
+dev.log

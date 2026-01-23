@@ -1,13 +1,18 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
 // Misc
-import { DATABASE_URL } from './env'
 import { logFailed, logSuccess, logWarning } from './lib/logging'
+import { DATABASE_URL } from './env'
 
 let prisma: PrismaClient | null = null
+
+const adapter = new PrismaPg({
+  connectionString: DATABASE_URL,
+})
 
 export async function startDatabase(): Promise<boolean> {
   if (prisma) {
@@ -15,13 +20,9 @@ export async function startDatabase(): Promise<boolean> {
     return true
   }
 
-  const databaseUrl = DATABASE_URL
-  if (!databaseUrl) {
-    logFailed('Database failed to start because DATABASE_URL is not set')
-    return null
-  }
-
-  prisma = new PrismaClient()
+  prisma = new PrismaClient({
+    adapter,
+  })
 
   try {
     await prisma.$connect()

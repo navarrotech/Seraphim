@@ -1,6 +1,7 @@
 {
   "name": "common",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "license": "UNLICENSED",
   "scripts": {
@@ -8,6 +9,7 @@
     "build": "echo"
   },
   "dependencies": {
+    "glob": "^13.0.0",
     "typescript": "^5.8.3"
   }
 }

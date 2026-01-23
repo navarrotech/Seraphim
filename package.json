@@ -12,8 +12,8 @@
   "repository": "https://github.com/jalapenolabs/seraphim",
   "packageManager": "yarn@4.12.0",
   "engines": {
-    "node": ">=22.16.0",
-    "yarn": ">=1.22.0"
+    "node": ">=24.13.0",
+    "yarn": ">=4.12.0"
   },
   "workspaces": [
     "electron/",
@@ -22,6 +22,7 @@
   ],
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
+    "setup": "yarn prisma db push",
     "typecheck": "yarn workspaces foreach -Apt run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",
