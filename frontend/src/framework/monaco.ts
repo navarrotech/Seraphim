@@ -71,13 +71,13 @@ export type MonacoFileLanguages =
   // DB
   | 'sql'
 
-export async function initMonaco() {
-  monacoLoader.config({
-    //  tell the loader to use the npm-bundled Monaco instance.
-    // This prevents the loader from injecting a <script> tag to a CDN.
-    monaco,
-  })
+monacoLoader.config({
+  //  tell the loader to use the npm-bundled Monaco instance.
+  // This prevents the loader from injecting a <script> tag to a CDN.
+  monaco,
+})
 
+export async function initMonaco() {
   await monacoLoader.init()
 }
 

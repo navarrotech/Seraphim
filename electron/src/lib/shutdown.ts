@@ -9,14 +9,16 @@ import { stopDatabase } from '../database'
 import { disconnectFromDocker } from '../docker/docker'
 
 let isShuttingDown = false
-export async function gracefulShutdown(exitCode: number = 0) {
+
+export async function gracefulShutdown(exitCode: number = 0, reason?: string) {
   // Prevent multiple calls to this function
   if (isShuttingDown) {
+    console.debug('Graceful shutdown already in progress', { exitCode, reason })
     return
   }
   isShuttingDown = true
 
-  console.info('Graceful shutdown initiated with exit code', exitCode)
+  console.info('Graceful shutdown initiated', { exitCode, reason })
 
   const forceExitTimer = setTimeout(() => {
     console.warn('Graceful shutdown timed out, forcing exit')
@@ -34,20 +36,24 @@ export async function gracefulShutdown(exitCode: number = 0) {
   app.quit()
 }
 
-process.on('SIGINT', gracefulShutdown)
-process.on('SIGTERM', gracefulShutdown)
-process.on('SIGQUIT', gracefulShutdown)
-process.on('SIGHUP', gracefulShutdown)
-process.on('exit', gracefulShutdown)
+function handleProcessSignal(signal: NodeJS.Signals): void {
+  console.info('Process signal received', { signal })
+  gracefulShutdown(0, signal)
+}
+
+process.on('SIGINT', handleProcessSignal)
+process.on('SIGTERM', handleProcessSignal)
+process.on('SIGQUIT', handleProcessSignal)
+process.on('SIGHUP', handleProcessSignal)
 process.on('uncaughtException', async function ElectronGracefulShutdown(error) {
   if (error instanceof Error) {
     console.error('Fatal electron crash', error)
   }
 
-  await gracefulShutdown()
+  await gracefulShutdown(1, 'uncaughtException')
 })
 
 process.on('unhandledRejection', async function ElectronUnhandledRejection(reason: any) {
   console.error('Unhandled promise rejection', reason)
-  await gracefulShutdown(1)
+  await gracefulShutdown(1, 'unhandledRejection')
 })

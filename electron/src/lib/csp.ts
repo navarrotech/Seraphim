@@ -28,7 +28,7 @@ export const devCsp: string[] = [
   `script-src 'self' http://localhost:5173 http://localhost:${API_PORT} 'unsafe-inline' 'unsafe-eval'`,
   // styles (including inline HMR style updates) from localhost:5173
   `style-src 'self' http://localhost:5173 http://localhost:${API_PORT} 'unsafe-inline' https://fonts.googleapis.com`,
-  'font-src https://fonts.gstatic.com',
+  'font-src http://localhost:5173 https://fonts.gstatic.com',
   // images from localhost:5173 and data URIs
   `img-src 'self' http://localhost:5173 http://localhost:${API_PORT} data:`,
   // HMR websocket & XHR
@@ -39,10 +39,10 @@ export const prodCsp: string[] = [
   // lock everything down to your custom protocol
   'default-src \'self\' seraphim://app',
   // only run bundled scripts
-  'script-src \'self\' seraphim://app \'unsafe-inline\' \'unsafe-eval\'',
+  `script-src 'self' seraphim://app http://localhost:${API_PORT} 'unsafe-inline' 'unsafe-eval'`,
   // allow inline styles (for bundled styles) (unsafe inline needed for Monaco editor styles)
-  'style-src \'self\' seraphim://app \'unsafe-inline\' https://fonts.googleapis.com',
-  'font-src https://fonts.gstatic.com',
+  `style-src 'self' seraphim://app http://localhost:${API_PORT} 'unsafe-inline' https://fonts.googleapis.com`,
+  'font-src seraphim://app https://fonts.gstatic.com',
   // images via protocol or data URIs
   'img-src \'self\' seraphim://app data:',
 ]

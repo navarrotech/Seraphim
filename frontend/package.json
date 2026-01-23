@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroui/react": "^2.7.11",
     "@hookform/resolvers": "^3.10.0",
+    "@liorpo/react-hook-form-persist": "^1.0.10",
     "@monaco-editor/react": "^4.7.0",
     "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/postcss": "^4.1.18",

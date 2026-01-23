@@ -44,6 +44,7 @@ export async function handleGetWorkspaceRequest(
   try {
     const workspace = await databaseClient.workspace.findUnique({
       where: { id: workspaceId },
+      include: { envEntries: true },
     })
 
     if (!workspace) {

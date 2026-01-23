@@ -20,7 +20,13 @@ export type RequestBody = {
   setupScript?: string
   postScript?: string
   cacheFiles?: string[]
+  envEntries?: Array<{ key: string; value: string }>
 }
+
+const envEntrySchema = z.object({
+  key: z.string().trim().min(1).max(256),
+  value: z.string().trim().min(1).max(2048),
+})
 
 const createWorkspaceBodySchema = z.object({
   name: z.string().trim().min(1),
@@ -30,6 +36,7 @@ const createWorkspaceBodySchema = z.object({
   setupScript: z.string().trim().optional().default(''),
   postScript: z.string().trim().optional().default(''),
   cacheFiles: z.array(z.string().trim()).optional().default([]),
+  envEntries: z.array(envEntrySchema).optional().default([]),
 }).strict()
 
 export async function handleCreateWorkspaceRequest(
@@ -59,19 +66,35 @@ export async function handleCreateWorkspaceRequest(
     setupScript,
     postScript,
     cacheFiles,
+    envEntries,
   } = body
 
   try {
+    const baseWorkspaceData = {
+      name,
+      repository,
+      containerImage,
+      description,
+      setupScript,
+      postScript,
+      cacheFiles,
+    }
+
+    let workspaceData = baseWorkspaceData
+    if (envEntries.length > 0) {
+      workspaceData = {
+        ...baseWorkspaceData,
+        envEntries: {
+          createMany: {
+            data: envEntries,
+          },
+        },
+      }
+    }
+
     const workspace = await databaseClient.workspace.create({
-      data: {
-        name,
-        repository,
-        containerImage,
-        description,
-        setupScript,
-        postScript,
-        cacheFiles,
-      },
+      data: workspaceData,
+      include: { envEntries: true },
     })
 
     broadcastSseChange({

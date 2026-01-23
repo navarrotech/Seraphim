@@ -1,15 +1,21 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@prisma/client'
+import type { Environment } from '@common/schema'
+import type { Workspace, WorkspaceEnv } from '@prisma/client'
 
 // Lib
 import { z } from 'zod'
 
+// Utility
+import { environmentSchema } from '@common/schema'
+
 // Misc
 import { apiClient } from '../api'
 
+type WorkspaceResponse = Workspace & { envEntries: WorkspaceEnv[] }
+
 type ListWorkspacesResponse = {
-  workspaces: Workspace[]
+  workspaces: WorkspaceResponse[]
 }
 
 export function listWorkspaces() {
@@ -19,7 +25,7 @@ export function listWorkspaces() {
 }
 
 type GetWorkspaceResponse = {
-  workspace: Workspace
+  workspace: WorkspaceResponse
 }
 
 export function getWorkspace(workspaceId: string) {
@@ -29,7 +35,7 @@ export function getWorkspace(workspaceId: string) {
 }
 
 type CreateWorkspaceResponse = {
-  workspace: Workspace
+  workspace: WorkspaceResponse
 }
 
 export const createWorkspaceSchema = z.object({
@@ -40,6 +46,7 @@ export const createWorkspaceSchema = z.object({
   setupScript: z.string().optional(),
   postScript: z.string().optional(),
   cacheFiles: z.array(z.string()).optional(),
+  envEntries: z.array(environmentSchema).optional(),
 })
 
 export type CreateWorkspaceRequest = z.infer<typeof createWorkspaceSchema>
@@ -56,10 +63,13 @@ type UpdateWorkspaceRequestBody = {
   containerImage?: string
   description?: string
   setupScript?: string
+  postScript?: string
+  cacheFiles?: string[]
+  envEntries?: Environment[]
 }
 
 type UpdateWorkspaceResponse = {
-  workspace: Workspace
+  workspace: WorkspaceResponse
 }
 
 export function updateWorkspace(workspaceId: string, body: UpdateWorkspaceRequestBody) {

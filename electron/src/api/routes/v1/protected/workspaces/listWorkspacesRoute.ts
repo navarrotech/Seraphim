@@ -14,6 +14,7 @@ export async function handleListWorkspacesRequest(
   try {
     const workspaces = await databaseClient.workspace.findMany({
       orderBy: { createdAt: 'desc' },
+      include: { envEntries: true },
     })
     response.status(200).json({ workspaces })
   }
@@ -22,5 +23,4 @@ export async function handleListWorkspacesRequest(
     response.status(500).json({ error: 'Failed to list workspaces' })
   }
 }
-
 

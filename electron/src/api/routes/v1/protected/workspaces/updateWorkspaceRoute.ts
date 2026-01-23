@@ -21,6 +21,7 @@ export type RequestBody = {
   setupScript?: string
   postScript?: string
   cacheFiles?: string[]
+  envEntries?: Array<{ key: string; value: string }>
 }
 
 type RouteParams = {
@@ -31,6 +32,11 @@ const workspaceParamsSchema = z.object({
   workspaceId: workspaceIdSchema,
 })
 
+const envEntrySchema = z.object({
+  key: z.string().trim().min(1).max(256),
+  value: z.string().trim().min(1).max(2048),
+})
+
 const updateWorkspaceBodySchema = z.object({
   name: z.string().trim().min(1).optional(),
   repository: z.string().trim().min(1).optional(),
@@ -39,6 +45,7 @@ const updateWorkspaceBodySchema = z.object({
   setupScript: z.string().trim().optional(),
   postScript: z.string().trim().optional(),
   cacheFiles: z.array(z.string().trim()).optional(),
+  envEntries: z.array(envEntrySchema).optional(),
 }).strict().refine((data) => Object.keys(data).length > 0, {
   message: 'No valid fields provided for update',
 })
@@ -75,6 +82,7 @@ export async function handleUpdateWorkspaceRequest(
     return
   }
 
+  const { envEntries, ...workspaceUpdates } = updateData
   const { workspaceId } = params
 
   try {
@@ -90,9 +98,25 @@ export async function handleUpdateWorkspaceRequest(
       return
     }
 
+    const workspaceUpdateData: Record<string, unknown> = { ...workspaceUpdates }
+    if (envEntries) {
+      workspaceUpdateData.envEntries = {
+        deleteMany: {},
+      }
+      if (envEntries.length > 0) {
+        workspaceUpdateData.envEntries = {
+          deleteMany: {},
+          createMany: {
+            data: envEntries,
+          },
+        }
+      }
+    }
+
     const workspace = await databaseClient.workspace.update({
       where: { id: workspaceId },
-      data: updateData,
+      data: workspaceUpdateData,
+      include: { envEntries: true },
     })
 
     broadcastSseChange({

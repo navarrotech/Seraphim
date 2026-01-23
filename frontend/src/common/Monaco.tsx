@@ -4,7 +4,10 @@ import type { OnMount, OnChange } from '@monaco-editor/react'
 import type { MonacoFileLanguages } from '@frontend/framework/monaco'
 
 // Core
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
+
+// Misc
+import { initMonaco } from '@frontend/framework/monaco'
 import Editor from '@monaco-editor/react'
 
 export type MonacoRequiredProps = {
@@ -23,6 +26,10 @@ export type MonacoOptionalProps = {
 export type MonacoProps = MonacoRequiredProps & MonacoOptionalProps
 
 export function Monaco(props: MonacoProps) {
+  useEffect(function ensureMonacoReady() {
+    void initMonaco()
+  }, [])
+
   const handleMount: OnMount = useCallback((editor) => {
     if (props.autoFocus) {
       editor.focus()

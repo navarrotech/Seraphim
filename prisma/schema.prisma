@@ -18,7 +18,7 @@ model Workspace {
   containerImage String   @map("container_image")
 
   envEntries WorkspaceEnv[]
-  tasks Task[]
+  tasks      Task[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -87,6 +87,8 @@ model UserSettings {
 
   voiceEnabled Boolean @default(true)
   voiceHotkey  String  @default("Control+Num0")
+
+  openAiApiKey String? @map("openai_api_key")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 

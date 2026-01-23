@@ -3063,6 +3063,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@liorpo/react-hook-form-persist@npm:^1.0.10":
+  version: 1.0.10
+  resolution: "@liorpo/react-hook-form-persist@npm:1.0.10"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-hook-form: ">=7.0.0"
+  checksum: 10c0/edf606941aed5b0d2ab9840d4fc677703e5c32e55d3180f9b3319782c20f0722d09081a372b563937b6d7dc2e0e4966e61e3aca064fe92450b215c8b52760a47
+  languageName: node
+  linkType: hard
+
 "@listr2/prompt-adapter-inquirer@npm:^2.0.22":
   version: 2.0.22
   resolution: "@listr2/prompt-adapter-inquirer@npm:2.0.22"
@@ -7278,6 +7288,7 @@ __metadata:
   dependencies:
     "@heroui/react": "npm:^2.7.11"
     "@hookform/resolvers": "npm:^3.10.0"
+    "@liorpo/react-hook-form-persist": "npm:^1.0.10"
     "@monaco-editor/react": "npm:^4.7.0"
     "@reduxjs/toolkit": "npm:^2.8.2"
     "@tailwindcss/postcss": "npm:^4.1.18"

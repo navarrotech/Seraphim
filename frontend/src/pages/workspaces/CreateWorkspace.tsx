@@ -1,10 +1,12 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Environment } from '@common/schema'
+
 // Core
 import { useNavigate } from 'react-router-dom'
-import { getWorkspaceViewUrl } from '@common/urls'
 
 // Lib
+import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -14,6 +16,7 @@ import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 
 // Misc
+import { getWorkspaceViewUrl } from '@common/urls'
 import { createWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
 
 
@@ -32,20 +35,44 @@ export function CreateWorkspace() {
       setupScript: 'yarn install',
       postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
       cacheFiles: [],
+      envEntries: [{
+        key: 'NODE_ENV',
+        value: 'development',
+      }],
     },
   })
 
-  async function onSubmit() {
-    form.handleSubmit(async (data) => {
+  const { clear } = useFormPersist('create-workspace', {
+    control: form.control,
+    setValue: form.setValue,
+  })
+
+  const envEntries = form.watch('envEntries') || []
+
+  function handleEnvEntriesChange(entries: Environment[]) {
+    form.setValue('envEntries', entries, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+  }
+
+  const onSubmit = form.handleSubmit(async function onSubmit(data) {
+    try {
       const response = await createWorkspace(data)
+
+      clear()
 
       navigate(
         getWorkspaceViewUrl(
           response.workspace.id,
         ),
       )
-    })
-  }
+    }
+    catch (error) {
+      console.debug('CreateWorkspace failed to submit form', { error })
+    }
+  })
 
   return <section className='container p-6'>
     <div className='relaxed'>
@@ -109,11 +136,14 @@ export function CreateWorkspace() {
                 {...form.register('containerImage')}
               />
             </div>
-            <EnvironmentInputs
-              id='workspace-environment'
-              items={[]}
-              onChange={console.log}
-            />
+            <div>
+              <h4 className='compact text-xl'>Environment Variables</h4>
+              <EnvironmentInputs
+                id='workspace-environment'
+                items={envEntries}
+                onChange={handleEnvEntriesChange}
+              />
+            </div>
           </div>
         </div>
       </Card>

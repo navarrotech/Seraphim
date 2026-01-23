@@ -57,9 +57,9 @@ export function EnvironmentInputs(props: Props) {
 
   return <div id={props.id} className={props.className}>
     {/* Header */}
-    <div key='header' className='level-centered items-start compact'>
+    <div key='header' className='level-centered items-start text-sm mb-2'>
       <div className='w-full'>
-        <label>Edit Environment Variables</label>
+        <label>Key</label>
       </div>
       <div className='w-full'>
         <label>Value</label>
@@ -72,7 +72,6 @@ export function EnvironmentInputs(props: Props) {
       <div className='w-full'>
         <Input
           id={`${props.id}-${index}-key`}
-          size='lg'
           placeholder={index === 0 ? props.firstKeyPlaceholder : undefined}
           value={entry.key}
           onValueChange={(value) => onValue(index, 'key', value)}
@@ -84,7 +83,6 @@ export function EnvironmentInputs(props: Props) {
       <div className='w-full'>
         <Input
           id={`${props.id}-${index}-value`}
-          size='lg'
           placeholder={index === 0 ? props.firstValuePlaceholder : undefined}
           value={entry.value}
           onValueChange={(value) => onValue(index, 'value', value)}
@@ -104,7 +102,7 @@ export function EnvironmentInputs(props: Props) {
             isDisabled={isDisabled}
           >
             <span className='icon'>
-              <DeleteIcon size={22} />
+              <DeleteIcon />
             </span>
           </Button>
         </div>
