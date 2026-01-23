@@ -17,7 +17,7 @@ RUN dpkg --add-architecture i386 && apt update -y && apt install -y \
   libgdk-pixbuf2.0-0 rpm2cpio cpio
 RUN ln -s /usr/bin/wine /usr/bin/wine64
 
-COPY --dir .yarn/releases .yarn/plugins .yarn/
+COPY --dir .yarn/releases .yarn/
 COPY .yarnrc.yml yarn.config.cjs .
 RUN corepack enable
 

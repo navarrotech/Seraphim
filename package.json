@@ -37,7 +37,7 @@
   "dependencies": {
     "argparse": "^2.0.1",
     "chrome-remote-interface": "^0.33.3",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "hjson": "^3.2.2",
     "humanize-duration": "^3.33.0",
     "lodash-es": "^4.17.21",
