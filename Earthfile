@@ -41,8 +41,8 @@ frontend:
   COPY tsconfig.json .
   COPY --dir frontend/src frontend/public frontend/.
   COPY frontend/vite.config.ts frontend/tailwind.config.js frontend/postcss.config.cjs frontend/index.html frontend/tsconfig.json frontend/.
-  COPY --dir common/src common/.
-  COPY common/tsconfig.json common/.
+  COPY --dir common/src common/src
+  COPY common/tsconfig.json common/tsconfig.json
 
   RUN cd frontend && yarn build
   SAVE ARTIFACT frontend/dist AS LOCAL frontend/dist
@@ -54,6 +54,8 @@ electron:
 
   COPY tsconfig.json .
   COPY electron/vite.config.ts electron/vite.test.config.ts electron/forge.config.ts electron/tsconfig.json electron/.
+  COPY --dir common/src common/src
+  COPY common/tsconfig.json common/tsconfig.json
 
 debian:
   FROM +electron
