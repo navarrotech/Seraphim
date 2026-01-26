@@ -28,6 +28,9 @@ COPY common/package.json common/package.json
 COPY scripts/postinstall.sh scripts/postinstall.sh
 
 RUN yarn install
+
+COPY --dir prisma .
+COPY prisma.config.ts .
 RUN yarn prisma generate
 
 ARG VERSION=$(cd electron && node -p "require('./package.json').version")

@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 // Utility
-import { stringify } from './stringify'
+import { stringify } from './stringify.js'
 
 describe('stringify', () => {
   let consoleErrorMock: ReturnType<typeof vi.spyOn>

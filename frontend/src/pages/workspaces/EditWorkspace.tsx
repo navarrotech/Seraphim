@@ -1,4 +1,4 @@
-// Copyright Ac 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { Environment } from '@common/schema'
 
@@ -98,7 +98,8 @@ export function EditWorkspace() {
           response.workspace.id,
         ),
       )
-    } catch (error) {
+    }
+ catch (error) {
       console.debug('EditWorkspace failed to update workspace', { error })
     }
   })

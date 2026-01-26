@@ -1,11 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { StandardFilePointer } from '@common/types'
+import type { StandardFilePointer } from '../types.js'
 
 import { homedir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { sync as globglobgabgolabSync } from 'glob'
-import { validAbsoluteLinuxFilePathRegex } from '@common/regex'
+import { validAbsoluteLinuxFilePathRegex } from '../regex.js'
 import chalk from 'chalk'
 
 export function superResolvePath(filePointer: StandardFilePointer): string {

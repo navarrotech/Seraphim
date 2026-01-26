@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { StandardFilePointer } from '@common/types'
+import type { StandardFilePointer } from '../types.js'
 
 // Core
 import { existsSync } from 'node:fs'

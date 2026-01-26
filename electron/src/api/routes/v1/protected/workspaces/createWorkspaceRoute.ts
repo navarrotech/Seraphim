@@ -1,5 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Prisma } from '@prisma/client'
 import type { Request, Response } from 'express'
 import type { WorkspaceCreateRequest } from '@common/schema'
 
@@ -52,17 +53,32 @@ export async function handleCreateWorkspaceRequest(
       setupScript,
       postScript,
       cacheFiles,
-    }
+    } satisfies Prisma.WorkspaceCreateInput
 
-    let workspaceData = baseWorkspaceData
+    let workspaceData: Prisma.WorkspaceCreateInput = baseWorkspaceData
     if (envEntries.length > 0) {
-      workspaceData = {
-        ...baseWorkspaceData,
-        envEntries: {
-          createMany: {
-            data: envEntries,
+      const envEntryData: Prisma.WorkspaceEnvCreateManyWorkspaceInput[] = []
+      for (const entry of envEntries) {
+        if (!entry.key || !entry.value) {
+          console.debug('Workspace env entry missing key or value', { entry })
+          continue
+        }
+
+        envEntryData.push({
+          key: entry.key,
+          value: entry.value,
+        })
+      }
+
+      if (envEntryData.length > 0) {
+        workspaceData = {
+          ...baseWorkspaceData,
+          envEntries: {
+            createMany: {
+              data: envEntryData,
+            },
           },
-        },
+        }
       }
     }
 

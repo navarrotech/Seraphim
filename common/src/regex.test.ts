@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest'
 
 // Lib to test
-import { validAbsoluteLinuxFilePathRegex } from './regex'
+import { validAbsoluteLinuxFilePathRegex } from './regex.js'
 
 // We list these statically so if one of them fails we can see the exact line that failed.
 

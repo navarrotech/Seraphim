@@ -2,6 +2,12 @@
 
 import type { Message, Task } from '@prisma/client'
 
+// Lib
+import { z } from 'zod'
+
+// Utility
+import { taskCreateSchema, taskUpdateSchema } from '@common/schema'
+
 // Misc
 import { apiClient } from '../api'
 
@@ -25,14 +31,7 @@ export function getTask(taskId: string) {
     .json<GetTaskResponse>()
 }
 
-type CreateTaskRequest = {
-  userId: string
-  workspaceId: string
-  name: string
-  branch: string
-  container: string
-  archived?: boolean
-}
+type CreateTaskRequest = z.infer<typeof taskCreateSchema>
 
 type CreateTaskResponse = {
   task: Task
@@ -44,12 +43,7 @@ export function createTask(body: CreateTaskRequest) {
     .json<CreateTaskResponse>()
 }
 
-type UpdateTaskRequest = {
-  name?: string
-  branch?: string
-  container?: string
-  archived?: boolean
-}
+type UpdateTaskRequest = z.infer<typeof taskUpdateSchema>
 
 type UpdateTaskResponse = {
   task: Task

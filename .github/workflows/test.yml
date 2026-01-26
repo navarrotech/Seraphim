@@ -161,7 +161,7 @@ jobs:
         output:
           - debian
           - redhat
-          # - windows
+          - windows
 
     steps:
       - name: Checkout
