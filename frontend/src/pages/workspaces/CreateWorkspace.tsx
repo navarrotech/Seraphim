@@ -16,7 +16,7 @@ import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 
 // Misc
-import { getWorkspaceViewUrl } from '@common/urls'
+import { UrlTree } from '@common/urls'
 import { createWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
@@ -53,11 +53,7 @@ export function CreateWorkspace() {
 
       clear()
 
-      navigate(
-        getWorkspaceViewUrl(
-          response.workspace.id,
-        ),
-      )
+      navigate(UrlTree.tasksList)
     }
     catch (error) {
       console.debug('CreateWorkspace failed to submit form', { error })

@@ -10,11 +10,13 @@ import useSWR from 'swr'
 
 // User interface
 import { Card } from '@heroui/react'
+import { AppTopbar } from '../AppTopbar'
 
 // Utility
 import { dispatch } from '@frontend/framework/store'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
+import { useApiSocket } from '@frontend/hooks/useApiSocket'
 
 // Misc
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
@@ -26,6 +28,8 @@ export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
   const tasksQuery = useSWR('tasks', listTasks)
   const location = useLocation()
+
+  useApiSocket()
 
   useEffect(function syncWorkspaces() {
     if (!workspacesQuery.data?.workspaces) {
@@ -74,7 +78,10 @@ export function DashboardGate() {
     return <GettingStarted />
   }
 
-  return <main>
-    <Outlet />
+  return <main className='flex min-h-screen flex-col overflow-hidden'>
+    <AppTopbar />
+    <div className='flex flex-1 min-h-0 overflow-hidden'>
+      <Outlet />
+    </div>
   </main>
 }

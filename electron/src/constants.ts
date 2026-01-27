@@ -14,4 +14,5 @@ export const TRANSCRIBER_STOP_PATH = 'transcribe/stop'
 
 export const IPC_SIGNALS = {
   getApiUrl: 'get-api-url',
+  exitApp: 'exit-app',
 } as const

@@ -8,8 +8,8 @@ export const UrlTree = {
   workspaceCreate: '/workspaces/create',
   workspaceView: '/workspace/:workspaceId',
   workspaceEdit: '/workspace/:workspaceId/edit',
-  workspaceTasksList: '/workspaces/:workspaceId/tasks',
-  workspaceTaskView: '/workspaces/:workspaceId/tasks/:taskId',
+  tasksList: '/tasks',
+  taskView: '/tasks/:taskId',
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 
@@ -21,7 +21,7 @@ export type ExternalLinkValue = typeof ExternalLinks[keyof typeof ExternalLinks]
 export type ValidApplicationLink = UrlValue | ExternalLinkValue
 
 // Settings
-export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.workspacesList
+export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.tasksList
 
 // ///////////////////////////// //
 //         Link factories        //
@@ -33,13 +33,5 @@ export const getWorkspaceViewUrl = (workspaceId: string) =>
 export const getWorkspaceEditUrl = (workspaceId: string) =>
   UrlTree.workspaceEdit.replace(':workspaceId', workspaceId)
 
-export const getWorkspaceTasksListUrl = (workspaceId: string) =>
-  UrlTree.workspaceTasksList.replace(':workspaceId', workspaceId)
-
-export const getWorkspaceTaskViewUrl = (
-  workspaceId: string,
-  taskId: string,
-) =>
-  UrlTree.workspaceTaskView
-    .replace(':workspaceId', workspaceId)
-    .replace(':taskId', taskId)
+export const getTaskViewUrl = (taskId: string) =>
+  UrlTree.taskView.replace(':taskId', taskId)

@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('version', {
 
 contextBridge.exposeInMainWorld('config', {
   getApiUrl: () => ipcRenderer.sendSync(IPC_SIGNALS.getApiUrl),
+  exitApp: () => ipcRenderer.invoke(IPC_SIGNALS.exitApp),
 })

@@ -24,6 +24,21 @@ export const slice = createEnhancedSlice({
       state.items = action.payload
       return state
     },
+    upsertTasks: (state, action: PayloadAction<Task[]>) => {
+      const tasksById = new Map(state.items.map((task) => [ task.id, task ]))
+
+      for (const task of action.payload) {
+        tasksById.set(task.id, task)
+      }
+
+      state.items = Array.from(tasksById.values())
+      return state
+    },
+    removeTasks: (state, action: PayloadAction<Task[]>) => {
+      const taskIds = new Set(action.payload.map((task) => task.id))
+      state.items = state.items.filter((task) => !taskIds.has(task.id))
+      return state
+    },
   },
 })
 

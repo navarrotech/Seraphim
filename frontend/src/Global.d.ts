@@ -12,6 +12,7 @@ declare global {
     },
     config: {
       getApiUrl: () => string
+      exitApp: () => Promise<void>
     },
   }
 }
