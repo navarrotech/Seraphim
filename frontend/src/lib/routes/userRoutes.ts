@@ -1,4 +1,5 @@
 ﻿// Copyright © 2026 Jalapeno Labs
+
 import type { User, UserSettings } from '@prisma/client'
 import type { UserSettingsUpdateRequest } from '@common/schema'
 

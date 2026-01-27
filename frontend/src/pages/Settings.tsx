@@ -1,4 +1,5 @@
 ﻿// Copyright © 2026 Jalapeno Labs
+
 import type { Selection } from '@react-types/shared'
 
 // Core
@@ -30,7 +31,7 @@ import { userSettingsSchema } from '@common/schema'
 import { updateCurrentUserSettings } from '@frontend/lib/routes/userRoutes'
 
 const languageOptionLabels = {
-  auto: 'Auto',
+  'auto': 'Auto',
   'en-US': 'English (US)',
 } as const
 
@@ -124,7 +125,7 @@ function buildSettingsPayload(values: SettingsFormValues): SettingsPayload | nul
 }
 
 export function Settings() {
-  const [ statusMessage, setStatusMessage ] = useState<string | null>(null)    
+  const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
   const settingsState = useSelector((reduxState) => reduxState.settings)
 
   const form = useForm<SettingsFormValues>({
@@ -176,7 +177,7 @@ export function Settings() {
 
     if (!settingsState.value) {
       console.debug(
-        'Settings falling back to defaults because settings are missing',       
+        'Settings falling back to defaults because settings are missing',
         { hasSettings: false },
       )
     }

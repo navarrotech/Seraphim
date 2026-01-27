@@ -17,7 +17,7 @@ import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 
 // Misc
-import { getWorkspaceViewUrl, UrlTree } from '@common/urls'
+import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
 import { getWorkspace, updateWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
@@ -94,7 +94,7 @@ export function EditWorkspace() {
     try {
       const response = await updateWorkspace(workspaceId, data)
       navigate(
-        getWorkspaceViewUrl(
+        getWorkspaceEditUrl(
           response.workspace.id,
         ),
       )

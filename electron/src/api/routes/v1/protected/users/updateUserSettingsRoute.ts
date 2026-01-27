@@ -1,4 +1,5 @@
 ﻿// Copyright © 2026 Jalapeno Labs
+
 import type { Request, Response } from 'express'
 import type { UserSettingsUpdateRequest } from '@common/schema'
 

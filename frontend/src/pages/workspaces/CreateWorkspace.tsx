@@ -299,19 +299,3 @@ export function CreateWorkspace() {
     </Form>
   </section>
 }
-
-function getRepoOptions(results: RepoResult[] = []): RepoOption[] {
-  const options: RepoOption[] = []
-
-  for (const result of results) {
-    for (const repo of result.repos) {
-      options.push({
-        accountId: result.accountId,
-        username: result.username,
-        repo,
-      })
-    }
-  }
-
-  return options
-}

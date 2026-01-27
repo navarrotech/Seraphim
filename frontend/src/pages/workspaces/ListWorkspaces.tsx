@@ -11,8 +11,8 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
 // Misc
-import { getWorkspaceEditUrl, getWorkspaceViewUrl, UrlTree } from '@common/urls'
-import { DeleteIcon, EditBulkIcon, OpenIcon } from '@frontend/common/IconNexus'
+import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
+import { DeleteIcon, EditBulkIcon } from '@frontend/common/IconNexus'
 import { deleteWorkspace } from '@frontend/lib/routes/workspaceRoutes'
 
 export function ListWorkspaces() {
@@ -77,7 +77,7 @@ export function ListWorkspaces() {
           >
             <div className='col-span-6'>
               <Link
-                to={getWorkspaceViewUrl(workspace.id)}
+                to={getWorkspaceEditUrl(workspace.id)}
                 className='block'
               >
                 <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
@@ -91,19 +91,6 @@ export function ListWorkspaces() {
             </div>
             <div className='absolute right-4 top-1/2 -translate-y-1/2'>
               <div className='flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100'>
-                <Tooltip content='Open workspace'>
-                  <Button
-                    size='sm'
-                    variant='light'
-                    isIconOnly
-                    as={Link}
-                    to={getWorkspaceViewUrl(workspace.id)}
-                  >
-                    <span className='icon'>
-                      <OpenIcon />
-                    </span>
-                  </Button>
-                </Tooltip>
                 <Tooltip content='Edit workspace'>
                   <Button
                     size='sm'

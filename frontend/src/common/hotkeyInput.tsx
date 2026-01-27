@@ -42,18 +42,18 @@ const numpadKeyMap: Record<string, string> = {
 
 const keyLabelMap: Record<string, string> = {
   ' ': 'Space',
-  ArrowUp: 'ArrowUp',
-  ArrowDown: 'ArrowDown',
-  ArrowLeft: 'ArrowLeft',
-  ArrowRight: 'ArrowRight',
-  Enter: 'Enter',
-  Tab: 'Tab',
-  Backspace: 'Backspace',
-  Delete: 'Delete',
-  Home: 'Home',
-  End: 'End',
-  PageUp: 'PageUp',
-  PageDown: 'PageDown',
+  'ArrowUp': 'ArrowUp',
+  'ArrowDown': 'ArrowDown',
+  'ArrowLeft': 'ArrowLeft',
+  'ArrowRight': 'ArrowRight',
+  'Enter': 'Enter',
+  'Tab': 'Tab',
+  'Backspace': 'Backspace',
+  'Delete': 'Delete',
+  'Home': 'Home',
+  'End': 'End',
+  'PageUp': 'PageUp',
+  'PageDown': 'PageDown',
 }
 
 function isModifierKey(key: string): key is ModifierKey {
@@ -138,7 +138,7 @@ function normalizeAlphaKey(key: string) {
 function buildPreviewValue(modifiers: ModifierKey[], key?: string) {
   const parts = [ ...modifiers ]
   if (key) {
-    parts.push(key)
+    parts.push(key as any)
   }
 
   return parts.join('+')
@@ -167,7 +167,7 @@ export function HotkeyInput(props: HotkeyInputProps) {
 
   useEffect(function captureHotkey() {
     if (!isListening || isDisabled) {
-      return
+      return () => {}
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -194,7 +194,8 @@ export function HotkeyInput(props: HotkeyInputProps) {
 
       if (isModifierKey(event.key)) {
         modifierRef.current.add(event.key)
-      } else {
+      }
+ else {
         nonModifierKeyRef.current = normalizedKey
       }
 
@@ -220,7 +221,8 @@ export function HotkeyInput(props: HotkeyInputProps) {
 
       if (isModifierKey(event.key)) {
         modifierRef.current.delete(event.key)
-      } else if (normalizeAlphaKey(event.key) === nonModifierKeyRef.current) {
+      }
+ else if (normalizeAlphaKey(event.key) === nonModifierKeyRef.current) {
         nonModifierKeyRef.current = ''
       }
 

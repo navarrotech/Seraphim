@@ -11,7 +11,6 @@ import { EditWorkspace } from './pages/workspaces/EditWorkspace'
 import { ListWorkspaces } from './pages/workspaces/ListWorkspaces'
 import { Tasks } from './pages/tasks/Tasks'
 import { Settings } from './pages/Settings'
-import { ViewWorkspace } from './pages/workspaces/ViewWorkspace'
 
 // Misc
 import { UrlTree, UNKNOWN_ROUTE_REDIRECT_TO } from '@common/urls'
@@ -26,7 +25,6 @@ export function Router() {
         <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
         <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
         <Route path={UrlTree.workspaceEdit} element={<EditWorkspace />} />
-        <Route path={UrlTree.workspaceView} element={<ViewWorkspace />} />
         <Route path={UrlTree.tasksList} element={<Tasks />} />
         <Route path={UrlTree.taskView} element={<Tasks />} />
       </Route>
@@ -34,4 +32,3 @@ export function Router() {
     </Routes>
   </>
 }
-

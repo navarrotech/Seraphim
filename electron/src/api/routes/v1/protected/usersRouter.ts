@@ -1,4 +1,5 @@
 ﻿// Copyright © 2026 Jalapeno Labs
+
 import type { Router } from 'express'
 
 // Core

@@ -7,7 +7,6 @@ export const UrlTree = {
   connectedAccounts: '/settings/accounts',
   workspacesList: '/workspaces',
   workspaceCreate: '/workspaces/create',
-  workspaceView: '/workspace/:workspaceId',
   workspaceEdit: '/workspace/:workspaceId/edit',
   tasksList: '/tasks',
   taskView: '/tasks/:taskId',
@@ -28,12 +27,8 @@ export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.tasksList
 //         Link factories        //
 // ///////////////////////////// //
 
-export const getWorkspaceViewUrl = (workspaceId: string) =>
-  UrlTree.workspaceView.replace(':workspaceId', workspaceId)
-
 export const getWorkspaceEditUrl = (workspaceId: string) =>
   UrlTree.workspaceEdit.replace(':workspaceId', workspaceId)
 
 export const getTaskViewUrl = (taskId: string) =>
   UrlTree.taskView.replace(':taskId', taskId)
-
