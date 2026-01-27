@@ -10,6 +10,7 @@ import useSWR from 'swr'
 
 // Redux
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 import { dispatch } from '@frontend/framework/store'
@@ -25,6 +26,7 @@ import { useApiSocket } from '@frontend/hooks/useApiSocket'
 import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
+import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 import { GettingStarted } from '../GettingStarted'
 import { UrlTree } from '@common/urls'
 
@@ -32,6 +34,7 @@ export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
   const tasksQuery = useSWR('tasks', listTasks)
   const accountsQuery = useSWR('accounts', listAccounts)
+  const settingsQuery = useSWR('current-user', getCurrentUser)
   const location = useLocation()
 
   useApiSocket()
@@ -66,10 +69,21 @@ export function DashboardGate() {
     )
   }, [ accountsQuery.data ])
 
+  useEffect(function syncSettings() {
+    if (!settingsQuery.data?.user) {
+      return
+    }
+
+    dispatch(
+      settingsActions.setSettings(settingsQuery.data.user.settings ?? null),
+    )
+  }, [ settingsQuery.data ])
+
   const isLoading = Boolean(
     workspacesQuery.isLoading
     || tasksQuery.isLoading
-    || accountsQuery.isLoading,
+    || accountsQuery.isLoading
+    || settingsQuery.isLoading,
   )
   const hasEmptyData = Boolean(
     !isLoading
@@ -85,7 +99,12 @@ export function DashboardGate() {
     </main>
   }
 
-  if (workspacesQuery.error || tasksQuery.error || accountsQuery.error) {
+  if (
+    workspacesQuery.error
+    || tasksQuery.error
+    || accountsQuery.error
+    || settingsQuery.error
+  ) {
     return <main className='container p-8'>
       <Card className='p-6'>
         <p className='opacity-80'>Unable to load workspace data.</p>

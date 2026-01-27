@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 // User interface
 import {
+  Avatar,
   Button,
   Dropdown,
   DropdownItem,
@@ -14,7 +15,7 @@ import {
 
 // Misc
 import { UrlTree } from '@common/urls'
-import { UserIcon } from '@frontend/common/IconNexus'
+import { ExitIcon, SettingsIcon, UserIcon } from '@frontend/common/IconNexus'
 
 function isWorkspaceRoute(pathname: string) {
   return pathname.startsWith('/workspace') || pathname.startsWith('/workspaces')
@@ -67,36 +68,59 @@ export function AppTopbar() {
       <nav className='level-centered'>
         <Button
           as={Link}
-          to={UrlTree.workspacesList}
-          variant={isWorkspaceActive ? 'solid' : 'light'}
-        >
-          <span>Workspaces</span>
-        </Button>
-        <Button
-          as={Link}
           to={UrlTree.tasksList}
           variant={isTasksActive ? 'solid' : 'light'}
         >
           <span>Tasks</span>
+        </Button>
+        <Button
+          as={Link}
+          to={UrlTree.workspacesList}
+          variant={isWorkspaceActive ? 'solid' : 'light'}
+        >
+          <span>Workspaces</span>
         </Button>
       </nav>
       <div className='level-right'>
         <Dropdown placement='bottom-end'>
           <DropdownTrigger>
             <Button variant='light' isIconOnly>
-              <span className='icon text-xl'>
-                <UserIcon />
-              </span>
+              <Avatar name='User' size='sm' />
             </Button>
           </DropdownTrigger>
           <DropdownMenu aria-label='User menu'>
-            <DropdownItem key='accounts' onPress={handleOpenConnectedAccounts}>
+            <DropdownItem
+              key='accounts'
+              onPress={handleOpenConnectedAccounts}
+              startContent={
+                <span className='icon text-lg'>
+                  <UserIcon />
+                </span>
+              }
+            >
               <span>Connected Accounts</span>
             </DropdownItem>
-            <DropdownItem key='settings' onPress={handleOpenSettings}>
+            <DropdownItem
+              key='settings'
+              onPress={handleOpenSettings}
+              startContent={
+                <span className='icon text-lg'>
+                  <SettingsIcon />
+                </span>
+              }
+            >
               <span>Settings</span>
             </DropdownItem>
-            <DropdownItem key='exit' color='danger' onPress={handleExitApp}>
+            <DropdownItem
+              key='exit'
+              color='danger'
+              onPress={handleExitApp}
+              startContent={
+                <span className='icon text-lg'>
+                  <ExitIcon />
+                </span>
+              }
+            >
               <span>Exit</span>
             </DropdownItem>
           </DropdownMenu>
@@ -105,4 +129,3 @@ export function AppTopbar() {
     </div>
   </header>
 }
-

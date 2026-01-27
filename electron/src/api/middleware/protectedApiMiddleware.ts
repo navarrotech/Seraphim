@@ -7,10 +7,5 @@ export function protectedApiMiddleware(
   response: Response,
   next: NextFunction,
 ): void {
-  console.debug('Protected API middleware invoked', {
-    method: request.method,
-    path: request.originalUrl,
-  })
-
   next()
 }

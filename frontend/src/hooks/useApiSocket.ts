@@ -9,6 +9,7 @@ import { z } from 'zod'
 // Redux
 import { dispatch } from '@frontend/framework/store'
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
@@ -17,10 +18,11 @@ import { getApiRoot } from '../lib/api'
 import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
+import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 
 const ssePayloadSchema = z.object({
   type: z.enum([ 'create', 'update', 'delete' ]),
-  kind: z.enum([ 'accounts', 'workspaces', 'tasks' ]),
+  kind: z.enum([ 'accounts', 'settings', 'workspaces', 'tasks' ]),
 })
 
 function logSseEvent(eventType: string, event: MessageEvent): void {
@@ -79,6 +81,19 @@ async function refreshTasks(): Promise<void> {
   }
 }
 
+async function refreshSettings(): Promise<void> {
+  try {
+    const response = await getCurrentUser()
+
+    dispatch(
+      settingsActions.setSettings(response.user.settings ?? null),
+    )
+  }
+  catch (error) {
+    console.debug('SSE failed to refresh settings', { error })
+  }
+}
+
 async function handleChange(eventType: string, event: MessageEvent) {
   logSseEvent(eventType, event)
 
@@ -106,6 +121,11 @@ async function handleChange(eventType: string, event: MessageEvent) {
 
   if (parsed.data.kind === 'tasks') {
     await refreshTasks()
+    return
+  }
+
+  if (parsed.data.kind === 'settings') {
+    await refreshSettings()
     return
   }
 

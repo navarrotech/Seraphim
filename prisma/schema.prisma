@@ -90,6 +90,9 @@ model UserSettings {
 
   openAiApiKey String? @map("openai_api_key")
 
+  language String? @default("auto")
+  theme    String? @default("system")
+
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_settings")

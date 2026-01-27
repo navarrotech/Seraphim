@@ -1,8 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Environment } from '@common/schema'
+import type { RepoOption } from './CreateWorkspaceImportDrawer'
 
 // Core
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Lib
@@ -20,7 +22,11 @@ import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 
 // Misc
 import { UrlTree } from '@common/urls'
-import { createWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
+import {
+  createWorkspace,
+  createWorkspaceSchema,
+} from '@frontend/lib/routes/workspaceRoutes'
+import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 
@@ -28,6 +34,8 @@ export function CreateWorkspace() {
   const navigate = useNavigate()
   const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
   const isImportDisabled = authAccounts.length === 0
+  const [ isImportDrawerOpen, setIsImportDrawerOpen ] = useState(false)
+  const [ importedRepoOption, setImportedRepoOption ] = useState<RepoOption | null>(null)
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -52,6 +60,32 @@ export function CreateWorkspace() {
     onDataRestored: (values) => form.reset(values),
   })
 
+  const isRepositoryLocked = Boolean(importedRepoOption)
+
+  function handleOpenImportDrawer() {
+    setIsImportDrawerOpen(true)
+  }
+
+  function handleImportDrawerOpenChange(isOpen: boolean) {
+    setIsImportDrawerOpen(isOpen)
+  }
+
+  function handleImportRepo(repoOption: RepoOption) {
+    form.setValue('name', repoOption.repo.name, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+    form.setValue('repository', repoOption.repo.sshUrl, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+
+    setImportedRepoOption(repoOption)
+    setIsImportDrawerOpen(false)
+  }
+
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     try {
       await createWorkspace(data)
@@ -65,6 +99,19 @@ export function CreateWorkspace() {
     }
   })
 
+  let importBanner = null
+  if (importedRepoOption) {
+    importBanner = <Card className='relaxed p-4 border border-emerald-500/30 bg-emerald-500/10'>
+      <div className='text-lg'>
+        <strong>Importing repository</strong>
+      </div>
+      <p className='opacity-80'>
+        Connected to {importedRepoOption.repo.fullName} via {importedRepoOption.username}.
+      </p>
+    </Card>
+  }
+
+
   return <section className='container p-6'>
     <div className='relaxed'>
       <div className='level'>
@@ -75,6 +122,7 @@ export function CreateWorkspace() {
           type='button'
           variant='flat'
           isDisabled={isImportDisabled}
+          onPress={handleOpenImportDrawer}
         >
           <span>Import</span>
         </Button>
@@ -83,6 +131,9 @@ export function CreateWorkspace() {
         Define a workspace with its repo, image, and environment.
       </p>
     </div>
+    <div className='relaxed'>{
+        importBanner
+      }</div>
     <Form onSubmit={onSubmit} className='relaxed'>
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
@@ -122,6 +173,7 @@ export function CreateWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.repository)}
                     errorMessage={form.formState.errors.repository?.message}
+                    isDisabled={isRepositoryLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -238,6 +290,28 @@ export function CreateWorkspace() {
           Create Workspace
         </span>
       </Button>
+      <CreateWorkspaceImportDrawer
+        isOpen={isImportDrawerOpen}
+        isDisabled={isImportDisabled}
+        onOpenChange={handleImportDrawerOpenChange}
+        onImport={handleImportRepo}
+      />
     </Form>
   </section>
+}
+
+function getRepoOptions(results: RepoResult[] = []): RepoOption[] {
+  const options: RepoOption[] = []
+
+  for (const result of results) {
+    for (const repo of result.repos) {
+      options.push({
+        accountId: result.accountId,
+        username: result.username,
+        repo,
+      })
+    }
+  }
+
+  return options
 }

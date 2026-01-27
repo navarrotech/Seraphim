@@ -17,8 +17,41 @@ export type ConnectedAccount = {
   createdAt: string
 }
 
+export type GithubRepoSummary = {
+  id: number
+  name: string
+  fullName: string
+  description: string | null
+  htmlUrl: string
+  cloneUrl: string
+  sshUrl: string
+  defaultBranch: string
+  ownerLogin: string
+  isPrivate: boolean
+  isFork: boolean
+  isArchived: boolean
+  updatedAt: string
+}
+
 type ListAccountsResponse = {
   accounts: ConnectedAccount[]
+}
+
+type RepoAccountResult = {
+  accountId: string
+  username: string
+  repos: GithubRepoSummary[]
+}
+
+type RepoAccountFailure = {
+  accountId: string
+  username: string
+  error: string
+}
+
+export type ListReposResponse = {
+  results: RepoAccountResult[]
+  failures: RepoAccountFailure[]
 }
 
 type AddAccountRequest = {
@@ -50,6 +83,27 @@ export function listAccounts() {
     .json<ListAccountsResponse>()
 }
 
+function buildRepoSearchParams(searchQuery?: string) {
+  const params: Record<string, string> = {}
+
+  if (searchQuery) {
+    const trimmedQuery = searchQuery.trim()
+    if (trimmedQuery) {
+      params.q = trimmedQuery
+    }
+  }
+
+  return params
+}
+
+export function listRepos(searchQuery?: string) {
+  return apiClient
+    .get('v1/protected/accounts/repos', {
+      searchParams: buildRepoSearchParams(searchQuery),
+    })
+    .json<ListReposResponse>()
+}
+
 export function addAccount(payload: AddAccountRequest) {
   return apiClient
     .post('v1/protected/accounts/add', { json: payload })
@@ -61,4 +115,3 @@ export function logoutAccount(payload: LogoutAccountRequest) {
     .post('v1/protected/accounts/logout', { json: payload })
     .json<LogoutAccountResponse>()
 }
-

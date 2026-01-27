@@ -1,6 +1,8 @@
-// Copyright © 2026 Jalapeno Labs
-
+﻿// Copyright © 2026 Jalapeno Labs
 import { z } from 'zod'
+
+// Misc
+import { USER_LANGUAGE_OPTIONS, USER_THEME_OPTIONS } from './constants'
 
 export const environmentSchema = z.object({
   key: z
@@ -68,8 +70,28 @@ export const taskUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
+export const userLanguageSchema = z.enum(USER_LANGUAGE_OPTIONS)
+export const userThemeSchema = z.enum(USER_THEME_OPTIONS)
+
+export const userSettingsSchema = z.object({
+  language: userLanguageSchema,
+  theme: userThemeSchema,
+  voiceEnabled: z.boolean(),
+  voiceHotkey: z.string().trim().min(1),
+  openAiApiKey: z.string().trim().optional().nullable(),
+}).strict()
+
+export const userSettingsUpdateSchema = userSettingsSchema.partial().refine(
+  (data) => Object.keys(data).length > 0,
+  {
+    message: 'No valid fields provided for update',
+  },
+)
+
 export type WorkspaceEnvEntry = z.infer<typeof workspaceEnvEntrySchema>
 export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>
 export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
 export type TaskCreateRequest = z.infer<typeof taskCreateSchema>
 export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
+export type UserSettingsRequest = z.infer<typeof userSettingsSchema>
+export type UserSettingsUpdateRequest = z.infer<typeof userSettingsUpdateSchema>
