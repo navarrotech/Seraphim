@@ -35,6 +35,8 @@ export default defineConfig({
     rollupOptions: {
       input: './src/main.ts',
       external: [
+        // @ts-ignore
+        ...(config.build?.rollupOptions?.external ?? []),
         'electron',
         'electron/main',
         'electron/renderer',
