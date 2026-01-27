@@ -94,3 +94,47 @@ model UserSettings {
 
   @@map("user_settings")
 }
+
+enum AuthProvider {
+  GITHUB
+}
+
+model AuthAccount {
+  id String @id @default(uuid())
+
+  // Provider
+  provider          AuthProvider
+  providerAccountId String       @map("provider_account_id")
+  accessToken       String       @map("access_token")
+  tokenType         String       @map("token_type")
+  scope             String
+
+  // Details
+  username    String
+  displayName String  @map("display_name")
+  avatarUrl   String? @map("avatar_url")
+  email       String?
+
+  // Metadata
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@unique([provider, providerAccountId])
+  @@map("auth_accounts")
+}
+
+model OAuthState {
+  id String @id @default(uuid())
+
+  provider              AuthProvider
+  state                 String       @unique
+  callbackUrl           String       @map("callback_url")
+  completionRedirectUrl String?      @map("completion_redirect_url")
+  scopes                String[]     @default([]) @map("scopes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@map("oauth_states")
+}

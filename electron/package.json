@@ -26,6 +26,8 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@octokit/core": "^7.0.6",
+    "@octokit/oauth-methods": "^6.0.2",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "@reduxjs/toolkit": "^2.8.2",
