@@ -1,4 +1,4 @@
-// Copyright © 2026 Jalapeno Labs
+﻿// Copyright © 2026 Jalapeno Labs
 
 import type { Router } from 'express'
 
@@ -7,11 +7,15 @@ import { Router as createRouter } from 'express'
 
 // Misc
 import { handleAddAccountRequest } from './addAccountRoute'
+import { handleListAccountsRequest } from './listAccountsRoute'
 import { handleListReposRequest } from './listReposRoute'
 import { handleLogoutAccountRequest } from './logoutAccountRoute'
 
 export function createAccountsRouter(): Router {
   const accountsRouter = createRouter()
+
+  // /api/v1/protected/accounts
+  accountsRouter.get('/', handleListAccountsRequest)
 
   // /api/v1/protected/accounts/add
   accountsRouter.post('/add', handleAddAccountRequest)
@@ -27,3 +31,4 @@ export function createAccountsRouter(): Router {
 
   return accountsRouter
 }
+

@@ -1,9 +1,10 @@
-// Copyright © 2026 Jalapeno Labs
+﻿// Copyright © 2026 Jalapeno Labs
 
 // Urls
 export const UrlTree = {
   root: '/',
   settings: '/settings',
+  connectedAccounts: '/settings/accounts',
   workspacesList: '/workspaces',
   workspaceCreate: '/workspaces/create',
   workspaceView: '/workspace/:workspaceId',
@@ -35,3 +36,4 @@ export const getWorkspaceEditUrl = (workspaceId: string) =>
 
 export const getTaskViewUrl = (taskId: string) =>
   UrlTree.taskView.replace(':taskId', taskId)
+

@@ -1,4 +1,4 @@
-// Copyright © 2026 Jalapeno Labs
+﻿// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -49,6 +49,10 @@ export function AppTopbar() {
     navigate(UrlTree.settings)
   }
 
+  function handleOpenConnectedAccounts() {
+    navigate(UrlTree.connectedAccounts)
+  }
+
   return <header className={`border-b border-black/5 bg-white/70 px-6 py-4 backdrop-blur
   dark:border-white/10 dark:bg-slate-950/70`}>
     <div className='flex items-center justify-between'>
@@ -86,6 +90,9 @@ export function AppTopbar() {
             </Button>
           </DropdownTrigger>
           <DropdownMenu aria-label='User menu'>
+            <DropdownItem key='accounts' onPress={handleOpenConnectedAccounts}>
+              <span>Connected Accounts</span>
+            </DropdownItem>
             <DropdownItem key='settings' onPress={handleOpenSettings}>
               <span>Settings</span>
             </DropdownItem>
@@ -98,3 +105,4 @@ export function AppTopbar() {
     </div>
   </header>
 }
+
