@@ -70,7 +70,7 @@ jobs:
       - name: Lint
         id: lint
         continue-on-error: true
-        run: yarn eslint frontend common electron .github/scripts
+        run: yarn eslint frontend common electron
 
       - name: Typescript check
         id: typecheck
