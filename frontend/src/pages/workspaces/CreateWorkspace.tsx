@@ -11,6 +11,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+// Redux
+import { useSelector } from '@frontend/framework/store'
+
 // UI
 import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
@@ -23,6 +26,8 @@ type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 
 export function CreateWorkspace() {
   const navigate = useNavigate()
+  const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
+  const isImportDisabled = authAccounts.length === 0
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -62,9 +67,18 @@ export function CreateWorkspace() {
 
   return <section className='container p-6'>
     <div className='relaxed'>
-      <h2 className='text-2xl'>
-        <strong>Create Workspace</strong>
-      </h2>
+      <div className='level'>
+        <h2 className='text-2xl'>
+          <strong>Create Workspace</strong>
+        </h2>
+        <Button
+          type='button'
+          variant='flat'
+          isDisabled={isImportDisabled}
+        >
+          <span>Import</span>
+        </Button>
+      </div>
       <p className='opacity-80'>
         Define a workspace with its repo, image, and environment.
       </p>

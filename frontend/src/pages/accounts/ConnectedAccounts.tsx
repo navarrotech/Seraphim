@@ -1,12 +1,14 @@
 ﻿// Copyright © 2026 Jalapeno Labs
+
 import type { ConnectedAccount, OAuthProvider } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-// Lib
-import useSWR from 'swr'
+// Redux
+import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { dispatch, useSelector } from '@frontend/framework/store'
 
 // User interface
 import {
@@ -140,13 +142,21 @@ export function ConnectedAccounts() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { data, error, mutate } = useSWR(
-    'connected-accounts',
-    listAccounts,
-  )
-  const [ oauthStatus, setOauthStatus ] = useState<OAuthCompletionStatus | null>(
-    null,
-  )
+  const [ oauthStatus, setOauthStatus ] = useState<OAuthCompletionStatus | null>(null)
+  const accounts = useSelector((reduxState) => reduxState.accounts.items)
+
+  async function refreshAccounts() {
+    try {
+      const response = await listAccounts()
+
+      dispatch(
+        accountActions.setAccounts(response.accounts),
+      )
+    }
+    catch (error) {
+      console.debug('ConnectedAccounts failed to refresh accounts', { error })
+    }
+  }
 
   useEffect(() => {
     const completion = parseOAuthCompletionParams(location.search)
@@ -158,12 +168,9 @@ export function ConnectedAccounts() {
     navigate(UrlTree.connectedAccounts, { replace: true })
 
     if (completion.status === 'success') {
-      mutate()
+      void refreshAccounts()
     }
-  }, [ location.search, mutate, navigate ])
-
-  const accounts = data?.accounts || []
-  const isLoading = !data && !error
+  }, [ location.search, navigate ])
 
   let statusBanner = null
   if (oauthStatus) {
@@ -222,7 +229,7 @@ export function ConnectedAccounts() {
         provider: account.provider,
         accountId: account.id,
       })
-      await mutate()
+      await refreshAccounts()
     }
     catch (error) {
       console.debug('ConnectedAccounts failed to disconnect account', {
@@ -235,17 +242,7 @@ export function ConnectedAccounts() {
 
   let content = null
 
-  if (isLoading) {
-    content = <Card className='p-4'>
-      <p className='opacity-80'>Loading connected accounts...</p>
-    </Card>
-  }
-  else if (error) {
-    content = <Card className='p-4'>
-      <p className='opacity-80'>Unable to load connected accounts.</p>
-    </Card>
-  }
-  else if (accounts.length === 0) {
+  if (!accounts || accounts.length === 0) {
     content = <Card className='relaxed p-6'>
       <div className='relaxed'>
         <div className='text-xl'>No connected accounts yet.</div>
@@ -313,7 +310,7 @@ export function ConnectedAccounts() {
   return <section className='container p-6'>
     <div className='level relaxed'>
       <div>
-        <h2 className='relaxed text-2xl'>
+        <h2 className='text-2xl'>
           <strong>Connected Accounts</strong>
         </h2>
         <p className='opacity-80'>Manage GitHub connections for this workspace.</p>
@@ -346,4 +343,3 @@ export function ConnectedAccounts() {
       }</div>
   </section>
 }
-

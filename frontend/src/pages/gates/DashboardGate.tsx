@@ -8,17 +8,21 @@ import { useLocation } from 'react-router-dom'
 // Lib
 import useSWR from 'swr'
 
+// Redux
+import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { taskActions } from '@frontend/framework/redux/stores/tasks'
+import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
+import { dispatch } from '@frontend/framework/store'
+
 // User interface
 import { Card } from '@heroui/react'
 import { AppTopbar } from '../AppTopbar'
 
 // Utility
-import { dispatch } from '@frontend/framework/store'
-import { taskActions } from '@frontend/framework/redux/stores/tasks'
-import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 import { useApiSocket } from '@frontend/hooks/useApiSocket'
 
 // Misc
+import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { GettingStarted } from '../GettingStarted'
@@ -27,6 +31,7 @@ import { UrlTree } from '@common/urls'
 export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
   const tasksQuery = useSWR('tasks', listTasks)
+  const accountsQuery = useSWR('accounts', listAccounts)
   const location = useLocation()
 
   useApiSocket()
@@ -51,7 +56,21 @@ export function DashboardGate() {
     )
   }, [ tasksQuery.data ])
 
-  const isLoading = workspacesQuery.isLoading || tasksQuery.isLoading
+  useEffect(function syncAccounts() {
+    if (!accountsQuery.data?.accounts) {
+      return
+    }
+
+    dispatch(
+      accountActions.setAccounts(accountsQuery.data.accounts),
+    )
+  }, [ accountsQuery.data ])
+
+  const isLoading = Boolean(
+    workspacesQuery.isLoading
+    || tasksQuery.isLoading
+    || accountsQuery.isLoading,
+  )
   const hasEmptyData = Boolean(
     !isLoading
     && workspacesQuery.data?.workspaces?.length === 0
@@ -66,7 +85,7 @@ export function DashboardGate() {
     </main>
   }
 
-  if (workspacesQuery.error || tasksQuery.error) {
+  if (workspacesQuery.error || tasksQuery.error || accountsQuery.error) {
     return <main className='container p-8'>
       <Card className='p-6'>
         <p className='opacity-80'>Unable to load workspace data.</p>

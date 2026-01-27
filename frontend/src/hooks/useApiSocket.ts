@@ -8,17 +8,19 @@ import { z } from 'zod'
 
 // Redux
 import { dispatch } from '@frontend/framework/store'
+import { accountActions } from '@frontend/framework/redux/stores/accounts'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
 // Misc
 import { getApiRoot } from '../lib/api'
+import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 
 const ssePayloadSchema = z.object({
   type: z.enum([ 'create', 'update', 'delete' ]),
-  kind: z.enum([ 'workspaces', 'tasks' ]),
+  kind: z.enum([ 'accounts', 'workspaces', 'tasks' ]),
 })
 
 function logSseEvent(eventType: string, event: MessageEvent): void {
@@ -48,6 +50,19 @@ async function refreshWorkspaces(): Promise<void> {
   }
   catch (error) {
     console.debug('SSE failed to refresh workspaces', { error })
+  }
+}
+
+async function refreshAccounts(): Promise<void> {
+  try {
+    const response = await listAccounts()
+
+    dispatch(
+      accountActions.setAccounts(response.accounts),
+    )
+  }
+  catch (error) {
+    console.debug('SSE failed to refresh accounts', { error })
   }
 }
 
@@ -91,6 +106,11 @@ async function handleChange(eventType: string, event: MessageEvent) {
 
   if (parsed.data.kind === 'tasks') {
     await refreshTasks()
+    return
+  }
+
+  if (parsed.data.kind === 'accounts') {
+    await refreshAccounts()
     return
   }
 

@@ -33,7 +33,7 @@ export function ListWorkspaces() {
   if (!workspaces || workspaces.length === 0) {
     return <section className='container p-6'>
       <div className='relaxed'>
-        <h2 className='relaxed text-2xl'>
+        <h2 className='text-2xl'>
           <strong>Workspaces</strong>
         </h2>
         <p className='opacity-80'>Manage all workspaces here.</p>
@@ -53,7 +53,7 @@ export function ListWorkspaces() {
   return <section className='container p-6'>
     <div className='level relaxed'>
       <div>
-        <h2 className='relaxed'>Workspaces</h2>
+        <h2 className='text-2xl'>Workspaces</h2>
         <p className='opacity-80'>Manage all workspaces here.</p>
       </div>
       <Button

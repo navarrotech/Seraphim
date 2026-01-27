@@ -11,6 +11,7 @@ import {
 } from 'react-redux'
 
 // Reducers
+import { slice as accountsSlice } from './redux/stores/accounts'
 import { slice as tasksSlice } from './redux/stores/tasks'
 import { slice as workspacesSlice } from './redux/stores/workspaces'
 
@@ -21,6 +22,7 @@ import { slice as workspacesSlice } from './redux/stores/workspaces'
 export const store = configureStore({
   // For all type inferrence to work correctly, we must write these out explicitly
   reducer: {
+    accounts: accountsSlice.reducer,
     tasks: tasksSlice.reducer,
     workspaces: workspacesSlice.reducer,
   },
@@ -60,6 +62,7 @@ export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
 // /////////////////////// //
 
 const motherload = {
+  accounts: accountsSlice,
   tasks: tasksSlice,
   workspaces: workspacesSlice,
 } as const satisfies Record<keyof ReturnType<ReduxState>, any>

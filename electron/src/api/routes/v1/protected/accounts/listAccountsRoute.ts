@@ -1,4 +1,5 @@
 // Copyright © 2026 Jalapeno Labs
+
 import type { Request, Response } from 'express'
 import type { AuthProvider } from '@prisma/client'
 
@@ -50,7 +51,7 @@ export async function handleListAccountsRequest(
   }
   catch (error) {
     console.error('Failed to list OAuth accounts', error)
-    response.status(500).json({ accounts: [] })
+    response.status(500).json({ accounts: []})
     return
   }
 

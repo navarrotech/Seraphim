@@ -30,7 +30,7 @@ export const devCsp: string[] = [
   `style-src 'self' http://localhost:5173 http://localhost:${API_PORT} 'unsafe-inline' https://fonts.googleapis.com`,
   'font-src http://localhost:5173 https://fonts.gstatic.com',
   // images from localhost:5173 and data URIs
-  `img-src 'self' http://localhost:5173 http://localhost:${API_PORT} data:`,
+  `img-src 'self' http://localhost:5173 http://localhost:${API_PORT} https://avatars.githubusercontent.com data:`,
   // HMR websocket & XHR
   `connect-src 'self' http://localhost:5173 http://localhost:${API_PORT} ws://localhost:5173`,
 ]
@@ -44,5 +44,5 @@ export const prodCsp: string[] = [
   `style-src 'self' seraphim://app http://localhost:${API_PORT} 'unsafe-inline' https://fonts.googleapis.com`,
   'font-src seraphim://app https://fonts.gstatic.com',
   // images via protocol or data URIs
-  'img-src \'self\' seraphim://app data:',
+  'img-src \'self\' seraphim://app https://avatars.githubusercontent.com data:',
 ]
