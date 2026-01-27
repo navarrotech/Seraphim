@@ -11,6 +11,9 @@ import { createGithubAccountFromCallback } from '@electron/api/oauth/githubOAuth
 import { consumeOAuthStateRecord } from '@electron/api/oauth/oauthStateService'
 import { parseRequestQuery } from '../../v1/validation'
 
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+
 const githubCallbackSchema = z.object({
   code: z.string().trim().min(1),
   state: z.string().trim().min(1),
@@ -124,6 +127,12 @@ export async function handleGithubCallbackRequest(
     respondWithOAuthError(response, stateRecord.completionRedirectUrl, 'Failed to connect Github account')
     return
   }
+
+  broadcastSseChange({
+    type: 'create',
+    kind: 'accounts',
+    data: [ account ],
+  })
 
   const completionRedirectUrl = buildCompletionRedirectUrl(stateRecord.completionRedirectUrl, {
     provider: 'GITHUB',

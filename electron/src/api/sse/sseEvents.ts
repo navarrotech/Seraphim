@@ -4,7 +4,7 @@
 import { sseManager } from './sseManager'
 
 export type SseChangeType = 'create' | 'update' | 'delete'
-export type SseChangeKind = 'workspaces' | 'tasks'
+export type SseChangeKind = 'accounts' | 'workspaces' | 'tasks'
 
 export type SseChangePayload<Shape> = {
   type: SseChangeType

@@ -9,6 +9,9 @@ import { requireDatabaseClient } from '@electron/database'
 import { revokeGithubAuthorization } from '@electron/api/oauth/githubOAuthService'
 import { parseRequestBody } from '../../validation'
 
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+
 const logoutAccountSchema = z.object({
   provider: z.literal('GITHUB'),
   accountId: z.string().trim().min(1),
@@ -77,6 +80,12 @@ export async function handleLogoutAccountRequest(
     response.status(500).json({ error: 'Failed to remove account' })
     return
   }
+
+  broadcastSseChange({
+    type: 'delete',
+    kind: 'accounts',
+    data: [ account ],
+  })
 
   response.status(200).json({
     provider: payload.provider,

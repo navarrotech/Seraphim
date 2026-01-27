@@ -87,3 +87,10 @@ export function resetStore() {
 
 export type RootState = ReturnType<typeof store.getState>
 export type Thunk = ThunkAction<void, RootState, unknown, Action>
+
+// /////////////////////// //
+//         Globals         //
+// /////////////////////// //
+
+// @ts-ignore
+window.getState = getState
