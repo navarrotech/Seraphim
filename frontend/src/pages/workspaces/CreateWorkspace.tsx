@@ -49,7 +49,7 @@ export function CreateWorkspace() {
 
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     try {
-      const response = await createWorkspace(data)
+      await createWorkspace(data)
 
       clear()
 

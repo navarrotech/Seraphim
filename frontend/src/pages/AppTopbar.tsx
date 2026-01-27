@@ -1,4 +1,4 @@
-// Copyright Ac 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { Link, useLocation, useNavigate } from 'react-router-dom'

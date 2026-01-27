@@ -98,7 +98,9 @@ jobs:
         # Build will always fail if the typecheck fails, so we can save some time by skipping it if it fails
         if: ${{ steps.typecheck.outcome == 'success' }}
         id: build
-        run: yarn build
+        run: |
+          (cd frontend && yarn build)
+          (cd electron && yarn build)
 
       - name: Upload unit test results
         if: ${{ steps.unit-test.outcome == 'success' }}
@@ -151,8 +153,8 @@ jobs:
   compile:
     name: Earthly build
     runs-on: ubuntu-latest
-    # Only run on main or devel branches:
-    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/devel' }}
+    # Only run on main branches:
+    if: ${{ github.ref == 'refs/heads/main' }}
     timeout-minutes: 30
 
     strategy:

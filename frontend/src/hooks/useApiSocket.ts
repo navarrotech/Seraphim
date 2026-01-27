@@ -71,7 +71,8 @@ async function handleChange(eventType: string, event: MessageEvent) {
   try {
     payload = JSON.parse(event.data)
   }
-  catch (error) {
+  catch (error: unknown) {
+    console.error(error)
     console.debug('SSE event payload is not valid JSON', {
       eventType,
       data: event.data,

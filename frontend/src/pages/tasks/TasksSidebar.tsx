@@ -1,4 +1,4 @@
-// Copyright Ac 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { Task, Workspace } from '@prisma/client'
 
