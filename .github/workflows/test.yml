@@ -46,7 +46,7 @@ jobs:
         run: yarn constraints
 
       - name: Restore node modules cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache@v5
         with:
           path: |
             .yarn/cache
@@ -61,17 +61,6 @@ jobs:
 
       - name: Prisma generate
         run: yarn prisma generate
-
-      # Immediately save cache after install to capture any changes
-      # Otherwise, they only get cached if the job is successful
-      - name: Save node modules cache
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            .yarn/cache
-            ~/.cache/yarn
-            **/node_modules
-          key: ${{ runner.os }}-cacheNodeModulesLinux-${{ hashFiles('**/yarn.lock') }}
 
       - name: Ensure clean
         id: clean
