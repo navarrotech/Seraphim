@@ -21,6 +21,10 @@ export const backendBinaryPath = isProduction
   ? resolve(process.resourcesPath, 'verifagent')
   : resolve(app.getAppPath(), 'resources', 'verifagent')
 
+export const resourcesDir = isProduction
+  ? process.resourcesPath
+  : resolve(app.getAppPath(), 'resources')
+
 export function getSourceFile(filename: `${string}.js`): string {
   return resolve(BuildFiles, filename)
 }

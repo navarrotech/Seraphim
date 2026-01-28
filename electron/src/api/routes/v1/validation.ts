@@ -55,7 +55,12 @@ export function parseRequestBody<Shape>(
   const validation = schema.safeParse(request.body)
   if (!validation.success) {
     logValidationFailure('body', options, request, validation.error.issues)
-    response.status(400).json({ error: options.errorMessage })
+    response
+      .status(400)
+      .json({
+        issues: validation.error.issues,
+        error: options.errorMessage,
+      })
     return null
   }
 

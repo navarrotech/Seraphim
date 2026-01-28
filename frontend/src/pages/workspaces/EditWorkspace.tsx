@@ -350,7 +350,7 @@ export function EditWorkspace() {
             name='setupScript'
             render={({ field }) => (
               <Textarea
-                label='Setup script'
+                label='Setup script (bash)'
                 className='w-full'
                 placeholder='Commands to prepare the workspace environment.'
                 minRows={6}
@@ -367,7 +367,7 @@ export function EditWorkspace() {
             name='postScript'
             render={({ field }) => (
               <Textarea
-                label='Validate work script'
+                label='Validate work script (bash)'
                 className='w-full'
                 placeholder='Deterministic commands to run and check the workspace with.'
                 minRows={6}

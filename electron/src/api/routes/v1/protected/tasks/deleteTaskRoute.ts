@@ -11,6 +11,7 @@ import { parseRequestParams } from '../../validation'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
+import { removeTaskContainer } from '@electron/docker/taskContainer'
 
 type RouteParams = {
   taskId: string
@@ -53,6 +54,8 @@ export async function handleDeleteTaskRequest(
       response.status(404).json({ error: 'Task not found' })
       return
     }
+
+    await removeTaskContainer(existingTask.container)
 
     await databaseClient.task.delete({
       where: { id: taskId },

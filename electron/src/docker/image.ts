@@ -1,6 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
-import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
+import {
+  DEFAULT_DOCKER_BASE_IMAGE,
+  DOCKER_DEBIAN_PACKAGES,
+  DOCKER_ALPINE_PACKAGES,
+  DOCKER_WORKDIR,
+} from '@common/constants'
 
 // const USER_GID = 1000
 // const USER_UID = 1000
@@ -39,7 +44,7 @@ export function buildDockerfileContents(
       '',
       '# Install primary build tools',
       `RUN apt-get update`,
-      `RUN apt-get install -y --no-install-recommends build-essential curl ca-certificates git bash openssh-client`,
+      `RUN apt-get install -y --no-install-recommends ${DOCKER_DEBIAN_PACKAGES.join(' ')}`,
     )
 
     if (!isNodeBased) {
@@ -68,7 +73,7 @@ export function buildDockerfileContents(
     lines.push(
       '',
       '# Install primary build tools',
-      `RUN apk add --no-cache curl ca-certificates git openssh-client make g++`,
+      `RUN apk add --no-cache ${DOCKER_ALPINE_PACKAGES.join(' ')}`,
     )
 
     if (!isNodeBased) {
@@ -87,7 +92,7 @@ export function buildDockerfileContents(
     '',
     '# Setup the workspace',
     // `WORKDIR /home/${DOCKER_USERNAME}/workspace`,
-    `WORKDIR /workspace`,
+    `WORKDIR ${DOCKER_WORKDIR}`,
     `RUN npm --global install @openai/codex@0.92.0 corepack`,
   )
 
@@ -116,9 +121,10 @@ export function buildDockerfileContents(
     lines.push(
       '',
       '# Run setup script',
-      `COPY ${setupScriptName} /opt/${setupScriptName}`,
-      `RUN chmod +x ./${setupScriptName}`,
-      `RUN exec /opt/${setupScriptName}`,
+      `COPY ${setupScriptName} /opt/seraphim/${setupScriptName}`,
+      `RUN chmod +x /opt/seraphim/${setupScriptName}`,
+      `ENTRYPOINT /opt/seraphim/${setupScriptName}`,
+      `CMD ["bash"]`,
     )
   }
 
@@ -126,8 +132,8 @@ export function buildDockerfileContents(
     lines.push(
       '',
       '# Copy the validation script',
-      `COPY ${validateScriptName} /opt/${validateScriptName}`,
-      `RUN chmod +x ./${validateScriptName}`,
+      `COPY ${validateScriptName} /opt/seraphim/${validateScriptName}`,
+      `RUN chmod +x /opt/seraphim/${validateScriptName}`,
     )
   }
 
