@@ -1,0 +1,94 @@
+// Copyright © 2026 Jalapeno Labs
+
+import type { Prisma } from '@prisma/client'
+import type { Request, Response } from 'express'
+import type { OpenAiApiKeyConnectionCreateRequest } from '@common/schema'
+
+// Utility
+import { parseRequestBody } from '../../validation'
+import { openAiApiKeyConnectionCreateSchema } from '@common/schema'
+
+// Misc
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { SUPPORTED_MODELS_BY_LLM } from '@electron/constants'
+import { requireDatabaseClient } from '@electron/database'
+import { createConnectionWithDefaults } from './createConnectionHelpers'
+import { sanitizeConnection } from './connectionSanitizer'
+
+export type RequestBody = OpenAiApiKeyConnectionCreateRequest
+
+export async function handleCreateOpenAiApiKeyConnectionRequest(
+  request: Request<Record<string, never>, unknown, RequestBody>,
+  response: Response,
+): Promise<void> {
+  const databaseClient = requireDatabaseClient('Create OpenAI API key connection API')
+
+  const body = parseRequestBody(
+    openAiApiKeyConnectionCreateSchema,
+    request,
+    response,
+    {
+      context: 'Create OpenAI API key connection API',
+      errorMessage: 'Invalid request body',
+    },
+  )
+  if (!body) {
+    return
+  }
+
+  try {
+    const user = await databaseClient.user.findFirst({
+      orderBy: { createdAt: 'asc' },
+    })
+
+    if (!user) {
+      console.debug('OpenAI API key connection create requested, but no users exist')
+      response.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    const supportedModels = SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY
+    if (!supportedModels.includes(body.preferredModel)) {
+      console.debug('OpenAI API key connection create rejected for unsupported model', {
+        preferredModel: body.preferredModel,
+      })
+      response.status(400).json({
+        error: 'Preferred model is not supported for OpenAI API key connections',
+      })
+      return
+    }
+
+    const connectionData = {
+      user: {
+        connect: {
+          id: user.id,
+        },
+      },
+      type: 'OPENAI_API_KEY',
+      name: body.name,
+      preferredModel: body.preferredModel,
+      apiKey: body.apiKey,
+      isDefault: body.isDefault,
+    } satisfies Prisma.ConnectionCreateInput
+
+    const connection = await createConnectionWithDefaults(databaseClient, {
+      userId: user.id,
+      data: connectionData,
+      isDefault: body.isDefault,
+    })
+
+    const sanitizedConnection = sanitizeConnection(connection)
+
+    broadcastSseChange({
+      type: 'create',
+      kind: 'connections',
+      data: [ sanitizedConnection ],
+    })
+
+    response.status(201).json({ connection: sanitizedConnection })
+  }
+  catch (error) {
+    console.error('Failed to create OpenAI API key connection', error)
+    response.status(500).json({ error: 'Failed to create connection' })
+  }
+}

@@ -84,6 +84,25 @@ export const connectionUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
+export const openAiApiKeyConnectionCreateSchema = z.object({
+  name: z.string().trim().min(1),
+  preferredModel: z.string().trim().min(1),
+  apiKey: z.string().trim().min(1),
+  isDefault: z.boolean().optional().default(false),
+}).strict()
+
+export const kimiApiKeyConnectionCreateSchema = z.object({
+  name: z.string().trim().min(1),
+  preferredModel: z.string().trim().min(1),
+  apiKey: z.string().trim().min(1),
+  isDefault: z.boolean().optional().default(false),
+}).strict()
+
+export const openAiLoginTokenConnectionCreateSchema = z.object({
+  name: z.string().trim().min(1),
+  isDefault: z.boolean().optional().default(false),
+}).strict()
+
 export const userLanguageSchema = z.enum(USER_LANGUAGE_OPTIONS)
 export const userThemeSchema = z.enum(USER_THEME_OPTIONS)
 
@@ -107,5 +126,14 @@ export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
 export type TaskCreateRequest = z.infer<typeof taskCreateSchema>
 export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
 export type ConnectionUpdateRequest = z.infer<typeof connectionUpdateSchema>
+export type OpenAiApiKeyConnectionCreateRequest = z.infer<
+  typeof openAiApiKeyConnectionCreateSchema
+>
+export type KimiApiKeyConnectionCreateRequest = z.infer<
+  typeof kimiApiKeyConnectionCreateSchema
+>
+export type OpenAiLoginTokenConnectionCreateRequest = z.infer<
+  typeof openAiLoginTokenConnectionCreateSchema
+>
 export type UserSettingsRequest = z.infer<typeof userSettingsSchema>
 export type UserSettingsUpdateRequest = z.infer<typeof userSettingsUpdateSchema>
