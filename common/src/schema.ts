@@ -3,7 +3,7 @@
 import { z } from 'zod'
 
 // Misc
-import { USER_LANGUAGE_OPTIONS, USER_THEME_OPTIONS } from './constants'
+import { USER_LANGUAGE_OPTIONS, USER_THEME_OPTIONS } from './constants.js'
 
 export const environmentSchema = z.object({
   key: z
@@ -33,6 +33,7 @@ export const workspaceCreateSchema = z.object({
   name: z.string().trim().min(1),
   repository: z.string().trim().min(1),
   containerImage: z.string().trim().min(1),
+  customDockerfileCommands: z.string().trim().optional().default(''),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
   postScript: z.string().trim().optional().default(''),
@@ -44,6 +45,7 @@ export const workspaceUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   repository: z.string().trim().min(1).optional(),
   containerImage: z.string().trim().min(1).optional(),
+  customDockerfileCommands: z.string().trim().optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),
   postScript: z.string().trim().optional(),
@@ -56,6 +58,7 @@ export const workspaceUpdateSchema = z.object({
 export const taskCreateSchema = z.object({
   userId: z.string().trim().min(1),
   workspaceId: z.string().trim().min(1),
+  connectionId: z.string().trim().min(1),
   name: z.string().trim().min(1),
   branch: z.string().trim().min(1),
   container: z.string().trim().min(1),
@@ -71,6 +74,16 @@ export const taskUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
+export const connectionUpdateSchema = z.object({
+  apiKey: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).optional(),
+  preferredModel: z.string().trim().min(1).optional(),
+  tokenLimit: z.number().int().nonnegative().optional(),
+  isDefault: z.boolean().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: 'No valid fields provided for update',
+})
+
 export const userLanguageSchema = z.enum(USER_LANGUAGE_OPTIONS)
 export const userThemeSchema = z.enum(USER_THEME_OPTIONS)
 
@@ -79,7 +92,6 @@ export const userSettingsSchema = z.object({
   theme: userThemeSchema,
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
-  openAiApiKey: z.string().trim().optional().nullable(),
 }).strict()
 
 export const userSettingsUpdateSchema = userSettingsSchema.partial().refine(
@@ -94,5 +106,6 @@ export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>
 export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
 export type TaskCreateRequest = z.infer<typeof taskCreateSchema>
 export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
+export type ConnectionUpdateRequest = z.infer<typeof connectionUpdateSchema>
 export type UserSettingsRequest = z.infer<typeof userSettingsSchema>
 export type UserSettingsUpdateRequest = z.infer<typeof userSettingsUpdateSchema>

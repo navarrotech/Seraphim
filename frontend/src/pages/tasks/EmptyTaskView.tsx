@@ -32,7 +32,7 @@ export function EmptyTaskView(props: Props) {
   const [ message, setMessage ] = useState<string>('')
   const [ workspaceId, setWorkspaceId ] = useState<string>('')
 
-  useEffect(function syncDefaultWorkspace() {
+  useEffect(() => {
     if (defaultWorkspaceId) {
       setWorkspaceId(defaultWorkspaceId)
       return

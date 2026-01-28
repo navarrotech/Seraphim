@@ -5,6 +5,7 @@ import { Navigate, Routes, Route } from 'react-router'
 
 // User interface
 import { DashboardGate } from './pages/gates/DashboardGate'
+import { Connections } from './pages/connections/Connections'
 import { ConnectedAccounts } from './pages/accounts/ConnectedAccounts'
 import { CreateWorkspace } from './pages/workspaces/CreateWorkspace'
 import { EditWorkspace } from './pages/workspaces/EditWorkspace'
@@ -22,6 +23,7 @@ export function Router() {
         <Route index element={<Navigate to={UrlTree.tasksList} replace />} />
         <Route path={UrlTree.settings} element={<Settings />} />
         <Route path={UrlTree.connectedAccounts} element={<ConnectedAccounts />} />
+        <Route path={UrlTree.connections} element={<Connections />} />
         <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
         <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
         <Route path={UrlTree.workspaceEdit} element={<EditWorkspace />} />

@@ -9,13 +9,14 @@ datasource db {
 model Workspace {
   id String @id @default(uuid())
 
-  name           String
-  description    String   @default("")
-  repository     String
-  setupScript    String   @default("") @map("setup_script")
-  postScript     String   @default("") @map("post_script")
-  cacheFiles     String[] @default([]) @map("cache_files")
-  containerImage String   @map("container_image")
+  name                     String
+  description              String   @default("")
+  repository               String
+  customDockerfileCommands String   @default("") @map("custom_dockerfile_commands")
+  setupScript              String   @default("") @map("setup_script")
+  postScript               String   @default("") @map("post_script")
+  cacheFiles               String[] @default([]) @map("cache_files")
+  containerImage           String   @map("container_image")
 
   envEntries WorkspaceEnv[]
   tasks      Task[]
@@ -43,6 +44,9 @@ model Task {
   workspaceId String    @map("workspace_id")
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
 
+  connectionId String     @map("connection_id")
+  connection   Connection @relation(fields: [connectionId], references: [id])
+
   messages Message[]
 
   name      String
@@ -69,8 +73,9 @@ model Message {
 model User {
   id String @id @default(uuid())
 
-  settings UserSettings?
-  threads  Task[]
+  settings    UserSettings?
+  threads     Task[]
+  connections Connection[]
 
   username String @unique
   name     String
@@ -88,14 +93,52 @@ model UserSettings {
   voiceEnabled Boolean @default(true)
   voiceHotkey  String  @default("Control+Num0")
 
-  openAiApiKey String? @map("openai_api_key")
-
   language String? @default("auto")
   theme    String? @default("system")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_settings")
+}
+
+enum LlmConnectionType {
+  OPENAI_API_KEY
+  OPENAI_LOGIN_TOKEN
+  KIMI_API_KEY
+}
+
+model Connection {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Provider
+  type LlmConnectionType
+
+  // Details
+  name      String? @map("name")
+  isDefault Boolean @default(false) @map("is_default")
+  preferredModel String? @map("preferred_model")
+
+  // Auth
+  apiKey       String?   @map("api_key")
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  expiresAt    DateTime? @map("expires_at")
+
+  // Statistics
+  tokensUsed Int  @default(0) @map("tokens_used")
+  tokenLimit Int? @map("token_limit")
+
+  // Metadata
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@map("connections")
 }
 
 enum AuthProvider {

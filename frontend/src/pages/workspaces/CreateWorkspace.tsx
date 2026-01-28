@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 // Lib
 import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { ControllerRenderProps } from 'react-hook-form'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -19,6 +20,10 @@ import { useSelector } from '@frontend/framework/store'
 // UI
 import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
+import { Monaco } from '@frontend/common/Monaco'
+
+// Utility
+import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
 
 // Misc
 import { UrlTree } from '@common/urls'
@@ -29,10 +34,10 @@ import {
 import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
-
 export function CreateWorkspace() {
   const navigate = useNavigate()
   const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
+  const buildSocket = useApiBuildSocket()
   const isImportDisabled = authAccounts.length === 0
   const [ isImportDrawerOpen, setIsImportDrawerOpen ] = useState(false)
   const [ importedRepoOption, setImportedRepoOption ] = useState<RepoOption | null>(null)
@@ -43,6 +48,7 @@ export function CreateWorkspace() {
       name: '',
       repository: '',
       containerImage: 'node:latest',
+      customDockerfileCommands: '',
       description: '',
       setupScript: 'yarn install',
       postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
@@ -60,7 +66,38 @@ export function CreateWorkspace() {
     onDataRestored: (values) => form.reset(values),
   })
 
+  const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
   const isRepositoryLocked = Boolean(importedRepoOption)
+
+  function handleDockerfileCommandsChange(
+    onChange: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
+  ) {
+    return function handleChange(value: string | undefined) {
+      if (value === undefined) {
+        console.debug('CreateWorkspace received empty dockerfile commands input')
+        onChange('')
+        return
+      }
+
+      onChange(value)
+    }
+  }
+
+  function renderDockerfileCommandsField(
+    props: { field: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'> },
+  ) {
+    const { field } = props
+    return <div className='relaxed w-full'>
+      <label className='text-sm font-medium'>Custom Dockerfile commands</label>
+      <Monaco
+        height='220px'
+        fileLanguage='dockerfile'
+        value={field.value}
+        onChange={handleDockerfileCommandsChange(field.onChange)}
+        readOnly={isFormLocked}
+      />
+    </div>
+  }
 
   function handleOpenImportDrawer() {
     setIsImportDrawerOpen(true)
@@ -84,6 +121,22 @@ export function CreateWorkspace() {
 
     setImportedRepoOption(repoOption)
     setIsImportDrawerOpen(false)
+  }
+
+  async function handleBuildImage() {
+    const values = form.getValues()
+    const containerImage = values.containerImage?.trim()
+
+    if (!containerImage) {
+      console.debug('CreateWorkspace build requested without container image', { values })
+      buildSocket.resetBuild()
+      return
+    }
+
+    await buildSocket.startBuild({
+      containerImage,
+      customDockerfileCommands: values.customDockerfileCommands || '',
+    })
   }
 
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
@@ -111,6 +164,22 @@ export function CreateWorkspace() {
     </Card>
   }
 
+  let buildStatusCard = null
+  if (buildSocket.status) {
+    const buildStatusLabel = buildSocket.status === 'success'
+      ? 'Build succeeded'
+      : 'Build failed'
+    const buildStatusClasses = buildSocket.status === 'success'
+      ? 'border border-emerald-500/30 bg-emerald-500/10'
+      : 'border border-rose-500/30 bg-rose-500/10'
+
+    buildStatusCard = <Card className={`relaxed p-4 ${buildStatusClasses}`}>
+      <div className='text-lg'>
+        <strong>{buildStatusLabel}</strong>
+      </div>
+    </Card>
+  }
+
 
   return <section className='container p-6'>
     <div className='relaxed'>
@@ -121,7 +190,7 @@ export function CreateWorkspace() {
         <Button
           type='button'
           variant='flat'
-          isDisabled={isImportDisabled}
+          isDisabled={isImportDisabled || isFormLocked}
           onPress={handleOpenImportDrawer}
         >
           <span>Import</span>
@@ -152,6 +221,7 @@ export function CreateWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.name)}
                     errorMessage={form.formState.errors.name?.message}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -173,7 +243,7 @@ export function CreateWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.repository)}
                     errorMessage={form.formState.errors.repository?.message}
-                    isDisabled={isRepositoryLocked}
+                    isDisabled={isRepositoryLocked || isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -193,6 +263,7 @@ export function CreateWorkspace() {
                     placeholder='What does this workspace do?'
                     className='w-full'
                     minRows={5}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -203,8 +274,35 @@ export function CreateWorkspace() {
             </div>
           </div>
           <div className='w-full'>
-            {/* Container image */}
-            <div className='relaxed w-full'>
+            <div>
+              <h4 className='compact text-xl'>Environment Variables</h4>
+              <Controller
+                control={form.control}
+                name='envEntries'
+                render={({ field }) => (
+                  <EnvironmentInputs
+                    id='workspace-environment'
+                    entries={field.value || []}
+                    onEntriesChange={(entries: Environment[]) =>
+                      field.onChange(entries)}
+                    isDisabled={isFormLocked}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+      <Card className='relaxed p-4 w-full'>
+        <div className='relaxed'>
+          <h3 className='text-xl'>Docker</h3>
+          <p className='opacity-80'>
+            Customize the base image and Dockerfile steps.
+          </p>
+        </div>
+        <div className='level w-full items-start'>
+          <div className='w-full'>
+            <div className='relaxed'>
               <Controller
                 control={form.control}
                 name='containerImage'
@@ -216,6 +314,7 @@ export function CreateWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.containerImage)}
                     errorMessage={form.formState.errors.containerImage?.message}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -224,20 +323,36 @@ export function CreateWorkspace() {
                 )}
               />
             </div>
-            <div>
-              <h4 className='compact text-xl'>Environment Variables</h4>
+            <div className='relaxed'>
               <Controller
                 control={form.control}
-                name='envEntries'
-                render={({ field }) => (
-                  <EnvironmentInputs
-                    id='workspace-environment'
-                    entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
-                  />
-                )}
+                name='customDockerfileCommands'
+                render={renderDockerfileCommandsField}
               />
             </div>
+            <Button
+              type='button'
+              color='primary'
+              isLoading={buildSocket.isBuilding}
+              isDisabled={isFormLocked}
+              onPress={handleBuildImage}
+            >
+              <span>Build Image</span>
+            </Button>
+          </div>
+          <div className='w-full'>
+            <Card className='relaxed p-4'>
+              <div className='text-lg'>
+                <strong>Build logs</strong>
+              </div>
+              {buildStatusCard}
+              {buildSocket.logs.length > 0
+                ? <pre className='text-xs opacity-80 whitespace-pre-wrap'>
+                    {buildSocket.logs.join('\n')}
+                  </pre>
+                : <p className='opacity-80'>No build logs yet.</p>
+              }
+            </Card>
           </div>
         </div>
       </Card>
@@ -253,6 +368,7 @@ export function CreateWorkspace() {
                 className='w-full'
                 placeholder='Commands to prepare the workspace environment.'
                 minRows={6}
+                isDisabled={isFormLocked}
                 value={field.value}
                 name={field.name}
                 onValueChange={field.onChange}
@@ -270,6 +386,7 @@ export function CreateWorkspace() {
                 className='w-full'
                 placeholder='Deterministic commands to run and check the workspace with.'
                 minRows={6}
+                isDisabled={isFormLocked}
                 value={field.value}
                 name={field.name}
                 onValueChange={field.onChange}
@@ -284,7 +401,7 @@ export function CreateWorkspace() {
         color='primary'
         className='mx-auto'
         isLoading={form.formState.isSubmitting}
-        isDisabled={form.formState.isSubmitting}
+        isDisabled={isFormLocked}
       >
         <span>
           Create Workspace
@@ -292,7 +409,7 @@ export function CreateWorkspace() {
       </Button>
       <CreateWorkspaceImportDrawer
         isOpen={isImportDrawerOpen}
-        isDisabled={isImportDisabled}
+        isDisabled={isImportDisabled || isFormLocked}
         onOpenChange={handleImportDrawerOpenChange}
         onImport={handleImportRepo}
       />

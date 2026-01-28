@@ -35,6 +35,7 @@ export async function handleCreateTaskRequest(
   const {
     userId,
     workspaceId,
+    connectionId,
     name,
     branch,
     container,
@@ -46,6 +47,7 @@ export async function handleCreateTaskRequest(
       data: {
         userId,
         workspaceId,
+        connectionId,
         name,
         branch,
         container,

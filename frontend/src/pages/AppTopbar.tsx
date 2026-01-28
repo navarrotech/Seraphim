@@ -25,12 +25,17 @@ function isTaskRoute(pathname: string) {
   return pathname.startsWith('/tasks')
 }
 
+function isConnectionRoute(pathname: string) {
+  return pathname.startsWith('/connections')
+}
+
 export function AppTopbar() {
   const location = useLocation()
   const navigate = useNavigate()
 
   const isWorkspaceActive = isWorkspaceRoute(location.pathname)
   const isTasksActive = isTaskRoute(location.pathname)
+  const isConnectionsActive = isConnectionRoute(location.pathname)
 
   async function handleExitApp() {
     if (!window.config?.exitApp) {
@@ -79,6 +84,13 @@ export function AppTopbar() {
           variant={isWorkspaceActive ? 'solid' : 'light'}
         >
           <span>Workspaces</span>
+        </Button>
+        <Button
+          as={Link}
+          to={UrlTree.connections}
+          variant={isConnectionsActive ? 'solid' : 'light'}
+        >
+          <span>Connections</span>
         </Button>
       </nav>
       <div className='level-right'>

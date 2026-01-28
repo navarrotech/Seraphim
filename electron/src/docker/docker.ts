@@ -36,3 +36,12 @@ export function disconnectFromDocker() {
   docker = undefined
   logSuccess('Disconnected from Docker')
 }
+
+export function getDockerClient(): Docker | null {
+  if (!docker) {
+    console.debug('Docker client requested before connection is established')
+    return null
+  }
+
+  return docker
+}

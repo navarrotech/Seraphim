@@ -9,6 +9,7 @@ import { z } from 'zod'
 // Redux
 import { dispatch } from '@frontend/framework/store'
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { connectionActions } from '@frontend/framework/redux/stores/connections'
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
@@ -16,13 +17,14 @@ import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 // Misc
 import { getApiRoot } from '../lib/api'
 import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
+import { listConnections } from '@frontend/lib/routes/connectionRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 
 const ssePayloadSchema = z.object({
   type: z.enum([ 'create', 'update', 'delete' ]),
-  kind: z.enum([ 'accounts', 'settings', 'workspaces', 'tasks' ]),
+  kind: z.enum([ 'accounts', 'settings', 'workspaces', 'tasks', 'connections' ]),
 })
 
 function logSseEvent(eventType: string, event: MessageEvent): void {
@@ -65,6 +67,19 @@ async function refreshAccounts(): Promise<void> {
   }
   catch (error) {
     console.debug('SSE failed to refresh accounts', { error })
+  }
+}
+
+async function refreshConnections(): Promise<void> {
+  try {
+    const response = await listConnections()
+
+    dispatch(
+      connectionActions.setConnections(response.connections),
+    )
+  }
+  catch (error) {
+    console.debug('SSE failed to refresh connections', { error })
   }
 }
 
@@ -131,6 +146,11 @@ async function handleChange(eventType: string, event: MessageEvent) {
 
   if (parsed.data.kind === 'accounts') {
     await refreshAccounts()
+    return
+  }
+
+  if (parsed.data.kind === 'connections') {
+    await refreshConnections()
     return
   }
 

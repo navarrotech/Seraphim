@@ -73,22 +73,23 @@ export function ListWorkspaces() {
         {workspaces.map((workspace) =>
           <div
             key={workspace.id}
-            className='group relative grid grid-cols-12 gap-4 px-4 py-4 items-center'
+            className='group relative grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-content2/30'
           >
-            <div className='col-span-6'>
-              <Link
-                to={getWorkspaceEditUrl(workspace.id)}
-                className='block'
-              >
-                <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
-                <div className='opacity-60 text-sm'>{workspace.repository}</div>
-              </Link>
-            </div>
-            <div className='col-span-6'>
+            <Link
+              className='col-span-6'
+              to={getWorkspaceEditUrl(workspace.id)}
+            >
+              <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
+              <div className='opacity-60 text-sm'>{workspace.repository}</div>
+            </Link>
+            <Link
+              className='col-span-6'
+              to={getWorkspaceEditUrl(workspace.id)}
+            >
               <div className='opacity-80 text-sm'>{
                 workspace.description || 'No description added yet.'
               }</div>
-            </div>
+            </Link>
             <div className='absolute right-4 top-1/2 -translate-y-1/2'>
               <div className='flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100'>
                 <Tooltip content='Edit workspace'>

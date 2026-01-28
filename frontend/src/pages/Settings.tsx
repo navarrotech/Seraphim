@@ -15,8 +15,9 @@ import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { dispatch, useSelector } from '@frontend/framework/store'
 
 // User interface
-import { Button, Card, Checkbox, Form, Input, Select, SelectItem } from '@heroui/react'
+import { Button, Card, Checkbox, Form, Select, SelectItem } from '@heroui/react'
 import { HotkeyInput } from '@frontend/common/hotkeyInput'
+import { SettingsTabs } from './settings/SettingsTabs'
 
 // Misc
 import {
@@ -27,7 +28,11 @@ import {
   USER_LANGUAGE_OPTIONS,
   USER_THEME_OPTIONS,
 } from '@common/constants'
-import { userSettingsSchema } from '@common/schema'
+import {
+  userLanguageSchema,
+  userSettingsSchema,
+  userThemeSchema,
+} from '@common/schema'
 import { updateCurrentUserSettings } from '@frontend/lib/routes/userRoutes'
 
 const languageOptionLabels = {
@@ -48,10 +53,13 @@ type SettingsPayload = {
   theme: SettingsFormValues['theme']
   voiceEnabled: boolean
   voiceHotkey: string
-  openAiApiKey?: string | null
 }
 
-function resolveSelection(selection: Selection, context: string): string | null {
+function resolveSelection<OptionType extends string>(
+  selection: Selection,
+  schema: z.ZodEnum<[OptionType, ...OptionType[]]>,
+  context: string,
+): OptionType | null {
   if (selection === 'all') {
     console.debug('Settings received an unexpected selection', {
       context,
@@ -79,33 +87,34 @@ function resolveSelection(selection: Selection, context: string): string | null 
     return null
   }
 
-  return selectedKey
-}
-
-function isOptionValue<OptionValue extends string>(
-  options: readonly OptionValue[],
-  value: string,
-): value is OptionValue {
-  for (const option of options) {
-    if (option === value) {
-      return true
-    }
-  }
-
-  return false
-}
-
-function normalizeOpenAiApiKey(openAiApiKey: SettingsFormValues['openAiApiKey']) {
-  if (openAiApiKey === null || openAiApiKey === undefined) {
+  const parsedSelection = schema.safeParse(selectedKey)
+  if (!parsedSelection.success) {
+    console.debug('Settings received an unknown selection value', {
+      context,
+      selection,
+    })
     return null
   }
 
-  const trimmedValue = openAiApiKey.trim()
-  if (!trimmedValue) {
-    return null
+  return parsedSelection.data
+}
+
+function resolveSettingValue<OptionType extends string>(
+  value: unknown,
+  schema: z.ZodEnum<[OptionType, ...OptionType[]]>,
+  fallback: OptionType,
+  context: string,
+): OptionType {
+  const parsedValue = schema.safeParse(value)
+  if (!parsedValue.success) {
+    console.debug('Settings received an unknown stored value', {
+      context,
+      value,
+    })
+    return fallback
   }
 
-  return trimmedValue
+  return parsedValue.data
 }
 
 function buildSettingsPayload(values: SettingsFormValues): SettingsPayload | null {
@@ -120,7 +129,6 @@ function buildSettingsPayload(values: SettingsFormValues): SettingsPayload | nul
     theme: values.theme,
     voiceEnabled: values.voiceEnabled,
     voiceHotkey: trimmedHotkey,
-    openAiApiKey: normalizeOpenAiApiKey(values.openAiApiKey),
   }
 }
 
@@ -135,7 +143,6 @@ export function Settings() {
       theme: DEFAULT_USER_THEME,
       voiceEnabled: DEFAULT_VOICE_ENABLED,
       voiceHotkey: DEFAULT_VOICE_HOTKEY,
-      openAiApiKey: '',
     },
   })
 
@@ -169,12 +176,20 @@ export function Settings() {
       return
     }
 
-    const language = settingsState.value?.language || DEFAULT_USER_LANGUAGE
-    const theme = settingsState.value?.theme || DEFAULT_USER_THEME
+    const language = resolveSettingValue(
+      settingsState.value?.language,
+      userLanguageSchema,
+      DEFAULT_USER_LANGUAGE,
+      'language',
+    )
+    const theme = resolveSettingValue(
+      settingsState.value?.theme,
+      userThemeSchema,
+      DEFAULT_USER_THEME,
+      'theme',
+    )
     const voiceEnabled = settingsState.value?.voiceEnabled ?? DEFAULT_VOICE_ENABLED
     const voiceHotkey = settingsState.value?.voiceHotkey || DEFAULT_VOICE_HOTKEY
-    const openAiApiKey = settingsState.value?.openAiApiKey ?? ''
-
     if (!settingsState.value) {
       console.debug(
         'Settings falling back to defaults because settings are missing',
@@ -187,20 +202,16 @@ export function Settings() {
       theme,
       voiceEnabled,
       voiceHotkey,
-      openAiApiKey,
     })
   }, [ form, isDirty, settingsState.hasLoaded, settingsState.value ])
 
   function handleLanguageSelection(selection: Selection) {
-    const resolvedSelection = resolveSelection(selection, 'language')
+    const resolvedSelection = resolveSelection(
+      selection,
+      userLanguageSchema,
+      'language',
+    )
     if (!resolvedSelection) {
-      return
-    }
-
-    if (!isOptionValue(USER_LANGUAGE_OPTIONS, resolvedSelection)) {
-      console.debug('Settings received an unknown language value', {
-        selection,
-      })
       return
     }
 
@@ -213,15 +224,12 @@ export function Settings() {
   }
 
   function handleThemeSelection(selection: Selection) {
-    const resolvedSelection = resolveSelection(selection, 'theme')
+    const resolvedSelection = resolveSelection(
+      selection,
+      userThemeSchema,
+      'theme',
+    )
     if (!resolvedSelection) {
-      return
-    }
-
-    if (!isOptionValue(USER_THEME_OPTIONS, resolvedSelection)) {
-      console.debug('Settings received an unknown theme value', {
-        selection,
-      })
       return
     }
 
@@ -275,7 +283,6 @@ export function Settings() {
 
       form.reset({
         ...values,
-        openAiApiKey: payload.openAiApiKey || '',
       })
       dispatch(
         settingsActions.setSettings(response.settings),
@@ -326,6 +333,8 @@ export function Settings() {
           </Button>
         </div>
       </div>{
+        <SettingsTabs />
+      }{
         loadingCard
       }
       <Card className='relaxed p-6 w-full'>
@@ -402,23 +411,6 @@ export function Settings() {
               value={voiceHotkeyValue}
               isDisabled={isFormDisabled || !voiceEnabledValue}
               onChange={handleHotkeyChange}
-            />
-          </div>
-          <div className='w-full'>
-            {/* OpenAI */}
-            <div className='relaxed'>
-              <h3 className='text-xl'>OpenAI</h3>
-              <p className='opacity-80'>
-                Provide an API key to enable OpenAI-powered features.
-              </p>
-            </div>
-            <Input
-              label='OpenAI API key'
-              placeholder='sk-...'
-              type='password'
-              className='w-full'
-              isDisabled={isFormDisabled}
-              {...form.register('openAiApiKey')}
             />
           </div>
         </div>

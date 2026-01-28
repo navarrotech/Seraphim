@@ -20,7 +20,9 @@ export function TaskView(props: Props) {
   return <div className='flex h-full flex-col'>
     <div className='relaxed'>
       <h2 className='text-2xl'>
-        <strong>{taskName}</strong>
+        <strong>{
+          taskName
+        }</strong>
       </h2>
       <p className='opacity-70'>Conversation history</p>
     </div>

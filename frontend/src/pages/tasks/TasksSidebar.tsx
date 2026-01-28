@@ -28,18 +28,16 @@ export function TasksSidebar(props: Props) {
 
   return <aside className={`h-full w-72 shrink-0 border-r border-black/5 bg-white/70 p-4 backdrop-blur
   dark:border-white/10 dark:bg-slate-950/70`}>
-    <Card className='relaxed p-3 dark:bg-slate-900/70'>
-      <Button
-        as={Link}
-        to={UrlTree.tasksList}
-        variant='solid'
-        className='w-full justify-start'
-        startContent={<PlusIcon />}
-      >
-        <span>New Task</span>
-      </Button>
-    </Card>
-    <div className='relaxed text-xs uppercase tracking-wide opacity-50'>Recent Tasks</div>
+    <Button
+      as={Link}
+      to={UrlTree.tasksList}
+      className='relaxed w-full justify-start'
+      startContent={<PlusIcon />}
+      color='primary'
+    >
+      <span>New Task</span>
+    </Button>
+    <div className='compact text-xs uppercase tracking-wide opacity-50'>Recent Tasks</div>
     <div className='relaxed space-y-2'>
       {tasks.length === 0 && (
         <Card className='p-3 dark:bg-slate-900/70'>

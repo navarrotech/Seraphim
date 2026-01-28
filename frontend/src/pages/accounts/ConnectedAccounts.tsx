@@ -19,6 +19,7 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from '@heroui/react'
+import { SettingsTabs } from '../settings/SettingsTabs'
 
 // Misc
 import { UrlTree } from '@common/urls'
@@ -336,6 +337,7 @@ export function ConnectedAccounts() {
           }</DropdownMenu>
       </Dropdown>
     </div>
+    <SettingsTabs />
     <div className='relaxed'>{
         statusBanner
       }{

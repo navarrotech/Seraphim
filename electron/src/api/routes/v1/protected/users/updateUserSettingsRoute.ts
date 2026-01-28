@@ -47,7 +47,11 @@ export async function handleUpdateUserSettingsRequest(
       where: { userId: user.id },
       update: updateData,
       create: {
-        userId: user.id,
+        user: {
+          connect: {
+            id: user.id,
+          },
+        },
         ...updateData,
       },
     })
@@ -65,4 +69,3 @@ export async function handleUpdateUserSettingsRequest(
     response.status(500).json({ error: 'Failed to update user settings' })
   }
 }
-

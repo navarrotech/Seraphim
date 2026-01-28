@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Environment } from '@common/schema'
+import type { ControllerRenderProps } from 'react-hook-form'
 
 // Core
 import { useEffect } from 'react'
@@ -15,13 +16,16 @@ import { z } from 'zod'
 // UI
 import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
+import { Monaco } from '@frontend/common/Monaco'
+
+// Utility
+import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
 
 // Misc
 import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
 import { getWorkspace, updateWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
-
 type WorkspaceRouteParams = {
   workspaceId?: string
 }
@@ -40,6 +44,7 @@ function ensureEnvEntries(entries?: Environment[]) {
 export function EditWorkspace() {
   const navigate = useNavigate()
   const { workspaceId } = useParams<WorkspaceRouteParams>()
+  const buildSocket = useApiBuildSocket()
 
   if (!workspaceId) {
     console.debug('EditWorkspace missing workspaceId in route params', { workspaceId })
@@ -56,6 +61,7 @@ export function EditWorkspace() {
       name: '',
       repository: '',
       containerImage: '',
+      customDockerfileCommands: '',
       description: '',
       setupScript: '',
       postScript: '',
@@ -67,6 +73,38 @@ export function EditWorkspace() {
     },
   })
 
+  const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
+
+  function handleDockerfileCommandsChange(
+    onChange: ControllerRenderProps<EditWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
+  ) {
+    return function handleChange(value: string | undefined) {
+      if (value === undefined) {
+        console.debug('EditWorkspace received empty dockerfile commands input')
+        onChange('')
+        return
+      }
+
+      onChange(value)
+    }
+  }
+
+  function renderDockerfileCommandsField(
+    props: { field: ControllerRenderProps<EditWorkspaceFormValues, 'customDockerfileCommands'> },
+  ) {
+    const { field } = props
+    return <div className='relaxed w-full'>
+      <label className='text-sm font-medium'>Custom Dockerfile commands</label>
+      <Monaco
+        height='220px'
+        fileLanguage='dockerfile'
+        value={field.value}
+        onChange={handleDockerfileCommandsChange(field.onChange)}
+        readOnly={isFormLocked}
+      />
+    </div>
+  }
+
   useEffect(function syncWorkspace() {
     if (!workspaceQuery.data?.workspace) {
       return
@@ -77,6 +115,7 @@ export function EditWorkspace() {
       name: workspace.name,
       repository: workspace.repository,
       containerImage: workspace.containerImage,
+      customDockerfileCommands: workspace.customDockerfileCommands || '',
       description: workspace.description || '',
       setupScript: workspace.setupScript || '',
       postScript: workspace.postScript || '',
@@ -84,6 +123,22 @@ export function EditWorkspace() {
       envEntries: ensureEnvEntries(workspace.envEntries as Environment[]),
     })
   }, [ form, workspaceQuery.data ])
+
+  async function handleBuildImage() {
+    const values = form.getValues()
+    const containerImage = values.containerImage?.trim()
+
+    if (!containerImage) {
+      console.debug('EditWorkspace build requested without container image', { values })
+      buildSocket.resetBuild()
+      return
+    }
+
+    await buildSocket.startBuild({
+      containerImage,
+      customDockerfileCommands: values.customDockerfileCommands || '',
+    })
+  }
 
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     if (!workspaceId) {
@@ -103,6 +158,22 @@ export function EditWorkspace() {
       console.debug('EditWorkspace failed to update workspace', { error })
     }
   })
+
+  let buildStatusCard = null
+  if (buildSocket.status) {
+    const buildStatusLabel = buildSocket.status === 'success'
+      ? 'Build succeeded'
+      : 'Build failed'
+    const buildStatusClasses = buildSocket.status === 'success'
+      ? 'border border-emerald-500/30 bg-emerald-500/10'
+      : 'border border-rose-500/30 bg-rose-500/10'
+
+    buildStatusCard = <Card className={`relaxed p-4 ${buildStatusClasses}`}>
+      <div className='text-lg'>
+        <strong>{buildStatusLabel}</strong>
+      </div>
+    </Card>
+  }
 
   if (workspaceQuery.isLoading) {
     return <section className='container p-6'>
@@ -140,7 +211,7 @@ export function EditWorkspace() {
             type='submit'
             color='primary'
             isLoading={form.formState.isSubmitting}
-            isDisabled={form.formState.isSubmitting}
+            isDisabled={isFormLocked}
           >
             <span>Save Changes</span>
           </Button>
@@ -163,6 +234,7 @@ export function EditWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.name)}
                     errorMessage={form.formState.errors.name?.message}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -183,6 +255,7 @@ export function EditWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.repository)}
                     errorMessage={form.formState.errors.repository?.message}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -201,6 +274,7 @@ export function EditWorkspace() {
                     placeholder='What does this workspace do?'
                     className='w-full'
                     minRows={5}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -211,7 +285,35 @@ export function EditWorkspace() {
             </div>
           </div>
           <div className='w-full'>
-            <div className='relaxed w-full'>
+            <div>
+              <h4 className='compact text-xl'>Environment Variables</h4>
+              <Controller
+                control={form.control}
+                name='envEntries'
+                render={({ field }) => (
+                  <EnvironmentInputs
+                    id='workspace-environment'
+                    entries={field.value || []}
+                    onEntriesChange={(entries: Environment[]) =>
+                      field.onChange(entries)}
+                    isDisabled={isFormLocked}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+      <Card className='relaxed p-4 w-full'>
+        <div className='relaxed'>
+          <h3 className='text-xl'>Docker</h3>
+          <p className='opacity-80'>
+            Customize the base image and Dockerfile steps.
+          </p>
+        </div>
+        <div className='level w-full items-start'>
+          <div className='w-full'>
+            <div className='relaxed'>
               <Controller
                 control={form.control}
                 name='containerImage'
@@ -223,6 +325,7 @@ export function EditWorkspace() {
                     isRequired
                     isInvalid={Boolean(form.formState.errors.containerImage)}
                     errorMessage={form.formState.errors.containerImage?.message}
+                    isDisabled={isFormLocked}
                     value={field.value}
                     name={field.name}
                     onValueChange={field.onChange}
@@ -231,20 +334,36 @@ export function EditWorkspace() {
                 )}
               />
             </div>
-            <div>
-              <h4 className='compact text-xl'>Environment Variables</h4>
+            <div className='relaxed'>
               <Controller
                 control={form.control}
-                name='envEntries'
-                render={({ field }) => (
-                  <EnvironmentInputs
-                    id='workspace-environment'
-                    entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
-                  />
-                )}
+                name='customDockerfileCommands'
+                render={renderDockerfileCommandsField}
               />
             </div>
+            <Button
+              type='button'
+              color='primary'
+              isLoading={buildSocket.isBuilding}
+              isDisabled={isFormLocked}
+              onPress={handleBuildImage}
+            >
+              <span>Build Image</span>
+            </Button>
+          </div>
+          <div className='w-full'>
+            <Card className='relaxed p-4'>
+              <div className='text-lg'>
+                <strong>Build logs</strong>
+              </div>
+              {buildStatusCard}
+              {buildSocket.logs.length > 0
+                ? <pre className='text-xs opacity-80 whitespace-pre-wrap'>
+                    {buildSocket.logs.join('\n')}
+                  </pre>
+                : <p className='opacity-80'>No build logs yet.</p>
+              }
+            </Card>
           </div>
         </div>
       </Card>
@@ -259,6 +378,7 @@ export function EditWorkspace() {
                 className='w-full'
                 placeholder='Commands to prepare the workspace environment.'
                 minRows={6}
+                isDisabled={isFormLocked}
                 value={field.value}
                 name={field.name}
                 onValueChange={field.onChange}
@@ -275,6 +395,7 @@ export function EditWorkspace() {
                 className='w-full'
                 placeholder='Deterministic commands to run and check the workspace with.'
                 minRows={6}
+                isDisabled={isFormLocked}
                 value={field.value}
                 name={field.name}
                 onValueChange={field.onChange}

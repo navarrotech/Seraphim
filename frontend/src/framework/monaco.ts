@@ -13,6 +13,7 @@ import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 
 // Supported coding languages
+import 'monaco-editor/esm/vs/basic-languages/dockerfile/dockerfile.contribution.d.ts'
 import 'monaco-editor/esm/vs/basic-languages/shell/shell.contribution.d.ts'
 import 'monaco-editor/esm/vs/basic-languages/ini/ini.contribution.d.ts'
 
@@ -52,6 +53,7 @@ export type MonacoFileLanguages =
   | 'xml'
   | 'markdown'
   | 'ini'
+  | 'dockerfile'
 
   // Popular back-end / scripting
   | 'python'
@@ -134,6 +136,8 @@ export function getMonacoFileLanguage(extension: string): MonacoFileLanguages {
   case 'jsonl':
   case 'ndjson':
     return 'json'
+  case 'dockerfile':
+    return 'dockerfile'
 
     // -------- back-end / scripting --------
   case 'py':

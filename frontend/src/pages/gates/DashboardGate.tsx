@@ -10,6 +10,7 @@ import useSWR from 'swr'
 
 // Redux
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { connectionActions } from '@frontend/framework/redux/stores/connections'
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
@@ -24,6 +25,7 @@ import { useApiSocket } from '@frontend/hooks/useApiSocket'
 
 // Misc
 import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
+import { listConnections } from '@frontend/lib/routes/connectionRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
@@ -34,6 +36,7 @@ export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
   const tasksQuery = useSWR('tasks', listTasks)
   const accountsQuery = useSWR('accounts', listAccounts)
+  const connectionsQuery = useSWR('connections', listConnections)
   const settingsQuery = useSWR('current-user', getCurrentUser)
   const location = useLocation()
 
@@ -69,6 +72,16 @@ export function DashboardGate() {
     )
   }, [ accountsQuery.data ])
 
+  useEffect(function syncConnections() {
+    if (!connectionsQuery.data?.connections) {
+      return
+    }
+
+    dispatch(
+      connectionActions.setConnections(connectionsQuery.data.connections),
+    )
+  }, [ connectionsQuery.data ])
+
   useEffect(function syncSettings() {
     if (!settingsQuery.data?.user) {
       return
@@ -83,6 +96,7 @@ export function DashboardGate() {
     workspacesQuery.isLoading
     || tasksQuery.isLoading
     || accountsQuery.isLoading
+    || connectionsQuery.isLoading
     || settingsQuery.isLoading,
   )
   const hasEmptyData = Boolean(
@@ -103,6 +117,7 @@ export function DashboardGate() {
     workspacesQuery.error
     || tasksQuery.error
     || accountsQuery.error
+    || connectionsQuery.error
     || settingsQuery.error
   ) {
     return <main className='container p-8'>
