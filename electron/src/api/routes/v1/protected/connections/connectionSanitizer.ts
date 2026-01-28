@@ -2,23 +2,13 @@
 
 import type { Connection } from '@prisma/client'
 
-function maskSecret(value?: string | null) {
-  if (!value) {
-    return value ?? null
-  }
-
-  if (value.length <= 8) {
-    return value
-  }
-
-  return `${value.slice(0, 8)}${'*'.repeat(value.length - 8)}`
-}
+import { maskToken } from '@common/maskToken'
 
 export function sanitizeConnection(connection: Connection) {
   return {
     ...connection,
-    apiKey: maskSecret(connection.apiKey),
-    accessToken: maskSecret(connection.accessToken),
-    refreshToken: maskSecret(connection.refreshToken),
+    apiKey: maskToken(connection.apiKey, 8),
+    accessToken: maskToken(connection.accessToken, 8),
+    refreshToken: maskToken(connection.refreshToken, 8),
   } as const
 }

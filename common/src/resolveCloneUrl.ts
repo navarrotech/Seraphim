@@ -62,15 +62,16 @@ export async function resolveCloneUrl(
 
   for (const token of githubTokens) {
     const tokenUrl = buildGithubCloneUrl(repoPath, token)
+    const maskedToken = maskToken(token)
     if (!tokenUrl) {
       console.debug('Failed to build token GitHub clone URL', {
         repository,
-        token: maskToken(token),
+        token: maskedToken,
       })
       continue
     }
 
-    const canClonePrivate = await canCloneRepo(tokenUrl, `token:${maskToken(token)}`)
+    const canClonePrivate = await canCloneRepo(tokenUrl, `token:${maskedToken}`)
     if (canClonePrivate) {
       return {
         cloneUrl: tokenUrl,
