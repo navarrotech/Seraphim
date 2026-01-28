@@ -113,7 +113,7 @@ export function buildDockerfileContents(
     lines.push(
       '',
       '# Clone initial repository',
-      `RUN git clone ${gitUrl} .`,
+      `RUN git clone --recurse-submodules ${gitUrl} .`,
     )
   }
 
@@ -125,6 +125,12 @@ export function buildDockerfileContents(
       `RUN chmod +x /opt/seraphim/${setupScriptName}`,
       `ENTRYPOINT /opt/seraphim/${setupScriptName}`,
       `CMD ["bash"]`,
+    )
+  }
+  else {
+    lines.push(
+      '',
+      `CMD ["tail", "-f", "/dev/null"]`,
     )
   }
 

@@ -20,11 +20,17 @@ export async function writeScriptFile(
 
   const updatedContent = `
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu pipefail
 
 cd ${DOCKER_WORKDIR}
 
+echo "======== RUNNING CUSTOM SETUP SCRIPT ========"
 ${trimmed}
+
+echo "======== FINISHED CUSTOM SETUP SCRIPT ========"
+echo "System is ready to begin generation commands"
+
+tail -f /dev/null
   `
 
   const scriptPath = join(contextDir, filename)

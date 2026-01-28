@@ -32,6 +32,7 @@ type TaskRouteParams = {
 type TaskDraft = {
   message: string
   workspaceId: string
+  connectionId: string
 }
 
 function buildTaskName(message: string) {
@@ -55,6 +56,7 @@ export function Tasks() {
 
   const tasks = useSelector((state) => state.tasks.items)
   const workspaces = useSelector((state) => state.workspaces.items)
+  const connections = useSelector((state) => state.connections.items)
 
   const selectedTask = taskId
     ? tasks.find((task) => task.id === taskId)
@@ -82,12 +84,19 @@ export function Tasks() {
       return
     }
 
+    const connection = connections.find((entry) => entry.id === draft.connectionId)
+    if (!connection) {
+      console.debug('Tasks cannot create a task without a connection', { draft })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const response = await createTask({
         userId: user.id,
         workspaceId: workspace.id,
+        connectionId: draft.connectionId,
         name: buildTaskName(draft.message),
         branch: DEFAULT_TASK_BRANCH,
         container: workspace.containerImage || DEFAULT_TASK_CONTAINER,

@@ -68,6 +68,7 @@ export async function handleCreateOpenAiApiKeyConnectionRequest(
       name: body.name,
       preferredModel: body.preferredModel,
       apiKey: body.apiKey,
+      tokenLimit: body.tokenLimit,
       isDefault: body.isDefault,
     } satisfies Prisma.ConnectionCreateInput
 

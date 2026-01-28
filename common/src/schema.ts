@@ -88,6 +88,7 @@ export const openAiApiKeyConnectionCreateSchema = z.object({
   name: z.string().trim().min(1),
   preferredModel: z.string().trim().min(1),
   apiKey: z.string().trim().min(1),
+  tokenLimit: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
@@ -95,11 +96,13 @@ export const kimiApiKeyConnectionCreateSchema = z.object({
   name: z.string().trim().min(1),
   preferredModel: z.string().trim().min(1),
   apiKey: z.string().trim().min(1),
+  tokenLimit: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
 export const openAiLoginTokenConnectionCreateSchema = z.object({
   name: z.string().trim().min(1),
+  tokenLimit: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional().default(false),
 }).strict()
 

@@ -16,6 +16,7 @@ import { Button, Card, Chip, Tooltip } from '@heroui/react'
 // Misc
 import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
 import { listConnections, updateConnection } from '@frontend/lib/routes/connectionRoutes'
+import { CreateConnectionDrawer } from './CreateConnectionDrawer'
 
 type ConnectionDisplay = {
   label: string
@@ -25,15 +26,15 @@ type ConnectionDisplay = {
 const connectionDisplayByType: Record<LlmConnectionType, ConnectionDisplay> = {
   OPENAI_API_KEY: {
     label: 'OpenAI (API key)',
-    logoUrl: '/openai-logo.png',
+    logoUrl: '/llms/openai.png',
   },
   OPENAI_LOGIN_TOKEN: {
     label: 'OpenAI (Login token)',
-    logoUrl: '/openai-logo.png',
+    logoUrl: '/llms/openai.png',
   },
   KIMI_API_KEY: {
     label: 'Kimi K2 (API key)',
-    logoUrl: '/kimi-k2-logo.png',
+    logoUrl: '/llms/kimi-k2.png',
   },
 }
 
@@ -72,6 +73,9 @@ function getUsageLabel(connection: ConnectionRecord) {
 export function Connections() {
   const connections = useSelector((state) => state.connections.items)
   const [ isUpdatingDefault, setIsUpdatingDefault ] = useState(false)
+  const [ isCreateDrawerOpen, setIsCreateDrawerOpen ] = useState(false)
+  const [ drawerMode, setDrawerMode ] = useState<'create' | 'edit'>('create')
+  const [ editingConnection, setEditingConnection ] = useState<ConnectionRecord | null>(null)
 
   async function refreshConnections() {
     try {
@@ -113,13 +117,23 @@ export function Connections() {
   }
 
   function handleCreateConnection() {
-    console.debug('Connections create placeholder')
+    setDrawerMode('create')
+    setEditingConnection(null)
+    setIsCreateDrawerOpen(true)
+  }
+
+  function handleCreateDrawerOpenChange(isOpen: boolean) {
+    setIsCreateDrawerOpen(isOpen)
+    if (!isOpen) {
+      setEditingConnection(null)
+      setDrawerMode('create')
+    }
   }
 
   function handleEditConnection(connection: ConnectionRecord) {
-    console.debug('Connections edit placeholder', {
-      connectionId: connection.id,
-    })
+    setEditingConnection(connection)
+    setDrawerMode('edit')
+    setIsCreateDrawerOpen(true)
   }
 
   function handleDeleteConnection(connection: ConnectionRecord) {
@@ -233,6 +247,13 @@ export function Connections() {
           <span>Create Connection</span>
         </Button>
       </Card>
+      <CreateConnectionDrawer
+        isOpen={isCreateDrawerOpen}
+        isDisabled={false}
+        mode={drawerMode}
+        connection={editingConnection}
+        onOpenChange={handleCreateDrawerOpenChange}
+      />
     </section>
   }
 
@@ -262,5 +283,12 @@ export function Connections() {
           connections.map(renderConnectionRow)
         }</div>
     </Card>
+    <CreateConnectionDrawer
+      isOpen={isCreateDrawerOpen}
+      isDisabled={false}
+      mode={drawerMode}
+      connection={editingConnection}
+      onOpenChange={handleCreateDrawerOpenChange}
+    />
   </section>
 }

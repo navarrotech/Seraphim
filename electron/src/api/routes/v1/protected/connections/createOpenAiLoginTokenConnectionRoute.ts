@@ -56,6 +56,7 @@ export async function handleCreateOpenAiLoginTokenConnectionRequest(
       },
       type: 'OPENAI_LOGIN_TOKEN',
       name: body.name,
+      tokenLimit: body.tokenLimit,
       isDefault: body.isDefault,
     } satisfies Prisma.ConnectionCreateInput
 
