@@ -19,6 +19,7 @@ import { useSelector } from '@frontend/framework/store'
 
 // UI
 import { Button, Card, Form, Input, Textarea } from '@heroui/react'
+import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 import { Monaco } from '@frontend/common/Monaco'
 
@@ -32,6 +33,7 @@ import {
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
 import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
+import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 export function CreateWorkspace() {
@@ -113,7 +115,7 @@ export function CreateWorkspace() {
       shouldTouch: true,
       shouldValidate: true,
     })
-    form.setValue('repository', repoOption.repo.sshUrl, {
+    form.setValue('repository', repoOption.repo.cloneUrl, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -161,22 +163,6 @@ export function CreateWorkspace() {
       <p className='opacity-80'>
         Connected to {importedRepoOption.repo.fullName} via {importedRepoOption.username}.
       </p>
-    </Card>
-  }
-
-  let buildStatusCard = null
-  if (buildSocket.status) {
-    const buildStatusLabel = buildSocket.status === 'success'
-      ? 'Build succeeded'
-      : 'Build failed'
-    const buildStatusClasses = buildSocket.status === 'success'
-      ? 'border border-emerald-500/30 bg-emerald-500/10'
-      : 'border border-rose-500/30 bg-rose-500/10'
-
-    buildStatusCard = <Card className={`relaxed p-4 ${buildStatusClasses}`}>
-      <div className='text-lg'>
-        <strong>{buildStatusLabel}</strong>
-      </div>
     </Card>
   }
 
@@ -309,7 +295,7 @@ export function CreateWorkspace() {
                 render={({ field }) => (
                   <Input
                     label='Container image'
-                    placeholder='node:24-bullseye'
+                    placeholder={DEFAULT_DOCKER_BASE_IMAGE}
                     className='w-full'
                     isRequired
                     isInvalid={Boolean(form.formState.errors.containerImage)}
@@ -341,18 +327,7 @@ export function CreateWorkspace() {
             </Button>
           </div>
           <div className='w-full'>
-            <Card className='relaxed p-4'>
-              <div className='text-lg'>
-                <strong>Build logs</strong>
-              </div>
-              {buildStatusCard}
-              {buildSocket.logs.length > 0
-                ? <pre className='text-xs opacity-80 whitespace-pre-wrap'>
-                    {buildSocket.logs.join('\n')}
-                  </pre>
-                : <p className='opacity-80'>No build logs yet.</p>
-              }
-            </Card>
+            <BuildLogsPanel buildSocket={buildSocket} />
           </div>
         </div>
       </Card>

@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           # Point to a named LTS release: https://nodejs.org/en/about/previous-releases
-          node-version: "lts/Jod"
+          node-version: "lts/krypton"
           cache: yarn
 
       - name: Setup yarn

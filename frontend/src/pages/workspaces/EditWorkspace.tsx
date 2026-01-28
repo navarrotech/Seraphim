@@ -15,6 +15,7 @@ import { z } from 'zod'
 
 // UI
 import { Button, Card, Form, Input, Textarea } from '@heroui/react'
+import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 import { Monaco } from '@frontend/common/Monaco'
 
@@ -24,6 +25,7 @@ import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
 // Misc
 import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
 import { getWorkspace, updateWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
+import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 type WorkspaceRouteParams = {
@@ -154,26 +156,10 @@ export function EditWorkspace() {
         ),
       )
     }
- catch (error) {
+    catch (error) {
       console.debug('EditWorkspace failed to update workspace', { error })
     }
   })
-
-  let buildStatusCard = null
-  if (buildSocket.status) {
-    const buildStatusLabel = buildSocket.status === 'success'
-      ? 'Build succeeded'
-      : 'Build failed'
-    const buildStatusClasses = buildSocket.status === 'success'
-      ? 'border border-emerald-500/30 bg-emerald-500/10'
-      : 'border border-rose-500/30 bg-rose-500/10'
-
-    buildStatusCard = <Card className={`relaxed p-4 ${buildStatusClasses}`}>
-      <div className='text-lg'>
-        <strong>{buildStatusLabel}</strong>
-      </div>
-    </Card>
-  }
 
   if (workspaceQuery.isLoading) {
     return <section className='container p-6'>
@@ -212,13 +198,14 @@ export function EditWorkspace() {
             color='primary'
             isLoading={form.formState.isSubmitting}
             isDisabled={isFormLocked}
+            form='edit-workspace-form'
           >
             <span>Save Changes</span>
           </Button>
         </div>
       </div>
     </div>
-    <Form onSubmit={onSubmit} className='relaxed'>
+    <Form onSubmit={onSubmit} className='relaxed' id='edit-workspace-form'>
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
           <div className='w-full'>
@@ -320,7 +307,7 @@ export function EditWorkspace() {
                 render={({ field }) => (
                   <Input
                     label='Container image'
-                    placeholder='node:24-bullseye'
+                    placeholder={DEFAULT_DOCKER_BASE_IMAGE}
                     className='w-full'
                     isRequired
                     isInvalid={Boolean(form.formState.errors.containerImage)}
@@ -352,18 +339,7 @@ export function EditWorkspace() {
             </Button>
           </div>
           <div className='w-full'>
-            <Card className='relaxed p-4'>
-              <div className='text-lg'>
-                <strong>Build logs</strong>
-              </div>
-              {buildStatusCard}
-              {buildSocket.logs.length > 0
-                ? <pre className='text-xs opacity-80 whitespace-pre-wrap'>
-                    {buildSocket.logs.join('\n')}
-                  </pre>
-                : <p className='opacity-80'>No build logs yet.</p>
-              }
-            </Card>
+            <BuildLogsPanel buildSocket={buildSocket} />
           </div>
         </div>
       </Card>

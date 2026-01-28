@@ -15,13 +15,15 @@ import { v7 as uuid } from 'uuid'
 import { parseRequestBody } from '../../validation'
 import { getDockerClient } from '@electron/docker/docker'
 import { buildJobManager } from '@electron/api/sse/buildJobManager'
+import { buildDockerfileContents } from '@electron/docker/image'
+import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type BuildDockerImageResponse = {
   jobId: string
 }
 
 const buildRequestSchema = z.object({
-  containerImage: z.string().trim().min(1),
+  containerImage: z.string().trim().min(1).optional().default(DEFAULT_DOCKER_BASE_IMAGE),
   customDockerfileCommands: z.string().trim().optional().default(''),
 })
 
@@ -72,7 +74,11 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
 
   try {
     contextDir = await mkdtemp(join(tmpdir(), 'seraphim-docker-'))
-    const dockerfileContents = buildDockerfileContents(payload)
+    const dockerfileContents = buildDockerfileContents(
+      payload.containerImage,
+      payload.customDockerfileCommands,
+    )
+
     const dockerfilePath = join(contextDir, 'Dockerfile')
     await writeFile(dockerfilePath, dockerfileContents, 'utf8')
 
@@ -103,17 +109,6 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
     await cleanupContext(contextDir, logs, jobId)
     buildJobManager.finalizeJob(jobId)
   }
-}
-
-function buildDockerfileContents(payload: BuildRequestBody): string {
-  const commands = payload.customDockerfileCommands?.trim() || ''
-  const lines = [ `FROM ${payload.containerImage}` ]
-
-  if (commands) {
-    lines.push('', '# Custom Dockerfile commands', commands)
-  }
-
-  return `${lines.join('\n')}\n`
 }
 
 function collectBuildLogs(

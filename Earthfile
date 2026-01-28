@@ -1,5 +1,5 @@
 VERSION --try 0.8
-FROM node:lts-jod
+FROM node:lts-krypton
 WORKDIR /app
 
 RUN dpkg --add-architecture i386 && apt update -y && apt install -y \
