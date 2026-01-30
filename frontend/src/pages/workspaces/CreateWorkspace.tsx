@@ -96,6 +96,7 @@ export function CreateWorkspace() {
       <Monaco
         height='220px'
         fileLanguage='dockerfile'
+        minimapOverride={false}
         value={field.value}
         onChange={handleDockerfileCommandsChange(field.onChange)}
         readOnly={isFormLocked}

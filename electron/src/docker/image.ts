@@ -1,11 +1,14 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Workspace } from '@prisma/client'
+
 import {
   ACT_VERSION,
   DEFAULT_DOCKER_BASE_IMAGE,
   DOCKER_DEBIAN_PACKAGES,
   DOCKER_ALPINE_PACKAGES,
   DOCKER_WORKDIR,
+  ACT_SCRIPT_NAME,
 } from '@common/constants'
 
 // const USER_GID = 1000
@@ -14,10 +17,10 @@ import {
 export function buildDockerfileContents(
   image: string = DEFAULT_DOCKER_BASE_IMAGE,
   customCommands?: string,
-  gitUrl?: string,
   setupScriptName?: string,
   validateScriptName?: string,
-  actInstallScriptName?: string,
+  workspace?: Workspace,
+  gitUrl?: string,
 ): string {
   const normalizedImage = image.toLowerCase().trim()
 
@@ -98,14 +101,12 @@ export function buildDockerfileContents(
     `RUN npm --global install @openai/codex@0.92.0 corepack`,
   )
 
-  if (actInstallScriptName) {
-    lines.push(
-      '',
-      '# Install act for GitHub Actions execution',
-      `COPY ${actInstallScriptName} /opt/seraphim/${actInstallScriptName}`,
-      `RUN bash /opt/seraphim/${actInstallScriptName} ${ACT_VERSION}`,
-    )
-  }
+  lines.push(
+    '',
+    '# Install act for GitHub Actions execution',
+    `COPY ${ACT_SCRIPT_NAME} /opt/seraphim/${ACT_SCRIPT_NAME}`,
+    `RUN bash /opt/seraphim/${ACT_SCRIPT_NAME} ${ACT_VERSION}`,
+  )
 
   if (customCommands) {
     lines.push(
@@ -119,6 +120,13 @@ export function buildDockerfileContents(
   //   '',
   //   `USER ${DOCKER_USERNAME}`,
   // )
+
+  lines.push(
+    '',
+    '# Setup git',
+    `RUN git config --global user.name  "${workspace.gitUserName}" \\`,
+    ` && git config --global user.email "${workspace.gitUserEmail}"`,
+  )
 
   if (gitUrl) {
     lines.push(

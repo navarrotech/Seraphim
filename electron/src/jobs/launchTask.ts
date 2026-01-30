@@ -5,9 +5,9 @@ import type { TaskState } from '@prisma/client'
 import type Docker from 'dockerode'
 
 // Node.js
-import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { EventEmitter } from 'node:events'
 
 // Lib
@@ -18,6 +18,7 @@ import { buildDockerfileContents } from '../docker/image'
 import { convertEnvironmentToDotEnv } from '@common/envKit'
 import { resolveCloneUrl } from '@common/resolveCloneUrl'
 import { writeScriptFile } from '@common/writeScriptFile'
+import { copyFromResourcesDir } from '@electron/docker/resources'
 
 // Misc
 import { getDockerClient, resolveDockerSocketMount } from '../docker/docker'
@@ -31,7 +32,6 @@ export async function launchTask(
   workspace: WorkspaceWithEnv,
   repository: string,
   githubTokens: string[],
-  resourcesDir: string,
   taskId: string,
   containerName?: string,
 ) {
@@ -53,20 +53,7 @@ export async function launchTask(
   let containerId: string | null = null
 
   try {
-    const actInstallScriptName = 'install-act.sh'
-    const actInstallScriptPath = join(resourcesDir, actInstallScriptName)
-    const actInstallTargetPath = join(contextDir, actInstallScriptName)
-
-    try {
-      await copyFile(actInstallScriptPath, actInstallTargetPath)
-    }
-    catch (error) {
-      console.debug('Act installer script is missing or unreadable', {
-        actInstallScriptPath,
-        error,
-      })
-      throw new Error('Act installer script is missing')
-    }
+    copyFromResourcesDir(contextDir)
 
     const [ setupScriptName, validateScriptName ] = await Promise.all([
       writeScriptFile(contextDir, 'setup.sh', workspace.setupScript),
@@ -77,16 +64,16 @@ export async function launchTask(
     const dockerfileContents = buildDockerfileContents(
       workspace.containerImage,
       workspace.customDockerfileCommands,
-      cloneResolution.cloneUrl,
       setupScriptName,
       validateScriptName,
-      actInstallScriptName,
+      workspace,
+      cloneResolution.cloneUrl,
     )
 
     const dockerfilePath = join(contextDir, 'Dockerfile')
     await writeFile(dockerfilePath, dockerfileContents, 'utf8')
 
-    const contextFiles = [ 'Dockerfile', actInstallScriptName ]
+    const contextFiles = [ 'Dockerfile' ]
     if (setupScriptName) {
       contextFiles.push(setupScriptName)
     }
@@ -146,9 +133,7 @@ export async function launchTask(
       .filter((line) => Boolean(line))
 
     const socketMount = resolveDockerSocketMount()
-    const containerBinds = [
-      `${resolve(resourcesDir)}:/opt/seraphim/resources`,
-    ]
+    const containerBinds = []
     if (socketMount) {
       containerBinds.push(`${socketMount.source}:${socketMount.target}`)
     }

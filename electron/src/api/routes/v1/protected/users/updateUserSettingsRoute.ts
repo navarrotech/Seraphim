@@ -3,6 +3,9 @@
 import type { Request, Response } from 'express'
 import type { UserSettingsUpdateRequest } from '@common/schema'
 
+// Lib
+import { AudioFor } from '@prisma/client'
+
 // Utility
 import { parseRequestBody } from '../../validation'
 import { userSettingsUpdateSchema } from '@common/schema'
@@ -32,6 +35,21 @@ export async function handleUpdateUserSettingsRequest(
     return
   }
 
+  const { doneSoundFile, ...settingsUpdates } = updateData
+  let doneSoundAudioBuffer: Buffer | null = null
+  if (doneSoundFile) {
+    doneSoundAudioBuffer = Buffer.from(doneSoundFile.dataBase64, 'base64')
+    if (doneSoundAudioBuffer.length === 0) {
+      console.debug('Done sound file was empty after decoding', {
+        fileName: doneSoundFile.name,
+        fileType: doneSoundFile.mimeType,
+        fileSize: doneSoundFile.sizeBytes,
+      })
+      response.status(400).json({ error: 'Invalid done sound file provided' })
+      return
+    }
+  }
+
   try {
     const user = await databaseClient.user.findFirst({
       orderBy: { createdAt: 'asc' },
@@ -43,17 +61,73 @@ export async function handleUpdateUserSettingsRequest(
       return
     }
 
-    const settings = await databaseClient.userSettings.upsert({
-      where: { userId: user.id },
-      update: updateData,
-      create: {
-        user: {
-          connect: {
-            id: user.id,
-          },
+    const settings = await databaseClient.$transaction(async (transactionClient) => {
+      const existingDoneSound = await transactionClient.audioFile.findFirst({
+        where: {
+          userId: user.id,
+          audioFor: AudioFor.DONE_SOUND,
         },
-        ...updateData,
-      },
+      })
+
+      let doneSoundAudioFileId: string | null | undefined = undefined
+
+      if (doneSoundFile === null) {
+        doneSoundAudioFileId = null
+        if (existingDoneSound) {
+          await transactionClient.audioFile.delete({
+            where: {
+              id: existingDoneSound.id,
+            },
+          })
+        }
+      }
+      else if (doneSoundFile) {
+        if (existingDoneSound) {
+          await transactionClient.audioFile.delete({
+            where: {
+              id: existingDoneSound.id,
+            },
+          })
+        }
+
+        if (!doneSoundAudioBuffer) {
+          console.debug('Done sound buffer missing during settings update', {
+            fileName: doneSoundFile.name,
+            fileType: doneSoundFile.mimeType,
+          })
+          throw new Error('Done sound buffer was missing')
+        }
+
+        const newAudioFile = await transactionClient.audioFile.create({
+          data: {
+            userId: user.id,
+            audioFor: AudioFor.DONE_SOUND,
+            fileName: doneSoundFile.name,
+            mimeType: doneSoundFile.mimeType,
+            sizeBytes: doneSoundFile.sizeBytes,
+            data: doneSoundAudioBuffer,
+          },
+        })
+        doneSoundAudioFileId = newAudioFile.id
+      }
+
+      const settingsUpdateData: Record<string, unknown> = { ...settingsUpdates }
+      if (doneSoundAudioFileId !== undefined) {
+        settingsUpdateData.doneSoundAudioFileId = doneSoundAudioFileId
+      }
+
+      return transactionClient.userSettings.upsert({
+        where: { userId: user.id },
+        update: settingsUpdateData,
+        create: {
+          user: {
+            connect: {
+              id: user.id,
+            },
+          },
+          ...settingsUpdateData,
+        },
+      })
     })
 
     broadcastSseChange({

@@ -12,6 +12,12 @@ export const DEFAULT_USER_LANGUAGE = 'auto' as const
 export const DEFAULT_USER_THEME = 'system' as const
 export const DEFAULT_VOICE_ENABLED = true as const
 export const DEFAULT_VOICE_HOTKEY = 'Control+Num0' as const
+export const DONE_SOUND_MIME_TYPES = [
+  'audio/mpeg',
+  'audio/wav',
+  'audio/x-wav',
+] as const
+export const DONE_SOUND_FILE_EXTENSIONS = [ '.mp3', '.wav' ] as const
 
 // LLM
 export const SUPPORTED_MODELS_BY_LLM = {
@@ -85,3 +91,4 @@ export const DOCKER_ALPINE_PACKAGES = [
 ] as const
 
 export const ACT_VERSION = '0.2.80' as const
+export const ACT_SCRIPT_NAME = 'install-act.sh' as const

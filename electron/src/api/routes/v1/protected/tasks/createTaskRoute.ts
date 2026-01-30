@@ -13,7 +13,6 @@ import { requireDatabaseClient } from '@electron/database'
 import { launchTask } from '@electron/jobs/launchTask'
 import { requestTaskName, toContainerName } from '@electron/jobs/taskNaming'
 import { teardownTask } from '@electron/jobs/teardownTask'
-import { resourcesDir } from '@electron/lib/internalFiles'
 
 export type RequestBody = TaskCreateRequest
 
@@ -136,7 +135,6 @@ export async function handleCreateTaskRequest(
         workspace,
         repository,
         githubTokens,
-        resourcesDir,
         createdTask.id,
         containerName,
       )

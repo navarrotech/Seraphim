@@ -84,6 +84,7 @@ model User {
   id String @id @default(uuid())
 
   settings    UserSettings?
+  audioFiles  AudioFile[]
   threads     Task[]
   connections Connection[]
 
@@ -100,6 +101,9 @@ model UserSettings {
   userId String @unique @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
+  doneSoundAudioFileId String?    @unique @map("done_sound_audio_file_id")
+  doneSoundAudioFile   AudioFile? @relation("DoneSoundAudioFile", fields: [doneSoundAudioFileId], references: [id])
+
   voiceEnabled Boolean @default(true)
   voiceHotkey  String  @default("Control+Num0")
 
@@ -109,6 +113,32 @@ model UserSettings {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_settings")
+}
+
+model AudioFile {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Details
+  audioFor  AudioFor @map("audio_for")
+  fileName  String   @map("file_name")
+  mimeType  String   @map("mime_type")
+  sizeBytes Int      @map("size_bytes")
+  data      Bytes
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  doneSoundSetting UserSettings? @relation("DoneSoundAudioFile")
+
+  @@unique([userId, audioFor])
+  @@map("audio_files")
+}
+
+enum AudioFor {
+  DONE_SOUND
 }
 
 enum LlmConnectionType {

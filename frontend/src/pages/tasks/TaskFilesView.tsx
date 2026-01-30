@@ -5,17 +5,28 @@ import { useEffect, useMemo, useState } from 'react'
 
 // Lib
 import { DiffEditor } from '@monaco-editor/react'
+import useLocalStorageState from 'use-local-storage-state'
 
 // User interface
-import { Button, Checkbox } from '@heroui/react'
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Tooltip,
+} from '@heroui/react'
 import { Accordion } from '@frontend/common/Accordion'
 
 // Misc
 import {
   getMonacoFileLanguage,
+  initMonaco,
   SERAPHIM_DARK_THEME,
   SERAPHIM_LIGHT_THEME,
 } from '@frontend/framework/monaco'
+import { SettingsIcon } from '@frontend/common/IconNexus'
 
 type FileReviewStatus = 'modified' | 'added' | 'deleted'
 
@@ -150,14 +161,24 @@ function getMonacoThemeFromDocument() {
 }
 
 export function TaskFilesView() {
-  const [ viewedFileIds, setViewedFileIds ] = useState<string[]>([])
+  const [ viewedFileIds, setViewedFileIds ] = useLocalStorageState<string[]>(
+    'task-files-viewed',
+    {
+      defaultValue: [],
+    },
+  )
   const [ activeFileId, setActiveFileId ] = useState<string>(initialActiveFileId)
   const [ viewMode, setViewMode ] = useState<DiffViewMode>('split')
   const [ monacoTheme, setMonacoTheme ] = useState<string>(SERAPHIM_LIGHT_THEME)
+  const [ closedFileIds, setClosedFileIds ] = useState<string[]>([])
 
   const visibleFiles = useMemo(() => {
-    return mockFilesToReview.filter((file) => !viewedFileIds.includes(file.id))
-  }, [ viewedFileIds ])
+    return mockFilesToReview
+  }, [])
+
+  useEffect(function ensureMonacoReady() {
+    void initMonaco()
+  }, [])
 
   useEffect(() => {
     if (mockFilesToReview.length === 0) {
@@ -206,10 +227,21 @@ export function TaskFilesView() {
     setActiveFileId(fileId)
   }
 
+  function handleToggleFile(fileId: string) {
+    setClosedFileIds((previousIds) => {
+      if (previousIds.includes(fileId)) {
+        return previousIds.filter((id) => id !== fileId)
+      }
+
+      return [ ...previousIds, fileId ]
+    })
+  }
+
   function handleViewedChange(fileId: string, isSelected: boolean) {
     if (!isSelected) {
       console.debug('TaskFilesView received an unview action', { fileId })
       setViewedFileIds((previousIds) => previousIds.filter((id) => id !== fileId))
+      setClosedFileIds((previousIds) => previousIds.filter((id) => id !== fileId))
       return
     }
 
@@ -239,6 +271,8 @@ export function TaskFilesView() {
 
   function renderFileAccordion(file: FileReview) {
     const isActive = file.id === activeFileId
+    const isViewed = viewedFileIds.includes(file.id)
+    const isClosed = closedFileIds.includes(file.id) || isViewed
     const fileLanguage = getMonacoFileLanguage(
       getFileExtension(file.path),
     )
@@ -251,9 +285,10 @@ export function TaskFilesView() {
         ? 'ring-1 ring-amber-300/60 dark:ring-amber-400/40'
         : undefined
       }
-      isOpen={isActive}
+      isOpen={!isClosed}
       onToggle={() => {
         handleFileSelection(file.id)
+        handleToggleFile(file.id)
       }}
       actions={
         <Checkbox
@@ -262,6 +297,7 @@ export function TaskFilesView() {
           onValueChange={(isSelected) => {
             handleViewedChange(file.id, isSelected)
           }}
+          isSelected={isViewed}
         >
           Viewed
         </Checkbox>
@@ -299,27 +335,35 @@ export function TaskFilesView() {
         backdrop-blur dark:border-white/10 dark:bg-slate-900/70'
       >
         <div className='relaxed'>
-          <div className='h-1 w-12 rounded-full bg-amber-400/80 dark:bg-amber-300/70' />
-          <h3 className='text-lg'>
-            <strong>Files to review</strong>
-          </h3>
+          <div className='level'>
+            <h3 className='text-lg'>
+              <strong>Files to review</strong>
+            </h3>
+            <Dropdown placement='bottom-end'>
+              <Tooltip content='Diff view settings'>
+                <DropdownTrigger>
+                  <Button variant='light' isIconOnly>
+                    <span className='icon text-lg'>
+                      <SettingsIcon />
+                    </span>
+                  </Button>
+                </DropdownTrigger>
+              </Tooltip>
+              <DropdownMenu aria-label='Diff view settings'>
+                <DropdownItem key='split'>
+                  {renderViewModeButton('split', 'Split')}
+                </DropdownItem>
+                <DropdownItem key='inline'>
+                  {renderViewModeButton('inline', 'Inline')}
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </div>
           <p className='opacity-70'>{
-            `${visibleFiles.length} pending - ${mockFilesToReview.length} total`
+            `${mockFilesToReview.length} files`
           }</p>
-          {viewedFileIds.length > 0 && (
-            <p className='text-xs opacity-50'>{
-              `Viewed hidden: ${viewedFileIds.length}`
-            }</p>
-          )}
         </div>
         <div className='relaxed'>
-          {visibleFiles.length === 0 && (
-            <div className='rounded-xl border border-black/10 bg-white/70 p-4 text-center
-              dark:border-white/10 dark:bg-slate-900/70'
-            >
-              <p className='opacity-70'>All files reviewed.</p>
-            </div>
-          )}
           {visibleFiles.map((file) => {
             const isActive = file.id === activeFileId
 
@@ -339,17 +383,7 @@ export function TaskFilesView() {
     </aside>
     <section className='min-h-0 flex-1'>
       <div className='relaxed'>
-        <div className='level'>
-          <div>
-            <div className='text-sm font-semibold'>Diff settings</div>
-            <div className='text-xs opacity-60'>Switch between split and inline views.</div>
-          </div>
-          <div className='level-right'>
-            {renderViewModeButton('split', 'Split')}
-            {renderViewModeButton('inline', 'Inline')}
-          </div>
-        </div>
-        {visibleFiles.length === 0 && (
+        {mockFilesToReview.length === 0 && (
           <div className='rounded-2xl border border-black/10 bg-white/70 p-6 text-center shadow-sm
             backdrop-blur dark:border-white/10 dark:bg-slate-900/70'
           >

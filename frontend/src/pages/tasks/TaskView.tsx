@@ -41,25 +41,6 @@ const taskTabs: TaskTab[] = [
 function isUserMessage(message: Message) {
   return message.role === 'user'
 }
-
-function getTabSubtitle(tabId: TaskTabId) {
-  if (tabId === 'conversation') {
-    return 'Conversation history'
-  }
-
-  if (tabId === 'logs') {
-    return 'Build and runtime logs'
-  }
-
-  if (tabId === 'files') {
-    return 'Files ready for review'
-  }
-
-  console.debug('TaskView received an unsupported tab', { tabId })
-
-  return 'Task details'
-}
-
 function getMessageLabel(message: Message) {
   if (message.role === 'user') {
     return 'You'
@@ -200,22 +181,18 @@ export function TaskView(props: Props) {
 
   return <div className='flex h-full flex-col'>
     <div className='relaxed'>
-      <div className='h-1 w-12 rounded-full bg-sky-400/80 dark:bg-sky-300/70' />
       <h2 className='text-2xl'>
         <strong>{
           taskName
         }</strong>
       </h2>
-      <p className='opacity-70'>{
-        getTabSubtitle(activeTabId)
-      }</p>
       {containerName && (
         <p className='text-xs opacity-60'>
           Container: {containerName}
         </p>
       )}
     </div>
-    <div className='level-centered'>
+    <div className='level-centered relaxed'>
       <div className='flex flex-wrap justify-center gap-2'>
         {taskTabs.map(renderTab)}
       </div>
@@ -229,6 +206,8 @@ export function TaskView(props: Props) {
           minRows={3}
           value={draftMessage}
           onValueChange={setDraftMessage}
+          className='relaxed'
+          autoFocus
           isDisabled={isLoading}
         />
         <div className='level-right'>

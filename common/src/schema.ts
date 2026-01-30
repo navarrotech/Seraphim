@@ -3,7 +3,11 @@
 import { z } from 'zod'
 
 // Misc
-import { USER_LANGUAGE_OPTIONS, USER_THEME_OPTIONS } from './constants.js'
+import {
+  DONE_SOUND_MIME_TYPES,
+  USER_LANGUAGE_OPTIONS,
+  USER_THEME_OPTIONS,
+} from './constants.js'
 
 export const environmentSchema = z.object({
   key: z
@@ -120,14 +124,28 @@ export const userSettingsSchema = z.object({
   theme: userThemeSchema,
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
+  doneSoundAudioFileId: z.string().uuid().nullable().optional(),
 }).strict()
 
-export const userSettingsUpdateSchema = userSettingsSchema.partial().refine(
-  (data) => Object.keys(data).length > 0,
-  {
-    message: 'No valid fields provided for update',
-  },
-)
+const doneSoundFileSchema = z.object({
+  name: z.string().trim().min(1),
+  mimeType: z.enum(DONE_SOUND_MIME_TYPES),
+  sizeBytes: z.number().int().positive(),
+  dataBase64: z.string().trim().min(1),
+}).strict()
+
+const userSettingsUpdateFieldsSchema = z.object({
+  language: userLanguageSchema.optional(),
+  theme: userThemeSchema.optional(),
+  voiceEnabled: z.boolean().optional(),
+  voiceHotkey: z.string().trim().min(1).optional(),
+}).strict()
+
+export const userSettingsUpdateSchema = userSettingsUpdateFieldsSchema.extend({
+  doneSoundFile: doneSoundFileSchema.nullable().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: 'No valid fields provided for update',
+})
 
 export type WorkspaceEnvEntry = z.infer<typeof workspaceEnvEntrySchema>
 export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>

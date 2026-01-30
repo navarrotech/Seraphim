@@ -16,6 +16,9 @@ import { parseRequestBody } from '../../validation'
 import { getDockerClient } from '@electron/docker/docker'
 import { buildJobManager } from '@electron/api/sse/buildJobManager'
 import { buildDockerfileContents } from '@electron/docker/image'
+import { copyFromResourcesDir } from '@electron/docker/resources'
+
+// Misc
 import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type BuildDockerImageResponse = {
@@ -74,6 +77,8 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
 
   try {
     contextDir = await mkdtemp(join(tmpdir(), 'seraphim-docker-'))
+    copyFromResourcesDir(contextDir)
+
     const dockerfileContents = buildDockerfileContents(
       payload.containerImage,
       payload.customDockerfileCommands,
