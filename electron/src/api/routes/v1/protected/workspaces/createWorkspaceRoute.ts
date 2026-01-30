@@ -34,6 +34,9 @@ export async function handleCreateWorkspaceRequest(
   }
 
   const {
+    authAccountId,
+    gitUserName,
+    gitUserEmail,
     name,
     repository,
     containerImage,
@@ -47,6 +50,8 @@ export async function handleCreateWorkspaceRequest(
 
   try {
     const baseWorkspaceData = {
+      gitUserName,
+      gitUserEmail,
       name,
       repository,
       containerImage,
@@ -55,6 +60,15 @@ export async function handleCreateWorkspaceRequest(
       setupScript,
       postScript,
       cacheFiles,
+      ...(authAccountId
+        ? {
+            authAccount: {
+              connect: {
+                id: authAccountId,
+              },
+            },
+          }
+        : {}),
     } satisfies Prisma.WorkspaceCreateInput
 
     let workspaceData: Prisma.WorkspaceCreateInput = baseWorkspaceData

@@ -9,6 +9,14 @@ datasource db {
 model Workspace {
   id String @id @default(uuid())
 
+  // Git identity
+  gitUserName  String @default("") @map("git_user_name")
+  gitUserEmail String @default("") @map("git_user_email")
+
+  // Import
+  authAccountId String?      @map("auth_account_id")
+  authAccount   AuthAccount? @relation(fields: [authAccountId], references: [id])
+
   name                     String
   description              String   @default("")
   repository               String
@@ -51,8 +59,9 @@ model Task {
 
   name      String
   branch    String
-  container String  @map("container")
-  archived  Boolean @default(false)
+  container String    @map("container")
+  archived  Boolean   @default(false)
+  state     TaskState @default(SettingUp)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -107,6 +116,15 @@ enum LlmConnectionType {
   KIMI_API_KEY
 }
 
+enum TaskState {
+  SettingUp
+  Working
+  Validating
+  Reviewing
+  AwaitingReview
+  Failed
+}
+
 model Connection {
   id String @id @default(uuid())
 
@@ -117,8 +135,8 @@ model Connection {
   type LlmConnectionType
 
   // Details
-  name      String? @map("name")
-  isDefault Boolean @default(false) @map("is_default")
+  name           String? @map("name")
+  isDefault      Boolean @default(false) @map("is_default")
   preferredModel String? @map("preferred_model")
 
   // Auth
@@ -165,6 +183,8 @@ model AuthAccount {
   lastUsedAt DateTime? @map("last_used_at")
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  workspaces Workspace[]
 
   @@unique([provider, providerAccountId])
   @@map("auth_accounts")

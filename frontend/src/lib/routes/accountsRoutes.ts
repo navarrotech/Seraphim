@@ -40,6 +40,8 @@ type ListAccountsResponse = {
 type RepoAccountResult = {
   accountId: string
   username: string
+  displayName: string
+  email: string | null
   repos: GithubRepoSummary[]
 }
 

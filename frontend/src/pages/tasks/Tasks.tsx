@@ -121,8 +121,7 @@ export function Tasks() {
 
   const isTaskLoading = Boolean(taskId && !taskQuery.data && !taskQuery.error)
   const taskMessages = taskQuery.data?.task.messages || []
-  const hasMessages = taskMessages.length > 0
-  const shouldShowEmpty = !taskId || !hasMessages
+  const shouldShowEmpty = !taskId
   const taskName = taskQuery.data?.task.name || selectedTask?.name || 'Untitled task'
   const emptyWorkspaceId = taskQuery.data?.task.workspaceId || selectedTask?.workspaceId
 
@@ -136,9 +135,11 @@ export function Tasks() {
       />
       <main className='min-h-0 flex-1 overflow-y-auto p-6'>
         {isTaskLoading && (
-          <Card className='p-6'>
-            <p className='opacity-80'>Loading task details...</p>
-          </Card>
+          <TaskView
+            messages={[]}
+            taskName={taskName}
+            isLoading
+          />
         )}
         {!isTaskLoading && taskQuery.error && (
           <Card className='p-6'>

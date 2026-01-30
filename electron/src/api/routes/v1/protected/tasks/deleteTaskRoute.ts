@@ -11,7 +11,7 @@ import { parseRequestParams } from '../../validation'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { removeTaskContainer } from '@electron/docker/taskContainer'
+import { teardownTask } from '@electron/api/jobs/launchTask'
 
 type RouteParams = {
   taskId: string
@@ -55,7 +55,7 @@ export async function handleDeleteTaskRequest(
       return
     }
 
-    await removeTaskContainer(existingTask.container)
+    await teardownTask(existingTask.container)
 
     await databaseClient.task.delete({
       where: { id: taskId },

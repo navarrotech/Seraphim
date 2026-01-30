@@ -1,10 +1,12 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace, WorkspaceEnv } from '@prisma/client'
+import type { WorkspaceWithEnv } from '@common/types'
 
 // Core
 import { v7 as uuid } from 'uuid'
-import { getDockerClient } from './docker'
+import { getDockerClient } from '../../docker/docker'
+import { teardownTask } from './teardownTask'
+import { updateTaskState } from './updateTaskState'
 
 // Node.js
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -12,17 +14,16 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 // Utility
-import { buildDockerfileContents } from './image'
+import { buildDockerfileContents } from '../../docker/image'
 import { convertEnvironmentToDotEnv } from '@common/envKit'
 import { resolveCloneUrl } from '@common/resolveCloneUrl'
 import { writeScriptFile } from '@common/writeScriptFile'
 
-export async function createTaskContainerForWorkspace(
-  workspace: Workspace,
+export async function launchTask(
+  workspace: WorkspaceWithEnv,
   repository: string,
   githubTokens: string[],
   resourcesDir: string,
-  envEntries: WorkspaceEnv[] = [],
 ) {
   const dockerClient = getDockerClient()
   if (!dockerClient) {
@@ -113,7 +114,7 @@ export async function createTaskContainerForWorkspace(
       )
     })
 
-    const containerEnv = convertEnvironmentToDotEnv(envEntries)
+    const containerEnv = convertEnvironmentToDotEnv(workspace.envEntries)
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => Boolean(line))
@@ -138,7 +139,7 @@ export async function createTaskContainerForWorkspace(
   }
   catch (error) {
     if (containerId) {
-      await removeTaskContainer(containerId)
+      await teardownTask(containerId)
     }
     throw error
   }
@@ -152,29 +153,5 @@ export async function createTaskContainerForWorkspace(
         cleanupError,
       })
     }
-  }
-}
-
-export async function removeTaskContainer(containerId: string | null) {
-  if (!containerId) {
-    console.debug('Task container removal requested without container id')
-    return
-  }
-
-  const dockerClient = getDockerClient()
-  if (!dockerClient) {
-    console.debug('Task container removal requested without docker client', {
-      containerId,
-    })
-    return
-  }
-
-  try {
-    await dockerClient
-      .getContainer(containerId)
-      .remove({ force: true })
-  }
-  catch (error) {
-    console.debug('Failed to remove task container', { containerId, error })
   }
 }

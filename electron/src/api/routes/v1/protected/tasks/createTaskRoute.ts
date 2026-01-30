@@ -10,7 +10,8 @@ import { taskCreateSchema } from '@common/schema'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { createTaskContainerForWorkspace, removeTaskContainer } from '@electron/docker/taskContainer'
+import { launchTask } from '@electron/api/jobs/launchTask'
+import { teardownTask } from '@electron/api/jobs/teardownTask'
 import { resourcesDir } from '@electron/lib/internalFiles'
 
 export type RequestBody = TaskCreateRequest
@@ -79,12 +80,11 @@ export async function handleCreateTaskRequest(
     let containerId: string | null = null
 
     try {
-      const containerResult = await createTaskContainerForWorkspace(
+      const containerResult = await launchTask(
         workspace,
         repository,
         githubTokens,
         resourcesDir,
-        workspace.envEntries,
       )
       containerId = containerResult.containerId
 
@@ -110,7 +110,7 @@ export async function handleCreateTaskRequest(
     }
     catch (error) {
       if (containerId) {
-        await removeTaskContainer(containerId)
+        await teardownTask(containerId)
       }
 
       const errorMessage = error instanceof Error

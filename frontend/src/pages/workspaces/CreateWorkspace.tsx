@@ -47,6 +47,8 @@ export function CreateWorkspace() {
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
+      gitUserName: '',
+      gitUserEmail: '',
       name: '',
       repository: '',
       containerImage: 'node:latest',
@@ -120,6 +122,50 @@ export function CreateWorkspace() {
       shouldTouch: true,
       shouldValidate: true,
     })
+    form.setValue('authAccountId', repoOption.accountId, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+    const trimmedDisplayName = repoOption.displayName.trim()
+    const trimmedUsername = repoOption.username.trim()
+    const isNameMissing = trimmedDisplayName.length === 0
+      || trimmedDisplayName === trimmedUsername
+    if (isNameMissing) {
+      console.debug('CreateWorkspace import missing git user name', {
+        accountId: repoOption.accountId,
+      })
+      form.setValue('gitUserName', '', {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    }
+    else {
+      form.setValue('gitUserName', trimmedDisplayName, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    }
+
+    if (!repoOption.email || repoOption.email.trim().length === 0) {
+      console.debug('CreateWorkspace import missing git user email', {
+        accountId: repoOption.accountId,
+      })
+      form.setValue('gitUserEmail', '', {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    }
+    else {
+      form.setValue('gitUserEmail', repoOption.email, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    }
 
     setImportedRepoOption(repoOption)
     setIsImportDrawerOpen(false)
@@ -190,9 +236,54 @@ export function CreateWorkspace() {
         importBanner
       }</div>
     <Form onSubmit={onSubmit} className='relaxed'>
+      <input type='hidden' {...form.register('authAccountId')} />
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
           <div className='w-full'>
+            {/* Git user */}
+            <div className='relaxed w-full'>
+              <Controller
+                control={form.control}
+                name='gitUserName'
+                render={({ field }) => (
+                  <Input
+                    label='Git user name'
+                    placeholder='Ada Lovelace'
+                    className='w-full'
+                    isRequired
+                    isInvalid={Boolean(form.formState.errors.gitUserName)}
+                    errorMessage={form.formState.errors.gitUserName?.message}
+                    isDisabled={isFormLocked}
+                    value={field.value}
+                    name={field.name}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </div>
+            {/* Git email */}
+            <div className='relaxed w-full'>
+              <Controller
+                control={form.control}
+                name='gitUserEmail'
+                render={({ field }) => (
+                  <Input
+                    label='Git email'
+                    placeholder='ada@lovelace.dev'
+                    className='w-full'
+                    isRequired
+                    isInvalid={Boolean(form.formState.errors.gitUserEmail)}
+                    errorMessage={form.formState.errors.gitUserEmail?.message}
+                    isDisabled={isFormLocked}
+                    value={field.value}
+                    name={field.name}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </div>
             {/* Workspace name */}
             <div className='relaxed w-full'>
               <Controller

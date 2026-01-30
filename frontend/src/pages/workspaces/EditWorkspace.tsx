@@ -60,6 +60,8 @@ export function EditWorkspace() {
   const form = useForm<EditWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
+      gitUserName: '',
+      gitUserEmail: '',
       name: '',
       repository: '',
       containerImage: '',
@@ -114,6 +116,8 @@ export function EditWorkspace() {
 
     const workspace = workspaceQuery.data.workspace
     form.reset({
+      gitUserName: workspace.gitUserName,
+      gitUserEmail: workspace.gitUserEmail,
       name: workspace.name,
       repository: workspace.repository,
       containerImage: workspace.containerImage,
@@ -209,6 +213,48 @@ export function EditWorkspace() {
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
           <div className='w-full'>
+            <div className='relaxed w-full'>
+              <Controller
+                control={form.control}
+                name='gitUserName'
+                render={({ field }) => (
+                  <Input
+                    label='Git user name'
+                    placeholder='Ada Lovelace'
+                    className='w-full'
+                    isRequired
+                    isInvalid={Boolean(form.formState.errors.gitUserName)}
+                    errorMessage={form.formState.errors.gitUserName?.message}
+                    isDisabled={isFormLocked}
+                    value={field.value}
+                    name={field.name}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </div>
+            <div className='relaxed w-full'>
+              <Controller
+                control={form.control}
+                name='gitUserEmail'
+                render={({ field }) => (
+                  <Input
+                    label='Git email'
+                    placeholder='ada@lovelace.dev'
+                    className='w-full'
+                    isRequired
+                    isInvalid={Boolean(form.formState.errors.gitUserEmail)}
+                    errorMessage={form.formState.errors.gitUserEmail?.message}
+                    isDisabled={isFormLocked}
+                    value={field.value}
+                    name={field.name}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </div>
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}

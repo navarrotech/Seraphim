@@ -30,6 +30,9 @@ export const workspaceEnvEntrySchema = z.object({
 })
 
 export const workspaceCreateSchema = z.object({
+  authAccountId: z.string().trim().min(1).optional(),
+  gitUserName: z.string().trim().min(1),
+  gitUserEmail: z.string().trim().min(1),
   name: z.string().trim().min(1),
   repository: z.string().trim().min(1),
   containerImage: z.string().trim().min(1),
@@ -42,6 +45,9 @@ export const workspaceCreateSchema = z.object({
 }).strict()
 
 export const workspaceUpdateSchema = z.object({
+  authAccountId: z.string().trim().min(1).optional(),
+  gitUserName: z.string().trim().min(1).optional(),
+  gitUserEmail: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
   repository: z.string().trim().min(1).optional(),
   containerImage: z.string().trim().min(1).optional(),
