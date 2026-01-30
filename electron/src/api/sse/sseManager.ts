@@ -56,4 +56,13 @@ export function formatSseEvent(eventName: string, data: string): string {
   return `event: ${eventName}\ndata: ${data}\n\n`
 }
 
+export function initializeSseResponse(response: Response): void {
+  response.status(200)
+  response.setHeader('Content-Type', 'text/event-stream')
+  response.setHeader('Cache-Control', 'no-cache, no-transform')
+  response.setHeader('Connection', 'keep-alive')
+  response.setHeader('X-Accel-Buffering', 'no')
+  response.flushHeaders()
+}
+
 export const sseManager = createSseManager()

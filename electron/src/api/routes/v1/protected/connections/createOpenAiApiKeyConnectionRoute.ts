@@ -48,7 +48,7 @@ export async function handleCreateOpenAiApiKeyConnectionRequest(
     }
 
     const supportedModels = SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY
-    if (!supportedModels.includes(body.preferredModel)) {
+    if (!supportedModels.includes(body.preferredModel as any)) {
       console.debug('OpenAI API key connection create rejected for unsupported model', {
         preferredModel: body.preferredModel,
       })

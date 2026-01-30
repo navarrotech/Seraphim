@@ -60,6 +60,7 @@ model Task {
   name      String
   branch    String
   container String    @map("container")
+  containerName String? @map("container_name")
   archived  Boolean   @default(false)
   state     TaskState @default(SettingUp)
 

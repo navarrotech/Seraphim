@@ -10,6 +10,7 @@ import { handleCreateTaskRequest } from './tasks/createTaskRoute'
 import { handleDeleteTaskRequest } from './tasks/deleteTaskRoute'
 import { handleGetTaskRequest } from './tasks/getTaskRoute'
 import { handleListTasksRequest } from './tasks/listTasksRoute'
+import { handleStreamTaskLogsRequest } from './tasks/streamTaskLogsRoute'
 import { handleUpdateTaskRequest } from './tasks/updateTaskRoute'
 
 export function createTasksRouter(): Router {
@@ -17,6 +18,8 @@ export function createTasksRouter(): Router {
 
   // /api/v1/protected/tasks
   tasksRouter.get('/', handleListTasksRequest)
+  // /api/v1/protected/tasks/:taskId/logs/stream
+  tasksRouter.get('/:taskId/logs/stream', handleStreamTaskLogsRequest)
   // /api/v1/protected/tasks/:taskId
   tasksRouter.get('/:taskId', handleGetTaskRequest)
   // /api/v1/protected/tasks

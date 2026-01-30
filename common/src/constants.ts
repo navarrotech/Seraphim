@@ -52,6 +52,7 @@ export const DOCKER_DEBIAN_PACKAGES = [
   'curl',
   'openssh-client',
   'ca-certificates',
+  'tar',
   'ripgrep',
   'time',
   'jq',
@@ -70,6 +71,8 @@ export const DOCKER_ALPINE_PACKAGES = [
   'git',
   'openssh-client',
   'ca-certificates',
+  'libc6-compat',
+  'tar',
   'ripgrep',
   'bash',
   'jq',
@@ -80,3 +83,5 @@ export const DOCKER_ALPINE_PACKAGES = [
   'procps',
   'tzdata',
 ] as const
+
+export const ACT_VERSION = '0.2.80' as const

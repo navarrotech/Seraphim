@@ -35,21 +35,6 @@ type TaskDraft = {
   connectionId: string
 }
 
-function buildTaskName(message: string) {
-  const trimmedMessage = message.trim()
-
-  if (!trimmedMessage) {
-    return 'New Task'
-  }
-
-  const firstLine = trimmedMessage.split('\n')[0]
-  if (firstLine.length <= 64) {
-    return firstLine
-  }
-
-  return `${firstLine.slice(0, 64)}...`
-}
-
 export function Tasks() {
   const { taskId } = useParams<TaskRouteParams>()
   const navigate = useNavigate()
@@ -97,7 +82,7 @@ export function Tasks() {
         userId: user.id,
         workspaceId: workspace.id,
         connectionId: draft.connectionId,
-        name: buildTaskName(draft.message),
+        message: draft.message,
         branch: DEFAULT_TASK_BRANCH,
         container: workspace.containerImage || DEFAULT_TASK_CONTAINER,
         archived: false,
@@ -123,6 +108,7 @@ export function Tasks() {
   const taskMessages = taskQuery.data?.task.messages || []
   const shouldShowEmpty = !taskId
   const taskName = taskQuery.data?.task.name || selectedTask?.name || 'Untitled task'
+  const taskContainerName = taskQuery.data?.task.containerName || selectedTask?.containerName
   const emptyWorkspaceId = taskQuery.data?.task.workspaceId || selectedTask?.workspaceId
 
   return <section className={`flex flex-1 min-h-0 flex-col bg-gradient-to-br
@@ -138,6 +124,7 @@ export function Tasks() {
           <TaskView
             messages={[]}
             taskName={taskName}
+            containerName={taskContainerName}
             isLoading
           />
         )}
@@ -158,6 +145,7 @@ export function Tasks() {
           <TaskView
             messages={taskMessages}
             taskName={taskName}
+            containerName={taskContainerName}
           />
         )}
       </main>

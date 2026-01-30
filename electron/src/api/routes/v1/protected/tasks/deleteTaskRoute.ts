@@ -11,7 +11,7 @@ import { parseRequestParams } from '../../validation'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { teardownTask } from '@electron/api/jobs/launchTask'
+import { teardownTask } from '@electron/jobs/teardownTask'
 
 type RouteParams = {
   taskId: string

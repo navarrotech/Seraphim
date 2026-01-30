@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { getDockerClient } from '../../docker/docker'
+import { getDockerClient } from '../docker/docker'
 
 export async function teardownTask(containerId: string | null) {
   if (!containerId) {
@@ -17,10 +17,19 @@ export async function teardownTask(containerId: string | null) {
     return
   }
 
+  let container
   try {
-    await dockerClient
-      .getContainer(containerId)
-      .remove({ force: true })
+    container = await dockerClient.getContainer(containerId)
+  }
+  catch {
+    console.warn('Task container removal requested but container wasn\'t found', {
+      containerId,
+    })
+    return
+  }
+
+  try {
+    await container.remove({ force: true })
   }
   catch (error) {
     console.debug('Failed to remove task container', { containerId, error })

@@ -36,6 +36,7 @@
     "precommit": "bash ./.githooks/pre-commit"
   },
   "dependencies": {
+    "@openai/codex": "^0.92.0",
     "argparse": "^2.0.1",
     "chrome-remote-interface": "^0.33.3",
     "express": "^5.2.1",

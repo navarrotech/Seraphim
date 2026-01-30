@@ -3,6 +3,7 @@
 // Globals
 import './env'
 import './framework/hotkeys'
+import { initMonaco } from './framework/monaco'
 
 // Core
 import { createRoot } from 'react-dom/client'
@@ -20,6 +21,8 @@ import './index.css'
 import { ConfirmGate } from './gates/ConfirmGate'
 import { PromptGate } from './gates/PromptGate'
 import { UnsavedWorkGate } from './gates/UnsavedWorkGate'
+
+initMonaco()
 
 const container = document.getElementById('root') as HTMLElement
 const root = createRoot(container)

@@ -21,6 +21,7 @@ export async function writeScriptFile(
   const updatedContent = `
 #!/usr/bin/env bash
 set -eu pipefail
+trap 'echo "======== CUSTOM SETUP SCRIPT FAILED (exit $?) ========"; touch /opt/seraphim/setup-failed; exit 1' ERR
 
 cd ${DOCKER_WORKDIR}
 
@@ -28,6 +29,7 @@ echo "======== RUNNING CUSTOM SETUP SCRIPT ========"
 ${trimmed}
 
 echo "======== FINISHED CUSTOM SETUP SCRIPT ========"
+touch /opt/seraphim/setup-success
 echo "System is ready to begin generation commands"
 
 tail -f /dev/null

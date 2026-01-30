@@ -65,7 +65,7 @@ export const taskCreateSchema = z.object({
   userId: z.string().trim().min(1),
   workspaceId: z.string().trim().min(1),
   connectionId: z.string().trim().min(1),
-  name: z.string().trim().min(1),
+  message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
   container: z.string().trim().min(1),
   archived: z.boolean().optional().default(false),

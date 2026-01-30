@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import {
+  ACT_VERSION,
   DEFAULT_DOCKER_BASE_IMAGE,
   DOCKER_DEBIAN_PACKAGES,
   DOCKER_ALPINE_PACKAGES,
@@ -16,6 +17,7 @@ export function buildDockerfileContents(
   gitUrl?: string,
   setupScriptName?: string,
   validateScriptName?: string,
+  actInstallScriptName?: string,
 ): string {
   const normalizedImage = image.toLowerCase().trim()
 
@@ -95,6 +97,15 @@ export function buildDockerfileContents(
     `WORKDIR ${DOCKER_WORKDIR}`,
     `RUN npm --global install @openai/codex@0.92.0 corepack`,
   )
+
+  if (actInstallScriptName) {
+    lines.push(
+      '',
+      '# Install act for GitHub Actions execution',
+      `COPY ${actInstallScriptName} /opt/seraphim/${actInstallScriptName}`,
+      `RUN bash /opt/seraphim/${actInstallScriptName} ${ACT_VERSION}`,
+    )
+  }
 
   if (customCommands) {
     lines.push(

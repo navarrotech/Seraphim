@@ -48,7 +48,7 @@ export async function handleCreateKimiApiKeyConnectionRequest(
     }
 
     const supportedModels = SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY
-    if (!supportedModels.includes(body.preferredModel)) {
+    if (!supportedModels.includes(body.preferredModel as any)) {
       console.debug('Kimi API key connection create rejected for unsupported model', {
         preferredModel: body.preferredModel,
       })

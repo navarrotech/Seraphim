@@ -1,28 +1,29 @@
 // Copyright © 2026 Jalapeno Labs
 
+// Lib
 import Docker from 'dockerode'
+
+// Utility
 import { logFailed, logSuccess } from '../lib/logging'
+import {
+  resolveDockerSocketMount,
+  resolveDockerSocketPath,
+} from './dockerSocket'
 
 let docker: Docker
-import { DOCKER_SOCK_PATH } from '../env'
+
+export { resolveDockerSocketMount, resolveDockerSocketPath }
 
 export async function connectToDocker() {
   try {
     // Always prioritize the user-preferred socket path first
-    if (DOCKER_SOCK_PATH) {
-      docker = new Docker({ socketPath: DOCKER_SOCK_PATH })
-    }
-    else if (process.platform === 'win32') {
-      docker = new Docker({ socketPath: '//./pipe/docker_engine' })
-    }
-    else {
-      docker = new Docker({ socketPath: '/var/run/docker.sock' })
-    }
-
+    docker = new Docker({ socketPath: resolveDockerSocketPath() })
     await docker.ping()
 
     const version = await docker.version()
-    console.debug(`Docker version: ${version.Version} (API: ${version.ApiVersion})`)
+    console.debug(
+      `Docker version: ${version.Version} (API: ${version.ApiVersion})`,
+    )
 
     logSuccess('Connected to Docker')
   }

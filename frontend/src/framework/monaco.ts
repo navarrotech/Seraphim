@@ -73,14 +73,175 @@ export type MonacoFileLanguages =
   // DB
   | 'sql'
 
+export const SERAPHIM_DARK_THEME = 'seraphim-dark'
+export const SERAPHIM_LIGHT_THEME = 'seraphim-light'
+
+const seraphimDarkTheme: monaco.editor.IStandaloneThemeData = {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '2AB3C0', fontStyle: 'italic' },
+    { token: 'comment.block', foreground: '2AB3C0', fontStyle: 'italic' },
+    { token: 'comment.line', foreground: '2AB3C0', fontStyle: 'italic' },
+
+    { token: 'keyword', foreground: '4EA1FF' },
+    { token: 'keyword.control', foreground: '4EA1FF' },
+    { token: 'keyword.operator', foreground: '4EA1FF' },
+
+    { token: 'type.identifier', foreground: '4EA1FF' },
+    { token: 'type', foreground: '4EA1FF' },
+    { token: 'number', foreground: '38F2E1' },
+
+    { token: 'string', foreground: '38F2E1' },
+    { token: 'string.escape', foreground: '38F2E1' },
+
+    { token: 'identifier', foreground: 'C9F2FF' },
+    { token: 'delimiter', foreground: 'C9F2FF' },
+    { token: 'delimiter.bracket', foreground: 'C9F2FF' },
+  ],
+  colors: {
+    'editor.background': '#0B0F1A',
+    'editor.foreground': '#C9F2FF',
+
+    'editorLineNumber.foreground': '#37506B',
+    'editorLineNumber.activeForeground': '#C9F2FF',
+
+    'editorCursor.foreground': '#C9F2FF',
+    'editor.selectionBackground': '#103B5E',
+    'editor.inactiveSelectionBackground': '#0C2B45',
+    'editor.selectionHighlightBackground': '#38F2E120',
+
+    'editor.lineHighlightBackground': '#0E1D30',
+    'editor.lineHighlightBorder': '#00000000',
+
+    'editorIndentGuide.background': '#12314A',
+    'editorIndentGuide.activeBackground': '#1A4C6F',
+    'editorWhitespace.foreground': '#FFFFFF1A',
+    'editorRuler.foreground': '#38F2E116',
+
+    'editorBracketMatch.background': '#38F2E118',
+    'editorBracketMatch.border': '#38F2E160',
+
+    'editorWidget.background': '#0B0F1A',
+    'editorWidget.border': '#12314A',
+    'editorHoverWidget.background': '#0B0F1A',
+    'editorHoverWidget.border': '#12314A',
+
+    'editorSuggestWidget.background': '#0B0F1A',
+    'editorSuggestWidget.border': '#12314A',
+    'editorSuggestWidget.foreground': '#C9F2FF',
+    'editorSuggestWidget.selectedBackground': '#103B5E',
+    'editorSuggestWidget.highlightForeground': '#38F2E1',
+
+    'editor.findMatchBackground': '#38F2E133',
+    'editor.findMatchHighlightBackground': '#38F2E11F',
+
+    'editorError.foreground': '#FF5F6E',
+    'editorWarning.foreground': '#38F2E1',
+    'editorInfo.foreground': '#4EA1FF',
+
+    'minimap.background': '#0B0F1A',
+    'minimapSlider.background': '#38F2E118',
+    'minimapSlider.hoverBackground': '#38F2E12A',
+    'minimapSlider.activeBackground': '#38F2E13A',
+
+    'scrollbarSlider.background': '#38F2E118',
+    'scrollbarSlider.hoverBackground': '#38F2E12A',
+    'scrollbarSlider.activeBackground': '#38F2E13A',
+  },
+}
+
+const seraphimLightTheme: monaco.editor.IStandaloneThemeData = {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '168C9E', fontStyle: 'italic' },
+    { token: 'comment.block', foreground: '168C9E', fontStyle: 'italic' },
+    { token: 'comment.line', foreground: '168C9E', fontStyle: 'italic' },
+
+    { token: 'keyword', foreground: '1F6FEB' },
+    { token: 'keyword.control', foreground: '1F6FEB' },
+    { token: 'keyword.operator', foreground: '1F6FEB' },
+
+    { token: 'type.identifier', foreground: '1F6FEB' },
+    { token: 'type', foreground: '1F6FEB' },
+    { token: 'number', foreground: '119DA4' },
+
+    { token: 'string', foreground: '119DA4' },
+    { token: 'string.escape', foreground: '119DA4' },
+
+    { token: 'identifier', foreground: '1C2B39' },
+    { token: 'delimiter', foreground: '1C2B39' },
+    { token: 'delimiter.bracket', foreground: '1C2B39' },
+  ],
+  colors: {
+    'editor.background': '#F6FBFF',
+    'editor.foreground': '#1C2B39',
+
+    'editorLineNumber.foreground': '#8AA7BF',
+    'editorLineNumber.activeForeground': '#1C2B39',
+
+    'editorCursor.foreground': '#1C2B39',
+    'editor.selectionBackground': '#CFE9FF',
+    'editor.inactiveSelectionBackground': '#E5F2FF',
+    'editor.selectionHighlightBackground': '#119DA424',
+
+    'editor.lineHighlightBackground': '#ECF6FF',
+    'editor.lineHighlightBorder': '#00000000',
+
+    'editorIndentGuide.background': '#D7E7F5',
+    'editorIndentGuide.activeBackground': '#B9D2E8',
+    'editorWhitespace.foreground': '#00000014',
+    'editorRuler.foreground': '#1F6FEB12',
+
+    'editorBracketMatch.background': '#1F6FEB12',
+    'editorBracketMatch.border': '#1F6FEB3F',
+
+    'editorWidget.background': '#F6FBFF',
+    'editorWidget.border': '#D7E7F5',
+    'editorHoverWidget.background': '#F6FBFF',
+    'editorHoverWidget.border': '#D7E7F5',
+
+    'editorSuggestWidget.background': '#F6FBFF',
+    'editorSuggestWidget.border': '#D7E7F5',
+    'editorSuggestWidget.foreground': '#1C2B39',
+    'editorSuggestWidget.selectedBackground': '#E1F1FF',
+    'editorSuggestWidget.highlightForeground': '#1F6FEB',
+
+    'editor.findMatchBackground': '#119DA433',
+    'editor.findMatchHighlightBackground': '#119DA41F',
+
+    'editorError.foreground': '#E5484D',
+    'editorWarning.foreground': '#119DA4',
+    'editorInfo.foreground': '#1F6FEB',
+
+    'minimap.background': '#F6FBFF',
+    'minimapSlider.background': '#1F6FEB12',
+    'minimapSlider.hoverBackground': '#1F6FEB1F',
+    'minimapSlider.activeBackground': '#1F6FEB2B',
+
+    'scrollbarSlider.background': '#1F6FEB12',
+    'scrollbarSlider.hoverBackground': '#1F6FEB1F',
+    'scrollbarSlider.activeBackground': '#1F6FEB2B',
+  },
+}
+
 monacoLoader.config({
   //  tell the loader to use the npm-bundled Monaco instance.
   // This prevents the loader from injecting a <script> tag to a CDN.
   monaco,
 })
 
+let hasDefinedThemes = false
+
 export async function initMonaco() {
   await monacoLoader.init()
+
+  if (!hasDefinedThemes) {
+    monaco.editor.defineTheme(SERAPHIM_DARK_THEME, seraphimDarkTheme)
+    monaco.editor.defineTheme(SERAPHIM_LIGHT_THEME, seraphimLightTheme)
+    hasDefinedThemes = true
+  }
 }
 
 export function getMonacoFileLanguage(extension: string): MonacoFileLanguages {
