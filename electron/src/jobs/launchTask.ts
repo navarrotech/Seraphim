@@ -5,6 +5,7 @@ import type { TaskState } from '@prisma/client'
 import type Docker from 'dockerode'
 
 // Node.js
+import { existsSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -19,6 +20,7 @@ import { convertEnvironmentToDotEnv } from '@common/envKit'
 import { resolveCloneUrl } from '@common/resolveCloneUrl'
 import { writeScriptFile } from '@common/writeScriptFile'
 import { copyFromResourcesDir } from '@electron/docker/resources'
+import { ACT_SCRIPT_NAME } from '@common/constants'
 
 // Misc
 import { getDockerClient, resolveDockerSocketMount } from '../docker/docker'
@@ -55,6 +57,14 @@ export async function launchTask(
   try {
     copyFromResourcesDir(contextDir)
 
+    const actScriptPath = join(contextDir, ACT_SCRIPT_NAME)
+    if (!existsSync(actScriptPath)) {
+      console.debug('LaunchTask missing act installer script', {
+        actScriptPath,
+      })
+      throw new Error('Act installer script is missing')
+    }
+
     const [ setupScriptName, validateScriptName ] = await Promise.all([
       writeScriptFile(contextDir, 'setup.sh', workspace.setupScript),
       writeScriptFile(contextDir, 'validate.sh', workspace.postScript),
@@ -73,7 +83,7 @@ export async function launchTask(
     const dockerfilePath = join(contextDir, 'Dockerfile')
     await writeFile(dockerfilePath, dockerfileContents, 'utf8')
 
-    const contextFiles = [ 'Dockerfile' ]
+    const contextFiles = [ 'Dockerfile', ACT_SCRIPT_NAME ]
     if (setupScriptName) {
       contextFiles.push(setupScriptName)
     }

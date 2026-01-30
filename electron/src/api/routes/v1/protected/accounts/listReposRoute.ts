@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { requireDatabaseClient } from '@electron/database'
 import { fetchGithubReposForAccount } from '@electron/api/oauth/githubRepoService'
 import { parseRequestParams, parseRequestQuery } from '../../validation'
+import { resolveSearchQuery } from '../../utils/searchQuery'
 
 const repoQuerySchema = z.object({
   q: z.string().trim().optional(),
@@ -38,17 +39,6 @@ type RepoAccountFailure = {
   accountId: string
   username: string
   error: string
-}
-
-function resolveSearchQuery(query: RepoQuery): string | null {
-  const searchQuery = query.q ?? query.search ?? ''
-  const trimmed = searchQuery.trim()
-
-  if (!trimmed) {
-    return null
-  }
-
-  return trimmed
 }
 
 function resolvePage(query: RepoQuery): number | null {

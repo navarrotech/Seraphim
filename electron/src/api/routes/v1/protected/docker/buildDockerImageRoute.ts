@@ -3,6 +3,7 @@
 import type { Request, Response } from 'express'
 
 // Core
+import { existsSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -19,7 +20,7 @@ import { buildDockerfileContents } from '@electron/docker/image'
 import { copyFromResourcesDir } from '@electron/docker/resources'
 
 // Misc
-import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
+import { ACT_SCRIPT_NAME, DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type BuildDockerImageResponse = {
   jobId: string
@@ -79,6 +80,14 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
     contextDir = await mkdtemp(join(tmpdir(), 'seraphim-docker-'))
     copyFromResourcesDir(contextDir)
 
+    const actScriptPath = join(contextDir, ACT_SCRIPT_NAME)
+    if (!existsSync(actScriptPath)) {
+      console.debug('Build docker image missing act installer script', {
+        actScriptPath,
+      })
+      throw new Error('Act installer script is missing')
+    }
+
     const dockerfileContents = buildDockerfileContents(
       payload.containerImage,
       payload.customDockerfileCommands,
@@ -90,7 +99,7 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
     const buildStream = await dockerClient.buildImage(
       {
         context: contextDir,
-        src: [ 'Dockerfile' ],
+        src: [ 'Dockerfile', ACT_SCRIPT_NAME ],
       },
       {
         t: buildTag,

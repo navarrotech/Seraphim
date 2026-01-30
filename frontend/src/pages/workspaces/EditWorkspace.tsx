@@ -4,7 +4,7 @@ import type { Environment } from '@common/schema'
 import type { ControllerRenderProps } from 'react-hook-form'
 
 // Core
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 // Lib
@@ -14,13 +14,14 @@ import useSWR from 'swr'
 import { z } from 'zod'
 
 // UI
-import { Button, Card, Form, Input, Textarea } from '@heroui/react'
+import { Button, Card, Input, Textarea } from '@heroui/react'
 import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 import { Monaco } from '@frontend/common/Monaco'
 
 // Utility
 import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
+import { useHotkey } from '@frontend/hooks/useHotkey'
 
 // Misc
 import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
@@ -47,6 +48,7 @@ export function EditWorkspace() {
   const navigate = useNavigate()
   const { workspaceId } = useParams<WorkspaceRouteParams>()
   const buildSocket = useApiBuildSocket()
+  const [ isSubmitting, setIsSubmitting ] = useState(false)
 
   if (!workspaceId) {
     console.debug('EditWorkspace missing workspaceId in route params', { workspaceId })
@@ -77,7 +79,7 @@ export function EditWorkspace() {
     },
   })
 
-  const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
+  const isFormLocked = buildSocket.isBuilding || isSubmitting
 
   function handleDockerfileCommandsChange(
     onChange: ControllerRenderProps<EditWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
@@ -147,14 +149,30 @@ export function EditWorkspace() {
     })
   }
 
-  const onSubmit = form.handleSubmit(async function onSubmit(data) {
+  const handleSubmit = useCallback(async () => {
     if (!workspaceId) {
       console.debug('EditWorkspace cannot submit without workspaceId', { workspaceId })
       return
     }
 
+    if (isSubmitting) {
+      console.debug('EditWorkspace submit already in progress', { workspaceId })
+      return
+    }
+
+    const sanitizedValues = sanitizeWorkspaceValues(form.getValues())
+    const validationResult = createWorkspaceSchema.safeParse(sanitizedValues)
+    if (!validationResult.success) {
+      console.debug('EditWorkspace form validation failed', {
+        errors: validationResult.error.flatten(),
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
     try {
-      const response = await updateWorkspace(workspaceId, data)
+      const response = await updateWorkspace(workspaceId, validationResult.data)
       navigate(
         getWorkspaceEditUrl(
           response.workspace.id,
@@ -164,7 +182,26 @@ export function EditWorkspace() {
     catch (error) {
       console.debug('EditWorkspace failed to update workspace', { error })
     }
-  })
+    finally {
+      setIsSubmitting(false)
+    }
+  }, [ form, isSubmitting, navigate, workspaceId ])
+
+  const handleSaveHotkey = useCallback(
+    async function handleSaveHotkey(event: KeyboardEvent) {
+      event.preventDefault()
+      await handleSubmit()
+    },
+    [ handleSubmit ],
+  )
+
+  useHotkey(
+    [ 'Control', 's' ],
+    handleSaveHotkey,
+    {
+      preventDefault: true,
+    },
+  )
 
   if (workspaceQuery.isLoading) {
     return <section className='container p-6'>
@@ -199,18 +236,18 @@ export function EditWorkspace() {
             Back to list
           </Button>
           <Button
-            type='submit'
+            type='button'
             color='primary'
-            isLoading={form.formState.isSubmitting}
+            isLoading={isSubmitting}
             isDisabled={isFormLocked}
-            form='edit-workspace-form'
+            onPress={handleSubmit}
           >
             <span>Save Changes</span>
           </Button>
         </div>
       </div>
     </div>
-    <Form onSubmit={onSubmit} className='relaxed' id='edit-workspace-form'>
+    <div className='relaxed'>
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
           <div className='w-full'>
@@ -428,6 +465,20 @@ export function EditWorkspace() {
           />
         </div>
       </Card>
-    </Form>
+    </div>
   </section>
+}
+
+function sanitizeWorkspaceValues(values: EditWorkspaceFormValues) {
+  const environmentEntries = (values.envEntries || [])
+    .map((entry) => ({
+      key: entry.key?.trim() || '',
+      value: entry.value?.trim() || '',
+    }))
+    .filter((entry) => entry.key.length > 0 && entry.value.length > 0)
+
+  return {
+    ...values,
+    envEntries: environmentEntries,
+  }
 }

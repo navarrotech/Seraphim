@@ -231,7 +231,7 @@ export function Connections() {
         <h2 className='text-2xl'>
           <strong>Connections</strong>
         </h2>
-        <p className='opacity-80'>Manage your LLM connections in one place.</p>
+        <p className='opacity-80'>Manage your preferred LLMs.</p>
       </div>
     <Card className='relaxed p-6'>
         <div className='relaxed'>
@@ -263,7 +263,7 @@ export function Connections() {
         <h2 className='text-2xl'>
           <strong>Connections</strong>
         </h2>
-        <p className='opacity-80'>Manage your LLM connections in one place.</p>
+        <p className='opacity-80'>Manage your preferred LLMs.</p>
       </div>
       <Button color='primary' onPress={handleCreateConnection}>
         <span className='icon text-lg'>

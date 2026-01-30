@@ -121,12 +121,14 @@ export function buildDockerfileContents(
   //   `USER ${DOCKER_USERNAME}`,
   // )
 
-  lines.push(
-    '',
-    '# Setup git',
-    `RUN git config --global user.name  "${workspace.gitUserName}" \\`,
-    ` && git config --global user.email "${workspace.gitUserEmail}"`,
-  )
+  if (workspace?.gitUserEmail && workspace?.gitUserName) {
+    lines.push(
+      '',
+      '# Setup git',
+      `RUN git config --global user.name  "${workspace.gitUserName}" \\`,
+      ` && git config --global user.email "${workspace.gitUserEmail}"`,
+    )
+  }
 
   if (gitUrl) {
     lines.push(

@@ -36,7 +36,7 @@ export function ListWorkspaces() {
         <h2 className='text-2xl'>
           <strong>Workspaces</strong>
         </h2>
-        <p className='opacity-80'>Manage all workspaces here.</p>
+        <p className='opacity-80'>Setup your git repos to clone and use.</p>
       </div>
       <Card className='relaxed p-6'>
         <div className='relaxed'>
@@ -54,7 +54,7 @@ export function ListWorkspaces() {
     <div className='level relaxed'>
       <div>
         <h2 className='text-2xl'>Workspaces</h2>
-        <p className='opacity-80'>Manage all workspaces here.</p>
+        <p className='opacity-80'>Setup your git repos to clone and use.</p>
       </div>
       <Button
         as={Link}

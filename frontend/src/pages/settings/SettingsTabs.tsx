@@ -50,7 +50,7 @@ export function SettingsTabs() {
     </Button>
   }
 
-  return <div className='level'>
+  return <div className='relaxed level'>
     <div className='level-left gap-2'>
       {settingsTabs.map(renderTab)}
     </div>
