@@ -6,24 +6,16 @@ import { app } from 'electron'
 // Lib
 import { resolve } from 'node:path'
 
-// Misc
-import { isProduction } from '../env'
+export const appPath = app.getAppPath()
 
-export const BuildFiles = resolve(app.getAppPath(), '.vite', 'build')
-
-// Directories
+// App.asar directories
+export const BuildFiles = resolve(appPath, '.vite', 'build')
 export const browserDir = resolve(BuildFiles, 'browser')
 export const extensionsDir = resolve(BuildFiles, 'extensions')
-
-// Specific files
 export const logoPath = resolve(BuildFiles, 'logo.png')
-export const backendBinaryPath = isProduction
-  ? resolve(process.resourcesPath, 'verifagent')
-  : resolve(app.getAppPath(), 'resources', 'verifagent')
 
-export const resourcesDir = isProduction
-  ? process.resourcesPath
-  : resolve(app.getAppPath(), 'resources')
+// Other dirs
+export const resourcesDir = process.resourcesPath || resolve(appPath, 'resources')
 
 export function getSourceFile(filename: `${string}.js`): string {
   return resolve(BuildFiles, filename)
