@@ -5,7 +5,7 @@ export const UrlTree = {
   root: '/',
   settings: '/settings',
   connectedAccounts: '/settings/accounts',
-  connections: '/connections',
+  llms: '/llms',
   workspacesList: '/workspaces',
   workspaceCreate: '/workspaces/create',
   workspaceEdit: '/workspace/:workspaceId/edit',

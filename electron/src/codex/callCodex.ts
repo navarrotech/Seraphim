@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Connection } from '@prisma/client'
+import type { Llm } from '@prisma/client'
 
 // Core
 import { spawn } from 'node:child_process'
@@ -13,7 +13,7 @@ import { join, resolve } from 'node:path'
 import { getCodexConfig } from './getCodexConfig'
 
 type CallCodexArgs = {
-  connection: Connection
+  llm: Llm
   prompt: string
   workingDirectory?: string
   timeoutMs?: number
@@ -32,11 +32,11 @@ type CodexCommand = {
 }
 
 export async function callCodex(args: CallCodexArgs): Promise<CodexExecutionResult> {
-  const codexConfig = getCodexConfig(args.connection)
+  const codexConfig = getCodexConfig(args.llm)
   if (!codexConfig) {
-    console.debug('CallCodex could not resolve config from connection', {
-      connectionId: args.connection.id,
-      connectionType: args.connection.type,
+    console.debug('CallCodex could not resolve config from llm', {
+      llmId: args.llm.id,
+      llmType: args.llm.type,
     })
     throw new Error('Codex configuration could not be resolved')
   }

@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 import type { Workspace } from '@prisma/client'
-import type { ConnectionRecord } from '@frontend/lib/types/connectionTypes'
+import type { LlmRecord } from '@common/types'
 import type { Selection } from '@react-types/shared'
 
 // Core
@@ -16,7 +16,7 @@ import { Button, Card, Select, SelectItem, Textarea } from '@heroui/react'
 type TaskDraft = {
   message: string
   workspaceId: string
-  connectionId: string
+  llmId: string
 }
 
 type Props = {
@@ -34,11 +34,11 @@ export function EmptyTaskView(props: Props) {
     onSubmit,
   } = props
 
-  const connections = useSelector((state) => state.connections.items)
+  const llms = useSelector((state) => state.llms.items)
 
   const [ message, setMessage ] = useState<string>('')
   const [ workspaceId, setWorkspaceId ] = useState<string>('')
-  const [ connectionId, setConnectionId ] = useState<string>('')
+  const [ llmId, setLlmId ] = useState<string>('')
 
   useEffect(() => {
     if (defaultWorkspaceId) {
@@ -55,19 +55,19 @@ export function EmptyTaskView(props: Props) {
   }, [ defaultWorkspaceId, workspaces ])
 
   useEffect(() => {
-    const defaultConnection = connections.find((connection) => connection.isDefault)
-    if (defaultConnection) {
-      setConnectionId(defaultConnection.id)
+    const defaultLlm = llms.find((llm) => llm.isDefault)
+    if (defaultLlm) {
+      setLlmId(defaultLlm.id)
       return
     }
 
-    if (connections.length > 0) {
-      setConnectionId(connections[0].id)
+    if (llms.length > 0) {
+      setLlmId(llms[0].id)
       return
     }
 
-    console.debug('EmptyTaskView has no connections to select from')
-  }, [ connections ])
+    console.debug('EmptyTaskView has no llms to select from')
+  }, [ llms ])
 
   function handleWorkspaceSelection(selection: Selection) {
     if (selection === 'all') {
@@ -88,23 +88,23 @@ export function EmptyTaskView(props: Props) {
     setWorkspaceId(String(selectedWorkspaceId))
   }
 
-  function handleConnectionSelection(selection: Selection) {
+  function handleLlmSelection(selection: Selection) {
     if (selection === 'all') {
-      console.debug('EmptyTaskView received an unexpected connection selection', {
+      console.debug('EmptyTaskView received an unexpected llm selection', {
         selection,
       })
       return
     }
 
     const selectedKeys = Array.from(selection)
-    const selectedConnectionId = selectedKeys[0]
+    const selectedLlmId = selectedKeys[0]
 
-    if (!selectedConnectionId) {
-      console.debug('EmptyTaskView failed to select a connection', { selection })
+    if (!selectedLlmId) {
+      console.debug('EmptyTaskView failed to select a llm', { selection })
       return
     }
 
-    setConnectionId(String(selectedConnectionId))
+    setLlmId(String(selectedLlmId))
   }
 
   async function handleSubmit() {
@@ -120,24 +120,24 @@ export function EmptyTaskView(props: Props) {
       return
     }
 
-    if (!connectionId) {
-      console.debug('EmptyTaskView cannot submit without a connection')
+    if (!llmId) {
+      console.debug('EmptyTaskView cannot submit without a llm')
       return
     }
 
     await onSubmit({
       message: trimmedMessage,
       workspaceId,
-      connectionId,
+      llmId,
     })
   }
 
   const hasWorkspaces = workspaces.length > 0
-  const hasConnections = connections.length > 0
+  const hasLlms = llms.length > 0
   const isMessageEmpty = message.trim().length === 0
   const isSubmitDisabled = isSubmitting
     || !workspaceId
-    || !connectionId
+    || !llmId
     || isMessageEmpty
 
   return <div className='flex h-full items-center justify-center p-10'>
@@ -178,15 +178,15 @@ export function EmptyTaskView(props: Props) {
       </div>
       <div className='relaxed'>
         <Select
-          label='Connection'
-          placeholder='Select a connection'
-          selectedKeys={connectionId ? [ connectionId ] : []}
-          onSelectionChange={handleConnectionSelection}
-          isDisabled={!hasConnections || isSubmitting}
+          label='Llm'
+          placeholder='Select a llm'
+          selectedKeys={llmId ? [ llmId ] : []}
+          onSelectionChange={handleLlmSelection}
+          isDisabled={!hasLlms || isSubmitting}
         >
-          {connections.map((connection) => (
-            <SelectItem key={connection.id}>
-              {getConnectionLabel(connection)}
+          {llms.map((llm) => (
+            <SelectItem key={llm.id}>
+              {getLlmLabel(llm)}
             </SelectItem>
           ))}
         </Select>
@@ -205,26 +205,26 @@ export function EmptyTaskView(props: Props) {
   </div>
 }
 
-function getConnectionLabel(connection: ConnectionRecord) {
-  if (connection.name) {
-    return connection.name
+function getLlmLabel(llm: LlmRecord) {
+  if (llm.name) {
+    return llm.name
   }
 
-  if (connection.type === 'OPENAI_API_KEY') {
+  if (llm.type === 'OPENAI_API_KEY') {
     return 'OpenAI (API key)'
   }
 
-  if (connection.type === 'OPENAI_LOGIN_TOKEN') {
+  if (llm.type === 'OPENAI_LOGIN_TOKEN') {
     return 'OpenAI (Login token)'
   }
 
-  if (connection.type === 'KIMI_API_KEY') {
+  if (llm.type === 'KIMI_API_KEY') {
     return 'Kimi K2 (API key)'
   }
 
-  console.debug('EmptyTaskView received an unsupported connection type', {
-    connectionType: connection.type,
+  console.debug('EmptyTaskView received an unsupported llm type', {
+    llmType: llm.type,
   })
 
-  return connection.type
+  return llm.type
 }

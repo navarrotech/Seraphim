@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Connection } from '@prisma/client'
+import type { Llm } from '@prisma/client'
 
 // Utility
 import { callCodex } from '@electron/codex/callCodex'
@@ -11,14 +11,14 @@ type TaskNamingContext = {
 }
 
 export async function requestTaskName(
-  connection: Connection,
+  llm: Llm,
   context: TaskNamingContext,
 ): Promise<string | null> {
   const prompt = buildTaskNamePrompt(context)
 
   try {
     const result = await callCodex({
-      connection,
+      llm,
       prompt,
       timeoutMs: 45_000,
     })

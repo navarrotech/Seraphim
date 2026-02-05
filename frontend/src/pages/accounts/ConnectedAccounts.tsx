@@ -133,7 +133,7 @@ function buildStatusBanner(status: OAuthCompletionStatus): StatusBanner {
   }
 
   return {
-    title: `${providerLabel} connection failed`,
+    title: `${providerLabel} llm failed`,
     message: status.error || 'Please try again.',
     tone: 'error',
   }

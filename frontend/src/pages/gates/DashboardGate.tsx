@@ -10,7 +10,7 @@ import useSWR from 'swr'
 
 // Redux
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
-import { connectionActions } from '@frontend/framework/redux/stores/connections'
+import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
@@ -25,7 +25,7 @@ import { useApiSocket } from '@frontend/hooks/useApiSocket'
 
 // Misc
 import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
-import { listConnections } from '@frontend/lib/routes/connectionRoutes'
+import { listLlms } from '@frontend/lib/routes/llmRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
@@ -36,7 +36,7 @@ export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
   const tasksQuery = useSWR('tasks', listTasks)
   const accountsQuery = useSWR('accounts', listAccounts)
-  const connectionsQuery = useSWR('connections', listConnections)
+  const llmsQuery = useSWR('llms', listLlms)
   const settingsQuery = useSWR('current-user', getCurrentUser)
   const location = useLocation()
 
@@ -72,15 +72,15 @@ export function DashboardGate() {
     )
   }, [ accountsQuery.data ])
 
-  useEffect(function syncConnections() {
-    if (!connectionsQuery.data?.connections) {
+  useEffect(function syncLlms() {
+    if (!llmsQuery.data?.llms) {
       return
     }
 
     dispatch(
-      connectionActions.setConnections(connectionsQuery.data.connections),
+      llmActions.setLlms(llmsQuery.data.llms),
     )
-  }, [ connectionsQuery.data ])
+  }, [ llmsQuery.data ])
 
   useEffect(function syncSettings() {
     if (!settingsQuery.data?.user) {
@@ -96,7 +96,7 @@ export function DashboardGate() {
     workspacesQuery.isLoading
     || tasksQuery.isLoading
     || accountsQuery.isLoading
-    || connectionsQuery.isLoading
+    || llmsQuery.isLoading
     || settingsQuery.isLoading,
   )
   const hasEmptyData = Boolean(
@@ -117,7 +117,7 @@ export function DashboardGate() {
     workspacesQuery.error
     || tasksQuery.error
     || accountsQuery.error
-    || connectionsQuery.error
+    || llmsQuery.error
     || settingsQuery.error
   ) {
     return <main className='container p-8'>

@@ -1,6 +1,6 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
-import type { LlmConnectionType } from '@prisma/client'
+import type { LlmType } from '@prisma/client'
 
 // Project Configuration
 export const CONFIG_FILE_NAME = 'seraphim.jsonc' as const
@@ -44,7 +44,7 @@ export const SUPPORTED_MODELS_BY_LLM = {
     'gpt-5',
   ],
   KIMI_API_KEY: [ 'kimi-k2' ],
-} as const satisfies Record<LlmConnectionType, readonly string[]>
+} as const satisfies Record<LlmType, readonly string[]>
 
 // Docker shenanigans
 export const DEFAULT_DOCKER_BASE_IMAGE = 'node:lts-krypton' as const

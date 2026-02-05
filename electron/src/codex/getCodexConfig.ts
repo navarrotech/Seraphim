@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Connection } from '@prisma/client'
+import type { Llm } from '@prisma/client'
 
 type CodexConfigFiles = {
   'config.toml': string
@@ -12,7 +12,7 @@ type CodexConfig = {
   environment: Record<string, string>
 }
 
-type ResolvedConnection = {
+type ResolvedLlm = {
   model: string
   authJson: string | null
   environment: Record<string, string>
@@ -20,12 +20,12 @@ type ResolvedConnection = {
   providerLines: string[]
 }
 
-export function getCodexConfig(connection: Connection): CodexConfig | null {
-  const resolved = resolveConnectionAuth(connection)
+export function getCodexConfig(llm: Llm): CodexConfig | null {
+  const resolved = resolveLlmAuth(llm)
   if (!resolved) {
-    console.debug('Codex config could not resolve connection', {
-      connectionId: connection.id,
-      connectionType: connection.type,
+    console.debug('Codex config could not resolve llm', {
+      llmId: llm.id,
+      llmType: llm.type,
     })
     return null
   }
@@ -40,21 +40,21 @@ export function getCodexConfig(connection: Connection): CodexConfig | null {
   }
 }
 
-function resolveConnectionAuth(connection: Connection): ResolvedConnection | null {
-  const model = connection.preferredModel?.trim()
+function resolveLlmAuth(llm: Llm): ResolvedLlm | null {
+  const model = llm.preferredModel?.trim()
   if (!model) {
-    console.debug('Codex config missing preferred model on connection', {
-      connectionId: connection.id,
-      connectionType: connection.type,
+    console.debug('Codex config missing preferred model on llm', {
+      llmId: llm.id,
+      llmType: llm.type,
     })
     return null
   }
 
-  if (connection.type === 'OPENAI_API_KEY') {
-    const apiKey = connection.apiKey?.trim()
+  if (llm.type === 'OPENAI_API_KEY') {
+    const apiKey = llm.apiKey?.trim()
     if (!apiKey) {
       console.debug('Codex config missing OpenAI API key', {
-        connectionId: connection.id,
+        llmId: llm.id,
       })
       return null
     }
@@ -68,11 +68,11 @@ function resolveConnectionAuth(connection: Connection): ResolvedConnection | nul
     }
   }
 
-  if (connection.type === 'OPENAI_LOGIN_TOKEN') {
-    const accessToken = connection.accessToken?.trim()
+  if (llm.type === 'OPENAI_LOGIN_TOKEN') {
+    const accessToken = llm.accessToken?.trim()
     if (!accessToken) {
       console.debug('Codex config missing OpenAI access token', {
-        connectionId: connection.id,
+        llmId: llm.id,
       })
       return null
     }
@@ -86,11 +86,11 @@ function resolveConnectionAuth(connection: Connection): ResolvedConnection | nul
     }
   }
 
-  if (connection.type === 'KIMI_API_KEY') {
-    const apiKey = connection.apiKey?.trim()
+  if (llm.type === 'KIMI_API_KEY') {
+    const apiKey = llm.apiKey?.trim()
     if (!apiKey) {
       console.debug('Codex config missing Kimi API key', {
-        connectionId: connection.id,
+        llmId: llm.id,
       })
       return null
     }
@@ -112,14 +112,14 @@ function resolveConnectionAuth(connection: Connection): ResolvedConnection | nul
     }
   }
 
-  console.debug('Codex config does not support connection type yet', {
-    connectionId: connection.id,
-    connectionType: connection.type,
+  console.debug('Codex config does not support llm type yet', {
+    llmId: llm.id,
+    llmType: llm.type,
   })
   return null
 }
 
-function buildConfigToml(config: ResolvedConnection): string {
+function buildConfigToml(config: ResolvedLlm): string {
   const lines = [
     `model = "${config.model}"`,
     `model_provider = "${config.modelProvider}"`,

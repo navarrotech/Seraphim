@@ -16,7 +16,7 @@ const adapter = new PrismaPg({
 
 export async function startDatabase(): Promise<boolean> {
   if (prisma) {
-    logWarning('Database already started, skipping new connection')
+    logWarning('Database already started, skipping new llm')
     return true
   }
 
@@ -39,7 +39,7 @@ export async function startDatabase(): Promise<boolean> {
 
 export async function stopDatabase(): Promise<void> {
   if (!prisma) {
-    logWarning('Database stop requested, but no connection is running')
+    logWarning('Database stop requested, but no llm is running')
     return
   }
 

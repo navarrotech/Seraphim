@@ -2,21 +2,21 @@
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 
-type CreateConnectionOptions = {
+type CreateLlmOptions = {
   userId: string
-  data: Prisma.ConnectionCreateInput
+  data: Prisma.LlmCreateInput
   isDefault?: boolean
 }
 
-export async function createConnectionWithDefaults(
+export async function createLlmWithDefaults(
   databaseClient: PrismaClient,
-  options: CreateConnectionOptions,
+  options: CreateLlmOptions,
 ) {
-  async function createConnectionTransaction(
+  async function createLlmTransaction(
     transactionClient: Prisma.TransactionClient,
   ) {
     if (options.isDefault) {
-      await transactionClient.connection.updateMany({
+      await transactionClient.llm.updateMany({
         where: {
           userId: options.userId,
           isDefault: true,
@@ -27,10 +27,10 @@ export async function createConnectionWithDefaults(
       })
     }
 
-    return transactionClient.connection.create({
+    return transactionClient.llm.create({
       data: options.data,
     })
   }
 
-  return databaseClient.$transaction(createConnectionTransaction)
+  return databaseClient.$transaction(createLlmTransaction)
 }
