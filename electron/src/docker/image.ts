@@ -21,6 +21,7 @@ export function buildDockerfileContents(
   validateScriptName?: string,
   workspace?: Workspace,
   gitUrl?: string,
+  gitRemoteUrl?: string,
 ): string {
   const normalizedImage = image.toLowerCase().trim()
 
@@ -135,6 +136,14 @@ export function buildDockerfileContents(
       '',
       '# Clone initial repository',
       `RUN git clone --recurse-submodules ${gitUrl} .`,
+    )
+  }
+
+  if (gitRemoteUrl) {
+    lines.push(
+      '',
+      '# Configure origin remote URL',
+      `RUN git remote set-url origin ${gitRemoteUrl}`,
     )
   }
 

@@ -1,18 +1,23 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+
 // Lib
 import { z } from 'zod'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
-import { createGithubAuthorizationUrl } from '@electron/api/oauth/githubOAuthService'
+import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
 import { parseRequestBody } from '../../validation'
 
 const addAccountRequestSchema = z.object({
   provider: z.literal('GITHUB'),
-  completionRedirectUrl: z.string().trim().url().optional(),
+  name: z.string().trim().min(1),
+  accessToken: z.string().trim().min(1),
+  gitUserName: z.string().trim().min(1),
+  gitUserEmail: z.string().trim().email(),
 })
+
 type AddAccountPayload = z.infer<typeof addAccountRequestSchema>
 
 export async function handleAddAccountRequest(
@@ -24,38 +29,63 @@ export async function handleAddAccountRequest(
     request,
     response,
     {
-      context: 'Add OAuth account',
-      errorMessage: 'Invalid OAuth account request',
+      context: 'Add token account',
+      errorMessage: 'Invalid account request',
     },
   )
 
   if (!payload) {
-    console.debug('Add OAuth account request failed validation')
+    console.debug('Add account request failed validation')
     return
   }
 
-  const databaseClient = requireDatabaseClient('Add OAuth account')
-
-  if (payload.provider === 'GITHUB') {
-    const authorizationResult = await createGithubAuthorizationUrl(databaseClient, {
-      completionRedirectUrl: payload.completionRedirectUrl,
-    })
-
-    if (!authorizationResult) {
-      console.debug('Failed to create Github OAuth authorization URL')
-      response.status(500).json({ error: 'Failed to initiate OAuth flow' })
-      return
-    }
-
-    response.status(200).json({
-      provider: authorizationResult.provider,
-      authorizationUrl: authorizationResult.authorizationUrl,
-      state: authorizationResult.state,
-      scopes: authorizationResult.scopes,
+  const validation = await validateGithubToken(payload.accessToken)
+  if (validation.isValid === false) {
+    response.status(400).json({
+      error: validation.error,
+      status: validation.status,
+      grantedScopes: validation.grantedScopes,
+      acceptedScopes: validation.acceptedScopes,
+      missingScopes: validation.missingScopes,
     })
     return
   }
 
-  console.debug('Unsupported OAuth provider requested', { provider: payload.provider })
-  response.status(400).json({ error: 'Unsupported OAuth provider' })
+  const databaseClient = requireDatabaseClient('Add token account')
+
+  const account = await databaseClient.authAccount.upsert({
+    where: {
+      provider_username: {
+        provider: payload.provider,
+        username: validation.username,
+      },
+    },
+    create: {
+      provider: payload.provider,
+      name: payload.name,
+      accessToken: payload.accessToken,
+      scope: validation.scope,
+      username: validation.username,
+      email: payload.gitUserEmail,
+    },
+    update: {
+      name: payload.name,
+      accessToken: payload.accessToken,
+      scope: validation.scope,
+      email: payload.gitUserEmail,
+      lastUsedAt: new Date(),
+    },
+  })
+
+  response.status(200).json({
+    account,
+    gitUserName: payload.gitUserName,
+    gitUserEmail: payload.gitUserEmail,
+    githubIdentity: {
+      username: validation.username,
+      email: validation.email,
+    },
+    grantedScopes: validation.grantedScopes,
+    acceptedScopes: validation.acceptedScopes,
+  })
 }

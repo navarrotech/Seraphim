@@ -128,10 +128,10 @@ export function CreateWorkspace() {
       shouldTouch: true,
       shouldValidate: true,
     })
-    const trimmedDisplayName = repoOption.displayName.trim()
+    const trimmedAccountName = repoOption.name.trim()
     const trimmedUsername = repoOption.username.trim()
-    const isNameMissing = trimmedDisplayName.length === 0
-      || trimmedDisplayName === trimmedUsername
+    const isNameMissing = trimmedAccountName.length === 0
+      || trimmedAccountName === trimmedUsername
     if (isNameMissing) {
       console.debug('CreateWorkspace import missing git user name', {
         accountId: repoOption.accountId,
@@ -143,7 +143,7 @@ export function CreateWorkspace() {
       })
     }
     else {
-      form.setValue('gitUserName', trimmedDisplayName, {
+      form.setValue('gitUserName', trimmedAccountName, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,

@@ -78,6 +78,7 @@ export async function launchTask(
       validateScriptName,
       workspace,
       cloneResolution.cloneUrl,
+      cloneResolution.cloneUrl,
     )
 
     const dockerfilePath = join(contextDir, 'Dockerfile')

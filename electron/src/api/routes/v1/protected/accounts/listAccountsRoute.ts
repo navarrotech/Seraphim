@@ -4,16 +4,17 @@ import type { Request, Response } from 'express'
 import type { AuthProvider } from '@prisma/client'
 
 // Utility
+import { maskToken } from '@common/maskToken'
 import { requireDatabaseClient } from '@electron/database'
 
 type AccountSummary = {
   id: string
   provider: AuthProvider
-  providerAccountId: string
+  name: string
   username: string
-  displayName: string
-  avatarUrl: string | null
-  email: string | null
+  email: string
+  tokenPreview: string
+  scope: string
   lastUsedAt: Date | null
   createdAt: Date
 }
@@ -28,7 +29,7 @@ export async function handleListAccountsRequest(
 ): Promise<void> {
   void request
 
-  const databaseClient = requireDatabaseClient('List OAuth accounts')
+  const databaseClient = requireDatabaseClient('List token accounts')
 
   let accounts: AccountSummary[] = []
 
@@ -40,18 +41,18 @@ export async function handleListAccountsRequest(
     accounts = accountRecords.map((account) => ({
       id: account.id,
       provider: account.provider,
-      providerAccountId: account.providerAccountId,
+      name: account.name,
       username: account.username,
-      displayName: account.displayName,
-      avatarUrl: account.avatarUrl,
       email: account.email,
+      tokenPreview: maskToken(account.accessToken, 6),
+      scope: account.scope,
       lastUsedAt: account.lastUsedAt,
       createdAt: account.createdAt,
     }))
   }
   catch (error) {
-    console.error('Failed to list OAuth accounts', error)
-    response.status(500).json({ accounts: []})
+    console.error('Failed to list token accounts', error)
+    response.status(500).json({ accounts: [] })
     return
   }
 

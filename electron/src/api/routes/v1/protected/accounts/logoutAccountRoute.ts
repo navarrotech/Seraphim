@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
-import { revokeGithubAuthorization } from '@electron/api/oauth/githubOAuthService'
 import { parseRequestBody } from '../../validation'
 
 // Misc
@@ -59,17 +58,6 @@ export async function handleLogoutAccountRequest(
     return
   }
 
-  let revokeSucceeded = false
-  if (payload.provider === 'GITHUB') {
-    revokeSucceeded = await revokeGithubAuthorization(account.accessToken)
-  }
-
-  if (!revokeSucceeded) {
-    console.debug('OAuth token revocation failed, proceeding with local logout', {
-      accountId: account.id,
-    })
-  }
-
   try {
     await databaseClient.authAccount.delete({
       where: { id: account.id },
@@ -90,6 +78,6 @@ export async function handleLogoutAccountRequest(
   response.status(200).json({
     provider: payload.provider,
     accountId: payload.accountId,
-    revoked: revokeSucceeded,
+    revoked: true,
   })
 }
