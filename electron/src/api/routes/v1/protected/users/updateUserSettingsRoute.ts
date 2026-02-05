@@ -36,10 +36,15 @@ export async function handleUpdateUserSettingsRequest(
   }
 
   const { doneSoundFile, ...settingsUpdates } = updateData
-  let doneSoundAudioBuffer: Buffer | null = null
+  let doneSoundAudioBytes: Uint8Array<ArrayBuffer> | null = null
   if (doneSoundFile) {
-    doneSoundAudioBuffer = Buffer.from(doneSoundFile.dataBase64, 'base64')
-    if (doneSoundAudioBuffer.length === 0) {
+    const decodedDoneSoundAudioBuffer = Buffer.from(doneSoundFile.dataBase64, 'base64')
+    const decodedDoneSoundAudioBytes = new Uint8Array(
+      new ArrayBuffer(decodedDoneSoundAudioBuffer.length),
+    )
+    decodedDoneSoundAudioBytes.set(decodedDoneSoundAudioBuffer)
+    doneSoundAudioBytes = decodedDoneSoundAudioBytes
+    if (doneSoundAudioBytes.length === 0) {
       console.debug('Done sound file was empty after decoding', {
         fileName: doneSoundFile.name,
         fileType: doneSoundFile.mimeType,
@@ -90,7 +95,7 @@ export async function handleUpdateUserSettingsRequest(
           })
         }
 
-        if (!doneSoundAudioBuffer) {
+        if (!doneSoundAudioBytes) {
           console.debug('Done sound buffer missing during settings update', {
             fileName: doneSoundFile.name,
             fileType: doneSoundFile.mimeType,
@@ -105,7 +110,7 @@ export async function handleUpdateUserSettingsRequest(
             fileName: doneSoundFile.name,
             mimeType: doneSoundFile.mimeType,
             sizeBytes: doneSoundFile.sizeBytes,
-            data: doneSoundAudioBuffer,
+            data: doneSoundAudioBytes,
           },
         })
         doneSoundAudioFileId = newAudioFile.id
