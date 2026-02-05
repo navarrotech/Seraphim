@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 import type { Workspace } from '@prisma/client'
-import type { LlmRecord } from '@frontend/lib/types/llmTypes'
+import type { LlmRecord } from '@common/types'
 import type { Selection } from '@react-types/shared'
 
 // Core

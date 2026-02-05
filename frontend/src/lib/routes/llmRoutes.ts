@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { LlmRecord } from '@frontend/lib/types/llmTypes'
+import type { LlmRecord } from '@common/types'
 
 // Lib
 import { z } from 'zod'
