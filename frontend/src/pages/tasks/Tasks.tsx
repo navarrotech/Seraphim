@@ -32,7 +32,7 @@ type TaskRouteParams = {
 type TaskDraft = {
   message: string
   workspaceId: string
-  connectionId: string
+  llmId: string
 }
 
 export function Tasks() {
@@ -41,7 +41,7 @@ export function Tasks() {
 
   const tasks = useSelector((state) => state.tasks.items)
   const workspaces = useSelector((state) => state.workspaces.items)
-  const connections = useSelector((state) => state.connections.items)
+  const llms = useSelector((state) => state.llms.items)
 
   const selectedTask = taskId
     ? tasks.find((task) => task.id === taskId)
@@ -69,9 +69,9 @@ export function Tasks() {
       return
     }
 
-    const connection = connections.find((entry) => entry.id === draft.connectionId)
-    if (!connection) {
-      console.debug('Tasks cannot create a task without a connection', { draft })
+    const llm = llms.find((entry) => entry.id === draft.llmId)
+    if (!llm) {
+      console.debug('Tasks cannot create a task without a llm', { draft })
       return
     }
 
@@ -81,7 +81,7 @@ export function Tasks() {
       const response = await createTask({
         userId: user.id,
         workspaceId: workspace.id,
-        connectionId: draft.connectionId,
+        llmId: draft.llmId,
         message: draft.message,
         branch: DEFAULT_TASK_BRANCH,
         container: workspace.containerImage || DEFAULT_TASK_CONTAINER,

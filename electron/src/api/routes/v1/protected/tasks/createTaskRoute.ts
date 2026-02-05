@@ -38,7 +38,7 @@ export async function handleCreateTaskRequest(
   const {
     userId,
     workspaceId,
-    connectionId,
+    llmId,
     message,
     branch,
     archived,
@@ -67,19 +67,19 @@ export async function handleCreateTaskRequest(
       return
     }
 
-    const connection = await databaseClient.connection.findUnique({
-      where: { id: connectionId },
+    const llm = await databaseClient.llm.findUnique({
+      where: { id: llmId },
     })
 
-    if (!connection) {
-      console.debug('Task creation failed, connection not found', {
-        connectionId,
+    if (!llm) {
+      console.debug('Task creation failed, llm not found', {
+        llmId,
       })
-      response.status(404).json({ error: 'Connection not found' })
+      response.status(404).json({ error: 'Llm not found' })
       return
     }
 
-    const codexTaskName = await requestTaskName(connection, {
+    const codexTaskName = await requestTaskName(llm, {
       message,
       workspaceName: workspace.name,
     })
@@ -112,7 +112,7 @@ export async function handleCreateTaskRequest(
         data: {
           userId,
           workspaceId,
-          connectionId,
+          llmId,
           name: codexTaskName,
           branch,
           container: pendingContainerId,

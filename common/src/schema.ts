@@ -68,7 +68,7 @@ export const workspaceUpdateSchema = z.object({
 export const taskCreateSchema = z.object({
   userId: z.string().trim().min(1),
   workspaceId: z.string().trim().min(1),
-  connectionId: z.string().trim().min(1),
+  llmId: z.string().trim().min(1),
   message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
   container: z.string().trim().min(1),
@@ -84,7 +84,7 @@ export const taskUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
-export const connectionUpdateSchema = z.object({
+export const llmUpdateSchema = z.object({
   apiKey: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
   preferredModel: z.string().trim().min(1).optional(),
@@ -94,7 +94,7 @@ export const connectionUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
-export const openAiApiKeyConnectionCreateSchema = z.object({
+export const openAiApiKeyLlmCreateSchema = z.object({
   name: z.string().trim().min(1),
   preferredModel: z.string().trim().min(1),
   apiKey: z.string().trim().min(1),
@@ -102,7 +102,7 @@ export const openAiApiKeyConnectionCreateSchema = z.object({
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
-export const kimiApiKeyConnectionCreateSchema = z.object({
+export const kimiApiKeyLlmCreateSchema = z.object({
   name: z.string().trim().min(1),
   preferredModel: z.string().trim().min(1),
   apiKey: z.string().trim().min(1),
@@ -110,7 +110,7 @@ export const kimiApiKeyConnectionCreateSchema = z.object({
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
-export const openAiLoginTokenConnectionCreateSchema = z.object({
+export const openAiLoginTokenLlmCreateSchema = z.object({
   name: z.string().trim().min(1),
   tokenLimit: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional().default(false),
@@ -152,15 +152,15 @@ export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>
 export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
 export type TaskCreateRequest = z.infer<typeof taskCreateSchema>
 export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
-export type ConnectionUpdateRequest = z.infer<typeof connectionUpdateSchema>
-export type OpenAiApiKeyConnectionCreateRequest = z.infer<
-  typeof openAiApiKeyConnectionCreateSchema
+export type LlmUpdateRequest = z.infer<typeof llmUpdateSchema>
+export type OpenAiApiKeyLlmCreateRequest = z.infer<
+  typeof openAiApiKeyLlmCreateSchema
 >
-export type KimiApiKeyConnectionCreateRequest = z.infer<
-  typeof kimiApiKeyConnectionCreateSchema
+export type KimiApiKeyLlmCreateRequest = z.infer<
+  typeof kimiApiKeyLlmCreateSchema
 >
-export type OpenAiLoginTokenConnectionCreateRequest = z.infer<
-  typeof openAiLoginTokenConnectionCreateSchema
+export type OpenAiLoginTokenLlmCreateRequest = z.infer<
+  typeof openAiLoginTokenLlmCreateSchema
 >
 export type UserSettingsRequest = z.infer<typeof userSettingsSchema>
 export type UserSettingsUpdateRequest = z.infer<typeof userSettingsUpdateSchema>

@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 import type { Selection } from '@react-types/shared'
-import type { ConnectionRecord } from '@frontend/lib/types/connectionTypes'
+import type { LlmRecord } from '@frontend/lib/types/llmTypes'
 
 // Core
 import { useEffect, useState } from 'react'
@@ -30,33 +30,33 @@ import {
 // Misc
 import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
 import {
-  connectionUpdateSchema,
-  kimiApiKeyConnectionCreateSchema,
-  openAiApiKeyConnectionCreateSchema,
-  openAiLoginTokenConnectionCreateSchema,
+  llmUpdateSchema,
+  kimiApiKeyLlmCreateSchema,
+  openAiApiKeyLlmCreateSchema,
+  openAiLoginTokenLlmCreateSchema,
 } from '@common/schema'
 import {
-  createKimiApiKeyConnection,
-  createOpenAiApiKeyConnection,
-  createOpenAiLoginTokenConnection,
-  updateConnection,
-} from '@frontend/lib/routes/connectionRoutes'
+  createKimiApiKeyLlm,
+  createOpenAiApiKeyLlm,
+  createOpenAiLoginTokenLlm,
+  updateLlm,
+} from '@frontend/lib/routes/llmRoutes'
 
-const connectionTypeOptions = [
+const llmTypeOptions = [
   'OPENAI_API_KEY',
   'KIMI_API_KEY',
   'OPENAI_LOGIN_TOKEN',
 ] as const
 
-const connectionTypeSchema = z.enum(connectionTypeOptions)
+const llmTypeSchema = z.enum(llmTypeOptions)
 
-type ConnectionType = z.infer<typeof connectionTypeSchema>
+type LlmType = z.infer<typeof llmTypeSchema>
 
 type DrawerMode = 'create' | 'edit'
 
-type ConnectionUpdatePayload = z.infer<typeof connectionUpdateSchema>
+type LlmUpdatePayload = z.infer<typeof llmUpdateSchema>
 
-const connectionTypeLabels: Record<ConnectionType, string> = {
+const llmTypeLabels: Record<LlmType, string> = {
   OPENAI_API_KEY: 'OpenAI (API key)',
   KIMI_API_KEY: 'Kimi K2 (API key)',
   OPENAI_LOGIN_TOKEN: 'OpenAI (Login token)',
@@ -88,10 +88,10 @@ const openAiLoginTokenEditSchema = z.object({
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
-type OpenAiApiKeyFormValues = z.infer<typeof openAiApiKeyConnectionCreateSchema>
-type KimiApiKeyFormValues = z.infer<typeof kimiApiKeyConnectionCreateSchema>
+type OpenAiApiKeyFormValues = z.infer<typeof openAiApiKeyLlmCreateSchema>
+type KimiApiKeyFormValues = z.infer<typeof kimiApiKeyLlmCreateSchema>
 type OpenAiLoginTokenFormValues = z.infer<
-  typeof openAiLoginTokenConnectionCreateSchema
+  typeof openAiLoginTokenLlmCreateSchema
 >
 
 type OpenAiApiKeyEditFormValues = z.infer<typeof openAiApiKeyEditSchema>
@@ -102,7 +102,7 @@ type Props = {
   isOpen: boolean
   isDisabled: boolean
   mode: DrawerMode
-  connection?: ConnectionRecord | null
+  llm?: LlmRecord | null
   onOpenChange: (isOpen: boolean) => void
 }
 
@@ -112,7 +112,7 @@ function resolveSelection<OptionType extends string>(
   context: string,
 ): OptionType | null {
   if (selection === 'all') {
-    console.debug('CreateConnectionDrawer received an unexpected selection', {
+    console.debug('CreateLlmDrawer received an unexpected selection', {
       context,
       selection,
     })
@@ -123,7 +123,7 @@ function resolveSelection<OptionType extends string>(
   const selectedKey = selectedKeys[0]
 
   if (!selectedKey) {
-    console.debug('CreateConnectionDrawer failed to resolve a selection', {
+    console.debug('CreateLlmDrawer failed to resolve a selection', {
       context,
       selection,
     })
@@ -131,7 +131,7 @@ function resolveSelection<OptionType extends string>(
   }
 
   if (typeof selectedKey !== 'string') {
-    console.debug('CreateConnectionDrawer expected a string selection key', {
+    console.debug('CreateLlmDrawer expected a string selection key', {
       context,
       selection,
     })
@@ -140,7 +140,7 @@ function resolveSelection<OptionType extends string>(
 
   const parsedSelection = schema.safeParse(selectedKey)
   if (!parsedSelection.success) {
-    console.debug('CreateConnectionDrawer received an unknown selection value', {
+    console.debug('CreateLlmDrawer received an unknown selection value', {
       context,
       selection,
     })
@@ -153,7 +153,7 @@ function resolveSelection<OptionType extends string>(
 function getDefaultModel(models: readonly string[], context: string) {
   const defaultModel = models[0]
   if (!defaultModel) {
-    console.debug('CreateConnectionDrawer missing supported models', {
+    console.debug('CreateLlmDrawer missing supported models', {
       context,
     })
     return ''
@@ -183,7 +183,7 @@ function createTokenLimitChangeHandler(
 
     const parsedValue = Number(trimmedValue)
     if (!Number.isFinite(parsedValue)) {
-      console.debug('CreateConnectionDrawer token limit is not a number', {
+      console.debug('CreateLlmDrawer token limit is not a number', {
         context,
         value,
       })
@@ -191,7 +191,7 @@ function createTokenLimitChangeHandler(
     }
 
     if (!Number.isInteger(parsedValue) || parsedValue < 0) {
-      console.debug('CreateConnectionDrawer token limit must be a whole number', {
+      console.debug('CreateLlmDrawer token limit must be a whole number', {
         context,
         value,
       })
@@ -237,50 +237,50 @@ function getOpenAiLoginTokenDefaults(): OpenAiLoginTokenFormValues {
 }
 
 function getOpenAiApiKeyEditDefaults(
-  connection: ConnectionRecord,
+  llm: LlmRecord,
 ): OpenAiApiKeyEditFormValues {
   return {
-    name: connection.name || '',
-    preferredModel: connection.preferredModel || getDefaultModel(
+    name: llm.name || '',
+    preferredModel: llm.preferredModel || getDefaultModel(
       SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY,
       'openai-api-key-edit',
     ),
     apiKey: undefined,
-    tokenLimit: connection.tokenLimit ?? undefined,
-    isDefault: connection.isDefault,
+    tokenLimit: llm.tokenLimit ?? undefined,
+    isDefault: llm.isDefault,
   }
 }
 
 function getKimiApiKeyEditDefaults(
-  connection: ConnectionRecord,
+  llm: LlmRecord,
 ): KimiApiKeyEditFormValues {
   return {
-    name: connection.name || '',
-    preferredModel: connection.preferredModel || getDefaultModel(
+    name: llm.name || '',
+    preferredModel: llm.preferredModel || getDefaultModel(
       SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY,
       'kimi-api-key-edit',
     ),
     apiKey: undefined,
-    tokenLimit: connection.tokenLimit ?? undefined,
-    isDefault: connection.isDefault,
+    tokenLimit: llm.tokenLimit ?? undefined,
+    isDefault: llm.isDefault,
   }
 }
 
 function getOpenAiLoginTokenEditDefaults(
-  connection: ConnectionRecord,
+  llm: LlmRecord,
 ): OpenAiLoginTokenEditFormValues {
   return {
-    name: connection.name || '',
-    tokenLimit: connection.tokenLimit ?? undefined,
-    isDefault: connection.isDefault,
+    name: llm.name || '',
+    tokenLimit: llm.tokenLimit ?? undefined,
+    isDefault: llm.isDefault,
   }
 }
 
 function buildApiKeyUpdatePayload(
   values: OpenAiApiKeyEditFormValues | KimiApiKeyEditFormValues,
   context: string,
-): ConnectionUpdatePayload {
-  const payload: ConnectionUpdatePayload = {
+): LlmUpdatePayload {
+  const payload: LlmUpdatePayload = {
     name: values.name,
     preferredModel: values.preferredModel,
     isDefault: values.isDefault,
@@ -295,7 +295,7 @@ function buildApiKeyUpdatePayload(
     payload.apiKey = trimmedApiKey
   }
   else if (values.apiKey !== undefined) {
-    console.debug('CreateConnectionDrawer received an empty apiKey', {
+    console.debug('CreateLlmDrawer received an empty apiKey', {
       context,
     })
   }
@@ -305,8 +305,8 @@ function buildApiKeyUpdatePayload(
 
 function buildLoginTokenUpdatePayload(
   values: OpenAiLoginTokenEditFormValues,
-): ConnectionUpdatePayload {
-  const payload: ConnectionUpdatePayload = {
+): LlmUpdatePayload {
+  const payload: LlmUpdatePayload = {
     name: values.name,
     isDefault: values.isDefault,
   }
@@ -318,24 +318,24 @@ function buildLoginTokenUpdatePayload(
   return payload
 }
 
-export function CreateConnectionDrawer(props: Props) {
-  const [ connectionType, setConnectionType ] = useState<ConnectionType>(
+export function CreateLlmDrawer(props: Props) {
+  const [ llmType, setLlmType ] = useState<LlmType>(
     'OPENAI_API_KEY',
   )
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
 
   const openAiApiKeyForm = useForm<OpenAiApiKeyFormValues>({
-    resolver: zodResolver(openAiApiKeyConnectionCreateSchema),
+    resolver: zodResolver(openAiApiKeyLlmCreateSchema),
     defaultValues: getOpenAiApiKeyDefaults(),
   })
 
   const kimiApiKeyForm = useForm<KimiApiKeyFormValues>({
-    resolver: zodResolver(kimiApiKeyConnectionCreateSchema),
+    resolver: zodResolver(kimiApiKeyLlmCreateSchema),
     defaultValues: getKimiApiKeyDefaults(),
   })
 
   const openAiLoginTokenForm = useForm<OpenAiLoginTokenFormValues>({
-    resolver: zodResolver(openAiLoginTokenConnectionCreateSchema),
+    resolver: zodResolver(openAiLoginTokenLlmCreateSchema),
     defaultValues: getOpenAiLoginTokenDefaults(),
   })
 
@@ -387,8 +387,8 @@ export function CreateConnectionDrawer(props: Props) {
     ? openAiLoginTokenEditForm
     : openAiLoginTokenForm
 
-  const connectionTypeKeys = connectionType
-    ? [ connectionType ]
+  const llmTypeKeys = llmType
+    ? [ llmType ]
     : []
 
   const openAiModelValue = activeOpenAiApiKeyForm.watch('preferredModel')
@@ -406,7 +406,7 @@ export function CreateConnectionDrawer(props: Props) {
       return
     }
 
-    setConnectionType('OPENAI_API_KEY')
+    setLlmType('OPENAI_API_KEY')
     setStatusMessage(null)
     openAiApiKeyForm.reset(getOpenAiApiKeyDefaults())
     kimiApiKeyForm.reset(getKimiApiKeyDefaults())
@@ -451,30 +451,30 @@ export function CreateConnectionDrawer(props: Props) {
       return
     }
 
-    if (!props.connection) {
-      console.debug('CreateConnectionDrawer edit requested without a connection')
-      setStatusMessage('Select a connection to edit.')
+    if (!props.llm) {
+      console.debug('CreateLlmDrawer edit requested without a llm')
+      setStatusMessage('Select an LLM to edit.')
       return
     }
 
     setStatusMessage(null)
-    setConnectionType(props.connection.type)
+    setLlmType(props.llm.type)
 
-    if (props.connection.type === 'OPENAI_API_KEY') {
-      openAiApiKeyEditForm.reset(getOpenAiApiKeyEditDefaults(props.connection))
+    if (props.llm.type === 'OPENAI_API_KEY') {
+      openAiApiKeyEditForm.reset(getOpenAiApiKeyEditDefaults(props.llm))
       return
     }
 
-    if (props.connection.type === 'KIMI_API_KEY') {
-      kimiApiKeyEditForm.reset(getKimiApiKeyEditDefaults(props.connection))
+    if (props.llm.type === 'KIMI_API_KEY') {
+      kimiApiKeyEditForm.reset(getKimiApiKeyEditDefaults(props.llm))
       return
     }
 
     openAiLoginTokenEditForm.reset(
-      getOpenAiLoginTokenEditDefaults(props.connection),
+      getOpenAiLoginTokenEditDefaults(props.llm),
     )
   }, [
-    props.connection,
+    props.llm,
     props.isOpen,
     props.mode,
     openAiApiKeyEditForm,
@@ -482,18 +482,18 @@ export function CreateConnectionDrawer(props: Props) {
     openAiLoginTokenEditForm,
   ])
 
-  function handleConnectionTypeSelection(selection: Selection) {
+  function handleLlmTypeSelection(selection: Selection) {
     const resolvedSelection = resolveSelection(
       selection,
-      connectionTypeSchema,
-      'connection-type',
+      llmTypeSchema,
+      'llm-type',
     )
     if (!resolvedSelection) {
       return
     }
 
     setStatusMessage(null)
-    setConnectionType(resolvedSelection)
+    setLlmType(resolvedSelection)
   }
 
   function handleOpenAiModelSelection(selection: Selection) {
@@ -537,16 +537,16 @@ export function CreateConnectionDrawer(props: Props) {
       setStatusMessage(null)
 
       try {
-        await createOpenAiApiKeyConnection(values)
+        await createOpenAiApiKeyLlm(values)
         props.onOpenChange(false)
         openAiApiKeyForm.reset(getOpenAiApiKeyDefaults())
       }
       catch (error) {
         console.debug(
-          'CreateConnectionDrawer failed to create OpenAI API key connection',
+          'CreateLlmDrawer failed to create OpenAI API key llm',
           { error },
         )
-        setStatusMessage('Unable to create the OpenAI connection right now.')
+        setStatusMessage('Unable to create the OpenAI LLM right now.')
       }
     },
   )
@@ -556,16 +556,16 @@ export function CreateConnectionDrawer(props: Props) {
       setStatusMessage(null)
 
       try {
-        await createKimiApiKeyConnection(values)
+        await createKimiApiKeyLlm(values)
         props.onOpenChange(false)
         kimiApiKeyForm.reset(getKimiApiKeyDefaults())
       }
       catch (error) {
         console.debug(
-          'CreateConnectionDrawer failed to create Kimi API key connection',
+          'CreateLlmDrawer failed to create Kimi API key llm',
           { error },
         )
-        setStatusMessage('Unable to create the Kimi connection right now.')
+        setStatusMessage('Unable to create the Kimi LLM right now.')
       }
     },
   )
@@ -575,16 +575,16 @@ export function CreateConnectionDrawer(props: Props) {
       setStatusMessage(null)
 
       try {
-        await createOpenAiLoginTokenConnection(values)
+        await createOpenAiLoginTokenLlm(values)
         props.onOpenChange(false)
         openAiLoginTokenForm.reset(getOpenAiLoginTokenDefaults())
       }
       catch (error) {
         console.debug(
-          'CreateConnectionDrawer failed to create OpenAI login token connection',
+          'CreateLlmDrawer failed to create OpenAI login token llm',
           { error },
         )
-        setStatusMessage('Unable to create the OpenAI login connection right now.')
+        setStatusMessage('Unable to create the OpenAI login LLM right now.')
       }
     },
   )
@@ -593,23 +593,23 @@ export function CreateConnectionDrawer(props: Props) {
     async function onSubmit(values) {
       setStatusMessage(null)
 
-      if (!props.connection) {
-        console.debug('CreateConnectionDrawer edit submit missing connection')
-        setStatusMessage('Select a connection to edit.')
+      if (!props.llm) {
+        console.debug('CreateLlmDrawer edit submit missing llm')
+        setStatusMessage('Select an LLM to edit.')
         return
       }
 
       try {
         const payload = buildApiKeyUpdatePayload(values, 'openai-api-key-edit')
-        await updateConnection(props.connection.id, payload)
+        await updateLlm(props.llm.id, payload)
         props.onOpenChange(false)
       }
       catch (error) {
-        console.debug('CreateConnectionDrawer failed to edit OpenAI connection', {
+        console.debug('CreateLlmDrawer failed to edit OpenAI llm', {
           error,
-          connectionId: props.connection.id,
+          llmId: props.llm.id,
         })
-        setStatusMessage('Unable to update the OpenAI connection right now.')
+        setStatusMessage('Unable to update the OpenAI LLM right now.')
       }
     },
   )
@@ -618,23 +618,23 @@ export function CreateConnectionDrawer(props: Props) {
     async function onSubmit(values) {
       setStatusMessage(null)
 
-      if (!props.connection) {
-        console.debug('CreateConnectionDrawer edit submit missing connection')
-        setStatusMessage('Select a connection to edit.')
+      if (!props.llm) {
+        console.debug('CreateLlmDrawer edit submit missing llm')
+        setStatusMessage('Select an LLM to edit.')
         return
       }
 
       try {
         const payload = buildApiKeyUpdatePayload(values, 'kimi-api-key-edit')
-        await updateConnection(props.connection.id, payload)
+        await updateLlm(props.llm.id, payload)
         props.onOpenChange(false)
       }
       catch (error) {
-        console.debug('CreateConnectionDrawer failed to edit Kimi connection', {
+        console.debug('CreateLlmDrawer failed to edit Kimi llm', {
           error,
-          connectionId: props.connection.id,
+          llmId: props.llm.id,
         })
-        setStatusMessage('Unable to update the Kimi connection right now.')
+        setStatusMessage('Unable to update the Kimi LLM right now.')
       }
     },
   )
@@ -643,33 +643,33 @@ export function CreateConnectionDrawer(props: Props) {
     async function onSubmit(values) {
       setStatusMessage(null)
 
-      if (!props.connection) {
-        console.debug('CreateConnectionDrawer edit submit missing connection')
-        setStatusMessage('Select a connection to edit.')
+      if (!props.llm) {
+        console.debug('CreateLlmDrawer edit submit missing llm')
+        setStatusMessage('Select an LLM to edit.')
         return
       }
 
       try {
         const payload = buildLoginTokenUpdatePayload(values)
-        await updateConnection(props.connection.id, payload)
+        await updateLlm(props.llm.id, payload)
         props.onOpenChange(false)
       }
       catch (error) {
-        console.debug('CreateConnectionDrawer failed to edit login connection', {
+        console.debug('CreateLlmDrawer failed to edit login llm', {
           error,
-          connectionId: props.connection.id,
+          llmId: props.llm.id,
         })
-        setStatusMessage('Unable to update the OpenAI login connection right now.')
+        setStatusMessage('Unable to update the OpenAI login LLM right now.')
       }
     },
   )
 
   function getActiveFormState() {
-    if (connectionType === 'OPENAI_API_KEY') {
+    if (llmType === 'OPENAI_API_KEY') {
       return activeOpenAiApiKeyForm.formState
     }
 
-    if (connectionType === 'KIMI_API_KEY') {
+    if (llmType === 'KIMI_API_KEY') {
       return activeKimiApiKeyForm.formState
     }
 
@@ -677,13 +677,13 @@ export function CreateConnectionDrawer(props: Props) {
   }
 
   function getActiveSubmitHandler() {
-    if (connectionType === 'OPENAI_API_KEY') {
+    if (llmType === 'OPENAI_API_KEY') {
       return isEditMode
         ? onSubmitOpenAiApiKeyEdit
         : onSubmitOpenAiApiKey
     }
 
-    if (connectionType === 'KIMI_API_KEY') {
+    if (llmType === 'KIMI_API_KEY') {
       return isEditMode
         ? onSubmitKimiApiKeyEdit
         : onSubmitKimiApiKey
@@ -793,7 +793,7 @@ export function CreateConnectionDrawer(props: Props) {
               isDisabled={isFormDisabled}
               onValueChange={field.onChange}
             >{
-              'Set as default connection'
+              'Set as default LLM'
             }</Checkbox>
           )}
         />
@@ -898,7 +898,7 @@ export function CreateConnectionDrawer(props: Props) {
               isDisabled={isFormDisabled}
               onValueChange={field.onChange}
             >{
-              'Set as default connection'
+              'Set as default LLM'
             }</Checkbox>
           )}
         />
@@ -961,7 +961,7 @@ export function CreateConnectionDrawer(props: Props) {
               isDisabled={isFormDisabled}
               onValueChange={field.onChange}
             >{
-              'Set as default connection'
+              'Set as default LLM'
             }</Checkbox>
           )}
         />
@@ -970,11 +970,11 @@ export function CreateConnectionDrawer(props: Props) {
   }
 
   function renderActiveFields(isFormDisabled: boolean) {
-    if (connectionType === 'OPENAI_API_KEY') {
+    if (llmType === 'OPENAI_API_KEY') {
       return renderOpenAiApiKeyFields(isFormDisabled)
     }
 
-    if (connectionType === 'KIMI_API_KEY') {
+    if (llmType === 'KIMI_API_KEY') {
       return renderKimiApiKeyFields(isFormDisabled)
     }
 
@@ -994,11 +994,11 @@ export function CreateConnectionDrawer(props: Props) {
   const isFormDisabled = props.isDisabled || activeFormState.isSubmitting
   const onSubmit = getActiveSubmitHandler()
   const drawerTitle = isEditMode
-    ? 'Edit connection'
-    : 'Create connection'
+    ? 'Edit LLM'
+    : 'Create LLM'
   const drawerCta = isEditMode
     ? 'Save changes'
-    : 'Create connection'
+    : 'Create LLM'
   const isTypeSelectionDisabled = props.isDisabled || isEditMode
 
   return <Drawer
@@ -1014,22 +1014,22 @@ export function CreateConnectionDrawer(props: Props) {
               <strong>{drawerTitle}</strong>
             </div>
             <p className='opacity-80'>
-              Add a new LLM connection and choose the default model.
+              Add a new LLM and choose the default model.
             </p>
           </div>
         </DrawerHeader>
         <DrawerBody className='w-full'>
           <div className='relaxed w-full'>
             <Select
-              label='Connection type'
-              selectedKeys={connectionTypeKeys}
-              onSelectionChange={handleConnectionTypeSelection}
+              label='LLM type'
+              selectedKeys={llmTypeKeys}
+              onSelectionChange={handleLlmTypeSelection}
               className='compact w-full'
               isDisabled={isTypeSelectionDisabled}
             >{
-              connectionTypeOptions.map((option) => (
+              llmTypeOptions.map((option) => (
                 <SelectItem key={option}>{
-                  connectionTypeLabels[option]
+                  llmTypeLabels[option]
                 }</SelectItem>
               ))
             }</Select>

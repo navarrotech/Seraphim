@@ -12,7 +12,7 @@ import {
 
 // Reducers
 import { slice as accountsSlice } from './redux/stores/accounts'
-import { slice as connectionsSlice } from './redux/stores/connections'
+import { slice as llmsSlice } from './redux/stores/llms'
 import { slice as settingsSlice } from './redux/stores/settings'
 import { slice as tasksSlice } from './redux/stores/tasks'
 import { slice as workspacesSlice } from './redux/stores/workspaces'
@@ -25,7 +25,7 @@ export const store = configureStore({
   // For all type inferrence to work correctly, we must write these out explicitly
   reducer: {
     accounts: accountsSlice.reducer,
-    connections: connectionsSlice.reducer,
+    llms: llmsSlice.reducer,
     settings: settingsSlice.reducer,
     tasks: tasksSlice.reducer,
     workspaces: workspacesSlice.reducer,
@@ -67,7 +67,7 @@ export const useSelector: TypedUseSelectorHook<RootState> = useDefaultSelector
 
 const motherload = {
   accounts: accountsSlice,
-  connections: connectionsSlice,
+  llms: llmsSlice,
   settings: settingsSlice,
   tasks: tasksSlice,
   workspaces: workspacesSlice,

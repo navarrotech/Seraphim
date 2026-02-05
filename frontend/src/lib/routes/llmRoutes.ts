@@ -1,0 +1,97 @@
+// Copyright © 2026 Jalapeno Labs
+
+import type { LlmRecord } from '@frontend/lib/types/llmTypes'
+
+// Lib
+import { z } from 'zod'
+
+// Utility
+import {
+  llmUpdateSchema,
+  kimiApiKeyLlmCreateSchema,
+  openAiApiKeyLlmCreateSchema,
+  openAiLoginTokenLlmCreateSchema,
+} from '@common/schema'
+
+// Misc
+import { apiClient } from '../api'
+
+type ListLlmsResponse = {
+  llms: LlmRecord[]
+}
+
+export function listLlms() {
+  return apiClient
+    .get('v1/protected/llms')
+    .json<ListLlmsResponse>()
+}
+
+type CreateLlmResponse = {
+  llm: LlmRecord
+}
+
+type CreateOpenAiApiKeyLlmRequestBody = z.infer<
+  typeof openAiApiKeyLlmCreateSchema
+>
+
+export function createOpenAiApiKeyLlm(
+  body: CreateOpenAiApiKeyLlmRequestBody,
+) {
+  return apiClient
+    .post('v1/protected/llms/openai-api-key', { json: body })
+    .json<CreateLlmResponse>()
+}
+
+type CreateKimiApiKeyLlmRequestBody = z.infer<
+  typeof kimiApiKeyLlmCreateSchema
+>
+
+export function createKimiApiKeyLlm(
+  body: CreateKimiApiKeyLlmRequestBody,
+) {
+  return apiClient
+    .post('v1/protected/llms/kimi-api-key', { json: body })
+    .json<CreateLlmResponse>()
+}
+
+type CreateOpenAiLoginTokenLlmRequestBody = z.infer<
+  typeof openAiLoginTokenLlmCreateSchema
+>
+
+export function createOpenAiLoginTokenLlm(
+  body: CreateOpenAiLoginTokenLlmRequestBody,
+) {
+  return apiClient
+    .post('v1/protected/llms/openai-login-token', { json: body })
+    .json<CreateLlmResponse>()
+}
+
+type GetLlmResponse = {
+  llm: LlmRecord
+}
+
+export function getLlm(llmId: string) {
+  return apiClient
+    .get(`v1/protected/llms/${llmId}`)
+    .json<GetLlmResponse>()
+}
+
+type UpdateLlmRequestBody = z.infer<typeof llmUpdateSchema>
+
+type UpdateLlmResponse = {
+  llm: LlmRecord
+}
+
+export function updateLlm(
+  llmId: string,
+  body: UpdateLlmRequestBody,
+) {
+  return apiClient
+    .patch(`v1/protected/llms/${llmId}`, { json: body })
+    .json<UpdateLlmResponse>()
+}
+
+export function deleteLlm(llmId: string) {
+  return apiClient
+    .delete(`v1/protected/llms/${llmId}`)
+}
