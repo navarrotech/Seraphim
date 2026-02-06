@@ -2,6 +2,7 @@
 
 import type { Environment } from '@common/schema'
 import type { RepoOption } from './CreateWorkspaceImportDrawer'
+import type { ControllerRenderProps } from 'react-hook-form'
 
 // Core
 import { useState } from 'react'
@@ -10,7 +11,6 @@ import { useNavigate } from 'react-router-dom'
 // Lib
 import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { ControllerRenderProps } from 'react-hook-form'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -33,9 +33,9 @@ import {
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
 import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
-import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+
 export function CreateWorkspace() {
   const navigate = useNavigate()
   const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
@@ -51,7 +51,6 @@ export function CreateWorkspace() {
       gitUserEmail: '',
       name: '',
       repository: '',
-      containerImage: 'node:latest',
       customDockerfileCommands: '',
       description: '',
       setupScript: 'yarn install',
@@ -73,12 +72,20 @@ export function CreateWorkspace() {
   const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
   const isRepositoryLocked = Boolean(importedRepoOption)
 
+  function handleOpenImportDrawer() {
+    setIsImportDrawerOpen(true)
+  }
+
+  function handleImportDrawerOpenChange(isOpen: boolean) {
+    setIsImportDrawerOpen(isOpen)
+  }
+
   function handleDockerfileCommandsChange(
     onChange: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
   ) {
-    return function handleChange(value: string | undefined) {
+    return function onEditorChange(value: string | undefined) {
       if (value === undefined) {
-        console.debug('CreateWorkspace received empty dockerfile commands input')
+        console.debug('CreateWorkspace dockerfile editor returned undefined value')
         onChange('')
         return
       }
@@ -91,25 +98,34 @@ export function CreateWorkspace() {
     props: { field: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'> },
   ) {
     const { field } = props
-    return <div className='relaxed w-full'>
-      <label className='text-sm font-medium'>Custom Dockerfile commands</label>
-      <Monaco
-        height='220px'
-        fileLanguage='dockerfile'
-        minimapOverride={false}
-        value={field.value}
-        onChange={handleDockerfileCommandsChange(field.onChange)}
-        readOnly={isFormLocked}
-      />
+
+    return <div className='level w-full items-start'>
+      <div className='w-full'>
+        <div className='relaxed w-full'>
+          <label className='text-sm font-medium'>Custom Dockerfile commands</label>
+          <Monaco
+            height='220px'
+            fileLanguage='dockerfile'
+            minimapOverride={false}
+            value={field.value}
+            onChange={handleDockerfileCommandsChange(field.onChange)}
+            readOnly={isFormLocked}
+          />
+        </div>
+        <Button
+          type='button'
+          color='primary'
+          isLoading={buildSocket.isBuilding}
+          isDisabled={isFormLocked}
+          onPress={handleBuildImage}
+        >
+          <span>Build Image</span>
+        </Button>
+      </div>
+      <div className='w-full'>
+        <BuildLogsPanel buildSocket={buildSocket} />
+      </div>
     </div>
-  }
-
-  function handleOpenImportDrawer() {
-    setIsImportDrawerOpen(true)
-  }
-
-  function handleImportDrawerOpenChange(isOpen: boolean) {
-    setIsImportDrawerOpen(isOpen)
   }
 
   function handleImportRepo(repoOption: RepoOption) {
@@ -128,10 +144,12 @@ export function CreateWorkspace() {
       shouldTouch: true,
       shouldValidate: true,
     })
+
     const trimmedAccountName = repoOption.name.trim()
     const trimmedUsername = repoOption.username.trim()
     const isNameMissing = trimmedAccountName.length === 0
       || trimmedAccountName === trimmedUsername
+
     if (isNameMissing) {
       console.debug('CreateWorkspace import missing git user name', {
         accountId: repoOption.accountId,
@@ -174,16 +192,7 @@ export function CreateWorkspace() {
 
   async function handleBuildImage() {
     const values = form.getValues()
-    const containerImage = values.containerImage?.trim()
-
-    if (!containerImage) {
-      console.debug('CreateWorkspace build requested without container image', { values })
-      buildSocket.resetBuild()
-      return
-    }
-
     await buildSocket.startBuild({
-      containerImage,
       customDockerfileCommands: values.customDockerfileCommands || '',
     })
   }
@@ -191,9 +200,7 @@ export function CreateWorkspace() {
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     try {
       await createWorkspace(data)
-
       clear()
-
       navigate(UrlTree.tasksList)
     }
     catch (error) {
@@ -213,7 +220,6 @@ export function CreateWorkspace() {
     </Card>
   }
 
-
   return <section className='container p-6'>
     <div className='relaxed'>
       <div className='level'>
@@ -230,7 +236,7 @@ export function CreateWorkspace() {
         </Button>
       </div>
       <p className='opacity-80'>
-        Define a workspace with its repo, image, and environment.
+        Define a workspace with its repository, scripts, and environment values.
       </p>
     </div>
     <div className='relaxed'>{
@@ -241,7 +247,6 @@ export function CreateWorkspace() {
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
           <div className='w-full'>
-            {/* Git user */}
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}
@@ -263,7 +268,6 @@ export function CreateWorkspace() {
                 )}
               />
             </div>
-            {/* Git email */}
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}
@@ -285,7 +289,6 @@ export function CreateWorkspace() {
                 )}
               />
             </div>
-            {/* Workspace name */}
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}
@@ -308,7 +311,6 @@ export function CreateWorkspace() {
                 )}
               />
             </div>
-            {/* Repository URL */}
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}
@@ -330,7 +332,6 @@ export function CreateWorkspace() {
                 )}
               />
             </div>
-            {/* Description */}
             <div className='relaxed w-full'>
               <Controller
                 control={form.control}
@@ -361,8 +362,7 @@ export function CreateWorkspace() {
                   <EnvironmentInputs
                     id='workspace-environment'
                     entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) =>
-                      field.onChange(entries)}
+                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
                     isDisabled={isFormLocked}
                   />
                 )}
@@ -372,60 +372,14 @@ export function CreateWorkspace() {
         </div>
       </Card>
       <Card className='relaxed p-4 w-full'>
-        <div className='relaxed'>
-          <h3 className='text-xl'>Docker</h3>
-          <p className='opacity-80'>
-            Customize the base image and Dockerfile steps.
-          </p>
-        </div>
-        <div className='level w-full items-start'>
-          <div className='w-full'>
-            <div className='relaxed'>
-              <Controller
-                control={form.control}
-                name='containerImage'
-                render={({ field }) => (
-                  <Input
-                    label='Container image'
-                    placeholder={DEFAULT_DOCKER_BASE_IMAGE}
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.containerImage)}
-                    errorMessage={form.formState.errors.containerImage?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed'>
-              <Controller
-                control={form.control}
-                name='customDockerfileCommands'
-                render={renderDockerfileCommandsField}
-              />
-            </div>
-            <Button
-              type='button'
-              color='primary'
-              isLoading={buildSocket.isBuilding}
-              isDisabled={isFormLocked}
-              onPress={handleBuildImage}
-            >
-              <span>Build Image</span>
-            </Button>
-          </div>
-          <div className='w-full'>
-            <BuildLogsPanel buildSocket={buildSocket} />
-          </div>
-        </div>
+        <Controller
+          control={form.control}
+          name='customDockerfileCommands'
+          render={renderDockerfileCommandsField}
+        />
       </Card>
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
-          {/* Setup script */}
           <Controller
             control={form.control}
             name='setupScript'
@@ -443,7 +397,6 @@ export function CreateWorkspace() {
               />
             )}
           />
-          {/* Validate script */}
           <Controller
             control={form.control}
             name='postScript'
@@ -470,9 +423,7 @@ export function CreateWorkspace() {
         isLoading={form.formState.isSubmitting}
         isDisabled={isFormLocked}
       >
-        <span>
-          Create Workspace
-        </span>
+        <span>Create Workspace</span>
       </Button>
       <CreateWorkspaceImportDrawer
         isOpen={isImportDrawerOpen}

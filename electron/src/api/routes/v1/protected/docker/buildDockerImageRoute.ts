@@ -20,18 +20,19 @@ import { buildDockerfileContents } from '@electron/docker/image'
 import { copyFromResourcesDir } from '@electron/docker/resources'
 
 // Misc
-import { ACT_SCRIPT_NAME, DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
+import { ACT_SCRIPT_NAME } from '@common/constants'
 
 type BuildDockerImageResponse = {
   jobId: string
 }
 
-const buildRequestSchema = z.object({
-  containerImage: z.string().trim().min(1).optional().default(DEFAULT_DOCKER_BASE_IMAGE),
-  customDockerfileCommands: z.string().trim().optional().default(''),
-})
+type BuildRequestBody = {
+  customDockerfileCommands?: string
+}
 
-type BuildRequestBody = z.infer<typeof buildRequestSchema>
+const buildRequestSchema = z.object({
+  customDockerfileCommands: z.string().trim().optional().default(''),
+}).strict()
 
 export async function handleBuildDockerImageRequest(
   request: Request<Record<string, never>, BuildDockerImageResponse, BuildRequestBody>,
@@ -46,7 +47,6 @@ export async function handleBuildDockerImageRequest(
       errorMessage: 'Invalid build request',
     },
   )
-
   if (!payload) {
     console.debug('Build docker image request failed validation')
     return
@@ -55,10 +55,10 @@ export async function handleBuildDockerImageRequest(
   const jobId = uuid()
   response.status(202).json({ jobId })
 
-  void runDockerBuildJob(jobId, payload)
+  void runDockerBuildJob(jobId, payload.customDockerfileCommands)
 }
 
-async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Promise<void> {
+async function runDockerBuildJob(jobId: string, customDockerfileCommands?: string): Promise<void> {
   const dockerClient = getDockerClient()
   if (!dockerClient) {
     buildJobManager.broadcast(jobId, 'log', {
@@ -88,10 +88,7 @@ async function runDockerBuildJob(jobId: string, payload: BuildRequestBody): Prom
       throw new Error('Act installer script is missing')
     }
 
-    const dockerfileContents = buildDockerfileContents(
-      payload.containerImage,
-      payload.customDockerfileCommands,
-    )
+    const dockerfileContents = buildDockerfileContents(customDockerfileCommands)
 
     const dockerfilePath = join(contextDir, 'Dockerfile')
     await writeFile(dockerfilePath, dockerfileContents, 'utf8')

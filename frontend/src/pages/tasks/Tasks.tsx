@@ -23,7 +23,6 @@ import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 import { getTaskViewUrl } from '@common/urls'
 
 const DEFAULT_TASK_BRANCH = 'main'
-const DEFAULT_TASK_CONTAINER = 'node:latest'
 
 type TaskRouteParams = {
   taskId?: string
@@ -84,7 +83,6 @@ export function Tasks() {
         llmId: draft.llmId,
         message: draft.message,
         branch: DEFAULT_TASK_BRANCH,
-        container: workspace.containerImage || DEFAULT_TASK_CONTAINER,
         archived: false,
       })
 

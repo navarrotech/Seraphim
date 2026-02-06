@@ -26,9 +26,9 @@ import { useHotkey } from '@frontend/hooks/useHotkey'
 // Misc
 import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
 import { getWorkspace, updateWorkspace, createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
-import { DEFAULT_DOCKER_BASE_IMAGE } from '@common/constants'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+
 type WorkspaceRouteParams = {
   workspaceId?: string
 }
@@ -66,7 +66,6 @@ export function EditWorkspace() {
       gitUserEmail: '',
       name: '',
       repository: '',
-      containerImage: '',
       customDockerfileCommands: '',
       description: '',
       setupScript: '',
@@ -84,9 +83,9 @@ export function EditWorkspace() {
   function handleDockerfileCommandsChange(
     onChange: ControllerRenderProps<EditWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
   ) {
-    return function handleChange(value: string | undefined) {
+    return function onEditorChange(value: string | undefined) {
       if (value === undefined) {
-        console.debug('EditWorkspace received empty dockerfile commands input')
+        console.debug('EditWorkspace dockerfile editor returned undefined value')
         onChange('')
         return
       }
@@ -99,16 +98,33 @@ export function EditWorkspace() {
     props: { field: ControllerRenderProps<EditWorkspaceFormValues, 'customDockerfileCommands'> },
   ) {
     const { field } = props
-    return <div className='relaxed w-full'>
-      <label className='text-sm font-medium'>Custom Dockerfile commands</label>
-      <Monaco
-        height='220px'
-        fileLanguage='dockerfile'
-        minimapOverride={false}
-        value={field.value}
-        onChange={handleDockerfileCommandsChange(field.onChange)}
-        readOnly={isFormLocked}
-      />
+
+    return <div className='level w-full items-start'>
+      <div className='w-full'>
+        <div className='relaxed w-full'>
+          <label className='text-sm font-medium'>Custom Dockerfile commands</label>
+          <Monaco
+            height='220px'
+            fileLanguage='dockerfile'
+            minimapOverride={false}
+            value={field.value}
+            onChange={handleDockerfileCommandsChange(field.onChange)}
+            readOnly={isFormLocked}
+          />
+        </div>
+        <Button
+          type='button'
+          color='primary'
+          isLoading={buildSocket.isBuilding}
+          isDisabled={isFormLocked}
+          onPress={handleBuildImage}
+        >
+          <span>Build Image</span>
+        </Button>
+      </div>
+      <div className='w-full'>
+        <BuildLogsPanel buildSocket={buildSocket} />
+      </div>
     </div>
   }
 
@@ -123,7 +139,6 @@ export function EditWorkspace() {
       gitUserEmail: workspace.gitUserEmail,
       name: workspace.name,
       repository: workspace.repository,
-      containerImage: workspace.containerImage,
       customDockerfileCommands: workspace.customDockerfileCommands || '',
       description: workspace.description || '',
       setupScript: workspace.setupScript || '',
@@ -135,21 +150,12 @@ export function EditWorkspace() {
 
   async function handleBuildImage() {
     const values = form.getValues()
-    const containerImage = values.containerImage?.trim()
-
-    if (!containerImage) {
-      console.debug('EditWorkspace build requested without container image', { values })
-      buildSocket.resetBuild()
-      return
-    }
-
     await buildSocket.startBuild({
-      containerImage,
       customDockerfileCommands: values.customDockerfileCommands || '',
     })
   }
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async function handleSubmit() {
     if (!workspaceId) {
       console.debug('EditWorkspace cannot submit without workspaceId', { workspaceId })
       return
@@ -211,41 +217,38 @@ export function EditWorkspace() {
     </section>
   }
 
-  if (workspaceQuery.error) {
+  if (workspaceQuery.error || !workspaceQuery.data?.workspace) {
     return <section className='container p-6'>
-      <Card className='p-6'>
-        <p className='opacity-80'>Unable to load workspace.</p>
+      <Card className='p-6 relaxed'>
+        <p className='opacity-80'>Unable to load this workspace.</p>
+        <Button
+          color='primary'
+          onPress={() => navigate(UrlTree.workspacesList)}
+        >
+          <span>Back to Workspaces</span>
+        </Button>
       </Card>
     </section>
   }
 
   return <section className='container p-6'>
     <div className='relaxed'>
-      <div className='level'>
-        <div>
-          <h2 className='text-2xl'>
-            <strong>Edit Workspace</strong>
-          </h2>
-          <p className='opacity-80'>Refine the repo, image, and environment for this workspace.</p>
-        </div>
-        <div className='level-right'>
-          <Button
-            variant='light'
-            onPress={() => navigate(UrlTree.workspacesList)}
-          >
-            Back to list
-          </Button>
-          <Button
-            type='button'
-            color='primary'
-            isLoading={isSubmitting}
-            isDisabled={isFormLocked}
-            onPress={handleSubmit}
-          >
-            <span>Save Changes</span>
-          </Button>
-        </div>
-      </div>
+      <h2 className='text-2xl'>
+        <strong>Edit Workspace</strong>
+      </h2>
+      <p className='opacity-80'>
+        Update repository settings, scripts, and environment values.
+      </p>
+    </div>
+    <div className='relaxed'>
+      <Button
+        color='primary'
+        onPress={handleSubmit}
+        isLoading={isSubmitting}
+        isDisabled={isFormLocked}
+      >
+        <span>Save Workspace</span>
+      </Button>
     </div>
     <div className='relaxed'>
       <Card className='relaxed p-4 w-full'>
@@ -365,8 +368,7 @@ export function EditWorkspace() {
                   <EnvironmentInputs
                     id='workspace-environment'
                     entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) =>
-                      field.onChange(entries)}
+                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
                     isDisabled={isFormLocked}
                   />
                 )}
@@ -376,56 +378,11 @@ export function EditWorkspace() {
         </div>
       </Card>
       <Card className='relaxed p-4 w-full'>
-        <div className='relaxed'>
-          <h3 className='text-xl'>Docker</h3>
-          <p className='opacity-80'>
-            Customize the base image and Dockerfile steps.
-          </p>
-        </div>
-        <div className='level w-full items-start'>
-          <div className='w-full'>
-            <div className='relaxed'>
-              <Controller
-                control={form.control}
-                name='containerImage'
-                render={({ field }) => (
-                  <Input
-                    label='Container image'
-                    placeholder={DEFAULT_DOCKER_BASE_IMAGE}
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.containerImage)}
-                    errorMessage={form.formState.errors.containerImage?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed'>
-              <Controller
-                control={form.control}
-                name='customDockerfileCommands'
-                render={renderDockerfileCommandsField}
-              />
-            </div>
-            <Button
-              type='button'
-              color='primary'
-              isLoading={buildSocket.isBuilding}
-              isDisabled={isFormLocked}
-              onPress={handleBuildImage}
-            >
-              <span>Build Image</span>
-            </Button>
-          </div>
-          <div className='w-full'>
-            <BuildLogsPanel buildSocket={buildSocket} />
-          </div>
-        </div>
+        <Controller
+          control={form.control}
+          name='customDockerfileCommands'
+          render={renderDockerfileCommandsField}
+        />
       </Card>
       <Card className='relaxed p-4 w-full'>
         <div className='level w-full items-start'>
