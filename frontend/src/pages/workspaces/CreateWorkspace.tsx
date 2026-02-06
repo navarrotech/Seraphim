@@ -22,6 +22,7 @@ import { Button, Card, Form, Input, Textarea } from '@heroui/react'
 import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
 import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 import { Monaco } from '@frontend/common/Monaco'
+import { BaseDockerImageNotice } from '@frontend/common/workspaces/BaseDockerImageNotice'
 
 // Utility
 import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
@@ -103,6 +104,7 @@ export function CreateWorkspace() {
       <div className='w-full'>
         <div className='relaxed w-full'>
           <label className='text-sm font-medium'>Custom Dockerfile commands</label>
+          <BaseDockerImageNotice />
           <Monaco
             height='220px'
             fileLanguage='dockerfile'
