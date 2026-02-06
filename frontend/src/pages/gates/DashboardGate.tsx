@@ -18,7 +18,7 @@ import { dispatch } from '@frontend/framework/store'
 
 // User interface
 import { Card } from '@heroui/react'
-import { AppTopbar } from '../AppTopbar'
+import { TasksSidebar } from '../tasks/TasksSidebar'
 
 // Utility
 import { useApiSocket } from '@frontend/hooks/useApiSocket'
@@ -131,8 +131,8 @@ export function DashboardGate() {
     return <GettingStarted />
   }
 
-  return <main className='flex min-h-screen flex-col overflow-hidden'>
-    <AppTopbar />
+  return <main className='flex min-h-screen overflow-hidden'>
+    <TasksSidebar />
     <div className='flex flex-1 min-h-0 overflow-hidden'>
       <Outlet />
     </div>

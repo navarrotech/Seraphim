@@ -15,7 +15,6 @@ import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { Card } from '@heroui/react'
 import { EmptyTaskView } from './EmptyTaskView'
 import { TaskView } from './TaskView'
-import { TasksSidebar } from './TasksSidebar'
 
 // Misc
 import { createTask, getTask } from '@frontend/lib/routes/taskRoutes'
@@ -112,11 +111,6 @@ export function Tasks() {
   return <section className={`flex flex-1 min-h-0 flex-col bg-gradient-to-br
   from-slate-50 via-sky-50 to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800`}>
     <div className='flex min-h-0 flex-1 overflow-hidden'>
-      <TasksSidebar
-        tasks={tasks}
-        workspaces={workspaces}
-        selectedTaskId={taskId}
-      />
       <main className='min-h-0 flex-1 overflow-y-auto p-6'>
         {isTaskLoading && (
           <TaskView

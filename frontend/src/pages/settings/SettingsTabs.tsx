@@ -16,12 +16,20 @@ type SettingsTab = {
 
 const settingsTabs: SettingsTab[] = [
   {
-    label: 'Settings',
-    url: UrlTree.settings,
+    label: 'General',
+    url: UrlTree.settingsGeneral,
   },
   {
-    label: 'Connected Accounts',
-    url: UrlTree.connectedAccounts,
+    label: 'Git repos',
+    url: UrlTree.settingsGitRepos,
+  },
+  {
+    label: 'Workspaces',
+    url: UrlTree.settingsWorkspaces,
+  },
+  {
+    label: 'LLMs',
+    url: UrlTree.settingsLlms,
   },
 ]
 
@@ -45,13 +53,14 @@ export function SettingsTabs() {
       as={Link}
       to={tab.url}
       variant={isActive ? 'solid' : 'light'}
+      className='w-full justify-start'
     >
       <span>{tab.label}</span>
     </Button>
   }
 
-  return <div className='relaxed level'>
-    <div className='level-left gap-2'>
+  return <div className='relaxed pt-4'>
+    <div className='relaxed flex flex-col gap-2'>
       {settingsTabs.map(renderTab)}
     </div>
   </div>
