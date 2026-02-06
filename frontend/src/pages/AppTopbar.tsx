@@ -52,11 +52,11 @@ export function AppTopbar() {
   }
 
   function handleOpenSettings() {
-    navigate(UrlTree.settings)
+    navigate(UrlTree.settingsGeneral)
   }
 
   function handleOpenConnectedAccounts() {
-    navigate(UrlTree.connectedAccounts)
+    navigate(UrlTree.settingsGitRepos)
   }
 
   return <header className={`border-b border-black/5 bg-white/70 px-6 py-4 backdrop-blur

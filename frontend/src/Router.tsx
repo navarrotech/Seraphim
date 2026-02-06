@@ -12,6 +12,7 @@ import { EditWorkspace } from './pages/workspaces/EditWorkspace'
 import { ListWorkspaces } from './pages/workspaces/ListWorkspaces'
 import { Tasks } from './pages/tasks/Tasks'
 import { Settings } from './pages/Settings'
+import { SettingsGeneral } from './pages/settings/SettingsGeneral'
 
 // Misc
 import { UrlTree, UNKNOWN_ROUTE_REDIRECT_TO } from '@common/urls'
@@ -21,8 +22,13 @@ export function Router() {
     <Routes>
       <Route path={UrlTree.root} element={<DashboardGate />}>
         <Route index element={<Navigate to={UrlTree.tasksList} replace />} />
-        <Route path={UrlTree.settings} element={<Settings />} />
-        <Route path={UrlTree.connectedAccounts} element={<ConnectedAccounts />} />
+        <Route path={UrlTree.settings} element={<Navigate to={UrlTree.settingsGeneral} replace />} />
+        <Route path={UrlTree.settings} element={<Settings />}>
+          <Route path={UrlTree.settingsGeneral} element={<SettingsGeneral />} />
+          <Route path={UrlTree.settingsGitRepos} element={<ConnectedAccounts />} />
+          <Route path={UrlTree.settingsWorkspaces} element={<ListWorkspaces />} />
+          <Route path={UrlTree.settingsLlms} element={<Llms />} />
+        </Route>
         <Route path={UrlTree.llms} element={<Llms />} />
         <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
         <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
