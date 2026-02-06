@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace, WorkspaceEnv } from '@prisma/client'
+import type { Llm, Workspace, WorkspaceEnv } from '@prisma/client'
 
 // ////////////////////////// //
 //        Common Basic        //
@@ -20,4 +20,8 @@ export type StandardFilePointer = string | string[]
 
 export type WorkspaceWithEnv = Workspace & {
   envEntries: WorkspaceEnv[]
+}
+
+export type LlmRecord = Llm & {
+  preferredModel?: string | null
 }

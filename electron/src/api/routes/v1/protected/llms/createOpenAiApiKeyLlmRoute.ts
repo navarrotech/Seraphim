@@ -2,33 +2,33 @@
 
 import type { Prisma } from '@prisma/client'
 import type { Request, Response } from 'express'
-import type { OpenAiApiKeyConnectionCreateRequest } from '@common/schema'
+import type { OpenAiApiKeyLlmCreateRequest } from '@common/schema'
 
 // Utility
 import { parseRequestBody } from '../../validation'
-import { openAiApiKeyConnectionCreateSchema } from '@common/schema'
+import { openAiApiKeyLlmCreateSchema } from '@common/schema'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { SUPPORTED_MODELS_BY_LLM } from '@electron/constants'
 import { requireDatabaseClient } from '@electron/database'
-import { createConnectionWithDefaults } from './createConnectionHelpers'
-import { sanitizeConnection } from './connectionSanitizer'
+import { createLlmWithDefaults } from './createLlmHelpers'
+import { sanitizeLlm } from './llmSanitizer'
 
-export type RequestBody = OpenAiApiKeyConnectionCreateRequest
+export type RequestBody = OpenAiApiKeyLlmCreateRequest
 
-export async function handleCreateOpenAiApiKeyConnectionRequest(
+export async function handleCreateOpenAiApiKeyLlmRequest(
   request: Request<Record<string, never>, unknown, RequestBody>,
   response: Response,
 ): Promise<void> {
-  const databaseClient = requireDatabaseClient('Create OpenAI API key connection API')
+  const databaseClient = requireDatabaseClient('Create OpenAI API key llm API')
 
   const body = parseRequestBody(
-    openAiApiKeyConnectionCreateSchema,
+    openAiApiKeyLlmCreateSchema,
     request,
     response,
     {
-      context: 'Create OpenAI API key connection API',
+      context: 'Create OpenAI API key llm API',
       errorMessage: 'Invalid request body',
     },
   )
@@ -42,23 +42,23 @@ export async function handleCreateOpenAiApiKeyConnectionRequest(
     })
 
     if (!user) {
-      console.debug('OpenAI API key connection create requested, but no users exist')
+      console.debug('OpenAI API key llm create requested, but no users exist')
       response.status(404).json({ error: 'User not found' })
       return
     }
 
     const supportedModels = SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY
     if (!supportedModels.includes(body.preferredModel as any)) {
-      console.debug('OpenAI API key connection create rejected for unsupported model', {
+      console.debug('OpenAI API key llm create rejected for unsupported model', {
         preferredModel: body.preferredModel,
       })
       response.status(400).json({
-        error: 'Preferred model is not supported for OpenAI API key connections',
+        error: 'Preferred model is not supported for OpenAI API key llms',
       })
       return
     }
 
-    const connectionData = {
+    const llmData = {
       user: {
         connect: {
           id: user.id,
@@ -70,26 +70,26 @@ export async function handleCreateOpenAiApiKeyConnectionRequest(
       apiKey: body.apiKey,
       tokenLimit: body.tokenLimit,
       isDefault: body.isDefault,
-    } satisfies Prisma.ConnectionCreateInput
+    } satisfies Prisma.LlmCreateInput
 
-    const connection = await createConnectionWithDefaults(databaseClient, {
+    const llm = await createLlmWithDefaults(databaseClient, {
       userId: user.id,
-      data: connectionData,
+      data: llmData,
       isDefault: body.isDefault,
     })
 
-    const sanitizedConnection = sanitizeConnection(connection)
+    const sanitizedLlm = sanitizeLlm(llm)
 
     broadcastSseChange({
       type: 'create',
-      kind: 'connections',
-      data: [ sanitizedConnection ],
+      kind: 'llms',
+      data: [ sanitizedLlm ],
     })
 
-    response.status(201).json({ connection: sanitizedConnection })
+    response.status(201).json({ llm: sanitizedLlm })
   }
   catch (error) {
-    console.error('Failed to create OpenAI API key connection', error)
-    response.status(500).json({ error: 'Failed to create connection' })
+    console.error('Failed to create OpenAI API key llm', error)
+    response.status(500).json({ error: 'Failed to create llm' })
   }
 }

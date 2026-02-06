@@ -52,8 +52,8 @@ model Task {
   workspaceId String    @map("workspace_id")
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
 
-  connectionId String     @map("connection_id")
-  connection   Connection @relation(fields: [connectionId], references: [id])
+  llmId String     @map("llm_id")
+  llm   Llm @relation(fields: [llmId], references: [id])
 
   messages Message[]
 
@@ -86,7 +86,7 @@ model User {
   settings    UserSettings?
   audioFiles  AudioFile[]
   threads     Task[]
-  connections Connection[]
+  llms Llm[]
 
   username String @unique
   name     String
@@ -141,7 +141,7 @@ enum AudioFor {
   DONE_SOUND
 }
 
-enum LlmConnectionType {
+enum LlmType {
   OPENAI_API_KEY
   OPENAI_LOGIN_TOKEN
   KIMI_API_KEY
@@ -156,14 +156,14 @@ enum TaskState {
   Failed
 }
 
-model Connection {
+model Llm {
   id String @id @default(uuid())
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
   // Provider
-  type LlmConnectionType
+  type LlmType
 
   // Details
   name           String? @map("name")
@@ -187,7 +187,7 @@ model Connection {
 
   tasks Task[]
 
-  @@map("connections")
+  @@map("llms")
 }
 
 enum AuthProvider {

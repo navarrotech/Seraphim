@@ -11,6 +11,8 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 
 // User interface
 import { Button, Card, Tooltip } from '@heroui/react'
+import { SettingsTabs } from '../settings/SettingsTabs'
+import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
 import { DeleteIcon, PlusIcon } from '@frontend/common/IconNexus'
@@ -19,8 +21,115 @@ import {
   listAccounts,
   logoutAccount,
 } from '@frontend/lib/routes/accountsRoutes'
-import { SettingsTabs } from '../settings/SettingsTabs'
-import { CreateAccountDrawer } from './CreateAccountDrawer'
+
+type OAuthCompletionStatus = {
+  provider: OAuthProvider
+  status: 'success' | 'error'
+  accountId?: string
+  error?: string
+}
+
+type StatusBanner = {
+  title: string
+  message: string
+  tone: 'success' | 'error'
+}
+
+const providerLabels: Record<OAuthProvider, string> = {
+  GITHUB: 'GitHub',
+}
+
+const providerOptions = [
+  {
+    provider: 'GITHUB',
+    label: 'Add GitHub account',
+  },
+] as const
+
+function getProviderLabel(provider: OAuthProvider) {
+  return providerLabels[provider] || provider
+}
+
+function getAccountInitials(account: ConnectedAccount) {
+  const displayName = account.displayName.trim()
+  if (displayName) {
+    return displayName.slice(0, 1).toUpperCase()
+  }
+
+  const username = account.username.trim()
+  if (username) {
+    return username.slice(0, 1).toUpperCase()
+  }
+
+  return '?'
+}
+
+function buildCompletionRedirectUrl() {
+  if (!window?.location?.origin) {
+    console.debug('ConnectedAccounts missing window origin for OAuth redirect')
+    return null
+  }
+
+  return new URL(
+    UrlTree.connectedAccounts,
+    window.location.origin,
+  ).toString()
+}
+
+function parseOAuthCompletionParams(
+  search: string,
+): OAuthCompletionStatus | null {
+  if (!search || search.trim().length === 0) {
+    return null
+  }
+
+  const parameters = new URLSearchParams(search)
+  const provider = parameters.get('provider')
+  const status = parameters.get('status')
+
+  if (!provider || !status) {
+    return null
+  }
+
+  if (provider !== 'GITHUB') {
+    console.debug('ConnectedAccounts received unsupported OAuth provider', {
+      provider,
+    })
+    return null
+  }
+
+  if (status !== 'success' && status !== 'error') {
+    console.debug('ConnectedAccounts received invalid OAuth status', {
+      status,
+    })
+    return null
+  }
+
+  return {
+    provider,
+    status,
+    accountId: parameters.get('accountId') || undefined,
+    error: parameters.get('error') || undefined,
+  }
+}
+
+function buildStatusBanner(status: OAuthCompletionStatus): StatusBanner {
+  const providerLabel = getProviderLabel(status.provider)
+
+  if (status.status === 'success') {
+    return {
+      title: `${providerLabel} connected`,
+      message: `Your ${providerLabel} account is ready to use.`,
+      tone: 'success',
+    }
+  }
+
+  return {
+    title: `${providerLabel} llm failed`,
+    message: status.error || 'Please try again.',
+    tone: 'error',
+  }
+}
 
 export function ConnectedAccounts() {
   const [ isDrawerOpen, setIsDrawerOpen ] = useState(false)

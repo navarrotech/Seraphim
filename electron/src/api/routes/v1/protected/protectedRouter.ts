@@ -7,7 +7,7 @@ import { Router as createRouter } from 'express'
 
 // Misc
 import { createAccountsRouter } from './accounts/accountsRouter'
-import { createConnectionsRouter } from './connectionsRouter'
+import { createLlmsRouter } from './llmsRouter'
 import { createDockerRouter } from './docker/dockerRouter'
 import { createTasksRouter } from './tasksRouter'
 import { createUsersRouter } from './usersRouter'
@@ -17,7 +17,7 @@ export function createProtectedRouter(): Router {
   const protectedRouter = createRouter()
 
   protectedRouter.use('/accounts', createAccountsRouter())
-  protectedRouter.use('/connections', createConnectionsRouter())
+  protectedRouter.use('/llms', createLlmsRouter())
   protectedRouter.use('/docker', createDockerRouter())
   protectedRouter.use('/workspaces', createWorkspacesRouter())
   protectedRouter.use('/tasks', createTasksRouter())
