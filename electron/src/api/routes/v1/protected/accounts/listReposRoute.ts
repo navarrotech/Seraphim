@@ -30,8 +30,8 @@ type RepoParams = z.infer<typeof repoParamsSchema>
 type RepoAccountResult = {
   accountId: string
   username: string
-  displayName: string
-  email: string | null
+  name: string
+  email: string
   repos: GithubRepoSummary[]
 }
 
@@ -147,7 +147,7 @@ export async function handleListReposRequest(
     results.push({
       accountId: account.id,
       username: account.username,
-      displayName: account.displayName,
+      name: account.name,
       email: account.email,
       repos,
     })

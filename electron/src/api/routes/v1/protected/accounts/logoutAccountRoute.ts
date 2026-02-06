@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
-import { revokeGithubAuthorization } from '@electron/api/oauth/githubOAuthService'
 import { parseRequestBody } from '../../validation'
 
 // Misc
@@ -27,17 +26,17 @@ export async function handleLogoutAccountRequest(
     request,
     response,
     {
-      context: 'Logout OAuth account',
+      context: 'Logout token account',
       errorMessage: 'Invalid logout request',
     },
   )
 
   if (!payload) {
-    console.debug('Logout OAuth account request failed validation')
+    console.debug('Logout token account request failed validation')
     return
   }
 
-  const databaseClient = requireDatabaseClient('Logout OAuth account')
+  const databaseClient = requireDatabaseClient('Logout token account')
 
   const account = await databaseClient.authAccount.findUnique({
     where: { id: payload.accountId },
@@ -59,24 +58,13 @@ export async function handleLogoutAccountRequest(
     return
   }
 
-  let revokeSucceeded = false
-  if (payload.provider === 'GITHUB') {
-    revokeSucceeded = await revokeGithubAuthorization(account.accessToken)
-  }
-
-  if (!revokeSucceeded) {
-    console.debug('OAuth token revocation failed, proceeding with local logout', {
-      accountId: account.id,
-    })
-  }
-
   try {
     await databaseClient.authAccount.delete({
       where: { id: account.id },
     })
   }
   catch (error) {
-    console.error('Failed to delete OAuth account', error)
+    console.error('Failed to delete token account', error)
     response.status(500).json({ error: 'Failed to remove account' })
     return
   }
@@ -90,6 +78,6 @@ export async function handleLogoutAccountRequest(
   response.status(200).json({
     provider: payload.provider,
     accountId: payload.accountId,
-    revoked: revokeSucceeded,
+    revoked: true,
   })
 }

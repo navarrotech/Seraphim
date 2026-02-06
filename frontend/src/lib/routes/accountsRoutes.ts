@@ -3,16 +3,16 @@
 // Misc
 import { apiClient } from '../api'
 
-export type OAuthProvider = 'GITHUB'
+export type AuthProvider = 'GITHUB'
 
 export type ConnectedAccount = {
   id: string
-  provider: OAuthProvider
-  providerAccountId: string
+  provider: AuthProvider
+  name: string
   username: string
-  displayName: string
-  avatarUrl: string | null
-  email: string | null
+  email: string
+  tokenPreview: string
+  scope: string
   lastUsedAt: string | null
   createdAt: string
 }
@@ -40,8 +40,8 @@ type ListAccountsResponse = {
 type RepoAccountResult = {
   accountId: string
   username: string
-  displayName: string
-  email: string | null
+  name: string
+  email: string
   repos: GithubRepoSummary[]
 }
 
@@ -56,25 +56,33 @@ export type ListReposResponse = {
   failures: RepoAccountFailure[]
 }
 
-type AddAccountRequest = {
-  provider: OAuthProvider
-  completionRedirectUrl?: string
+export type AddAccountRequest = {
+  provider: AuthProvider
+  name: string
+  accessToken: string
+  gitUserName: string
+  gitUserEmail: string
 }
 
 type AddAccountResponse = {
-  provider: OAuthProvider
-  authorizationUrl: string
-  state: string
-  scopes: string[]
+  account: ConnectedAccount
+  gitUserName: string
+  gitUserEmail: string
+  githubIdentity: {
+    username: string
+    email: string | null
+  }
+  grantedScopes: string[]
+  acceptedScopes: string[]
 }
 
 type LogoutAccountRequest = {
-  provider: OAuthProvider
+  provider: AuthProvider
   accountId: string
 }
 
 type LogoutAccountResponse = {
-  provider: OAuthProvider
+  provider: AuthProvider
   accountId: string
   revoked: boolean
 }

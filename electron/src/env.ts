@@ -95,5 +95,3 @@ if (API_PORT <= 0) {
 
 export const DOCKER_SOCK_PATH = process.env.DOCKER_SOCK_PATH
 
-export const GITHUB_OAUTH_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID ?? ''
-export const GITHUB_OAUTH_CLIENT_SECRET = process.env.GITHUB_OAUTH_CLIENT_SECRET ?? ''
