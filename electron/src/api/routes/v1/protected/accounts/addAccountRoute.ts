@@ -2,6 +2,8 @@
 
 import type { Request, Response } from 'express'
 
+import type { AccountSummary } from './accountSanitizer'
+
 // Lib
 import { z } from 'zod'
 
@@ -9,6 +11,7 @@ import { z } from 'zod'
 import { requireDatabaseClient } from '@electron/database'
 import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
 import { parseRequestBody } from '../../validation'
+import { sanitizeAccount } from './accountSanitizer'
 
 const addAccountRequestSchema = z.object({
   provider: z.literal('GITHUB'),
@@ -77,8 +80,10 @@ export async function handleAddAccountRequest(
     },
   })
 
+  const accountSummary: AccountSummary = sanitizeAccount(account)
+
   response.status(200).json({
-    account,
+    account: accountSummary,
     gitUserName: payload.gitUserName,
     gitUserEmail: payload.gitUserEmail,
     githubIdentity: {

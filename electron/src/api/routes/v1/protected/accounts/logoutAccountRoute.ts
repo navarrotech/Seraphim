@@ -26,17 +26,17 @@ export async function handleLogoutAccountRequest(
     request,
     response,
     {
-      context: 'Logout OAuth account',
+      context: 'Logout token account',
       errorMessage: 'Invalid logout request',
     },
   )
 
   if (!payload) {
-    console.debug('Logout OAuth account request failed validation')
+    console.debug('Logout token account request failed validation')
     return
   }
 
-  const databaseClient = requireDatabaseClient('Logout OAuth account')
+  const databaseClient = requireDatabaseClient('Logout token account')
 
   const account = await databaseClient.authAccount.findUnique({
     where: { id: payload.accountId },
@@ -64,7 +64,7 @@ export async function handleLogoutAccountRequest(
     })
   }
   catch (error) {
-    console.error('Failed to delete OAuth account', error)
+    console.error('Failed to delete token account', error)
     response.status(500).json({ error: 'Failed to remove account' })
     return
   }
