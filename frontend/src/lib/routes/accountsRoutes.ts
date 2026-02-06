@@ -88,9 +88,20 @@ type LogoutAccountResponse = {
 }
 
 export function listAccounts() {
-  return apiClient
-    .get('v1/protected/accounts')
-    .json<ListAccountsResponse>()
+  try {
+    const response = await listAccounts()
+
+    dispatch(
+      accountActions.setAccounts(response.accounts),
+    )
+
+    return response
+  }
+  catch (error) {
+    console.debug('ConnectedAccounts failed to refresh accounts', { error })
+  }
+
+  return undefined
 }
 
 function buildRepoSearchParams(searchQuery?: string) {
