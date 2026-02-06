@@ -24,7 +24,6 @@ model Workspace {
   setupScript              String   @default("") @map("setup_script")
   postScript               String   @default("") @map("post_script")
   cacheFiles               String[] @default([]) @map("cache_files")
-  containerImage           String   @map("container_image")
 
   envEntries WorkspaceEnv[]
   tasks      Task[]

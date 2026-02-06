@@ -72,7 +72,6 @@ export async function launchTask(
 
     const buildTag = `seraphim-workspace-${workspace.id}-${uuid()}`
     const dockerfileContents = buildDockerfileContents(
-      workspace.containerImage,
       workspace.customDockerfileCommands,
       setupScriptName,
       validateScriptName,

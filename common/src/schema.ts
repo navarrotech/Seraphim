@@ -39,7 +39,6 @@ export const workspaceCreateSchema = z.object({
   gitUserEmail: z.string().trim().min(1),
   name: z.string().trim().min(1),
   repository: z.string().trim().min(1),
-  containerImage: z.string().trim().min(1),
   customDockerfileCommands: z.string().trim().optional().default(''),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
@@ -54,7 +53,6 @@ export const workspaceUpdateSchema = z.object({
   gitUserEmail: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
   repository: z.string().trim().min(1).optional(),
-  containerImage: z.string().trim().min(1).optional(),
   customDockerfileCommands: z.string().trim().optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),
@@ -71,7 +69,6 @@ export const taskCreateSchema = z.object({
   llmId: z.string().trim().min(1),
   message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
-  container: z.string().trim().min(1),
   archived: z.boolean().optional().default(false),
 }).strict()
 

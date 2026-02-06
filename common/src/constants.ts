@@ -60,7 +60,7 @@ export const GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES = [
 ] as const
 
 // Docker shenanigans
-export const DEFAULT_DOCKER_BASE_IMAGE = 'node:lts-krypton' as const
+export const DEFAULT_DOCKER_BASE_IMAGE = 'mcr.microsoft.com/devcontainers/universal:5.1.4-noble' as const
 export const DOCKER_USERNAME = 'primary' as const
 export const DOCKER_WORKDIR = '/workspace' as const
 
@@ -74,26 +74,6 @@ export const DOCKER_DEBIAN_PACKAGES = [
   'tar',
   'ripgrep',
   'time',
-  'jq',
-  'less',
-  'findutils',
-  'coreutils',
-  'util-linux',
-  'procps',
-  'tzdata',
-] as const
-
-export const DOCKER_ALPINE_PACKAGES = [
-  'curl',
-  'make',
-  'g++',
-  'git',
-  'openssh-client',
-  'ca-certificates',
-  'libc6-compat',
-  'tar',
-  'ripgrep',
-  'bash',
   'jq',
   'less',
   'findutils',
