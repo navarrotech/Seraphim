@@ -46,6 +46,19 @@ export const SUPPORTED_MODELS_BY_LLM = {
   KIMI_API_KEY: [ 'kimi-k2' ],
 } as const satisfies Record<LlmType, readonly string[]>
 
+
+// GitHub Auth
+export const GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES = [
+  'repo',
+  'read:user',
+  'user:email',
+] as const
+
+export const GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES = [
+  'read:user',
+  'user:email',
+] as const
+
 // Docker shenanigans
 export const DEFAULT_DOCKER_BASE_IMAGE = 'node:lts-krypton' as const
 export const DOCKER_USERNAME = 'primary' as const

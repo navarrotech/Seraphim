@@ -35,7 +35,7 @@ import { listRepos } from '@frontend/lib/routes/accountsRoutes'
 type RepoOption = {
   accountId: string
   username: string
-  displayName: string
+  name: string
   email: string | null
   repo: GithubRepoSummary
 }
@@ -234,7 +234,7 @@ function getRepoOptions(results: RepoResult[]): RepoOption[] {
       options.push({
         accountId: result.accountId,
         username: result.username,
-        displayName: result.displayName,
+        name: result.name,
         email: result.email,
         repo,
       })

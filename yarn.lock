@@ -3272,25 +3272,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@octokit/oauth-authorization-url@npm:^8.0.0":
-  version: 8.0.0
-  resolution: "@octokit/oauth-authorization-url@npm:8.0.0"
-  checksum: 10c0/ab4964bebd8d076f945a2f3210a8a0a221a408362569d9fc2f49875ad06e594365f5fd871dac08d820793f687bff50237f7acf40d9d39c5f9de7575b6f4bad93
-  languageName: node
-  linkType: hard
-
-"@octokit/oauth-methods@npm:^6.0.2":
-  version: 6.0.2
-  resolution: "@octokit/oauth-methods@npm:6.0.2"
-  dependencies:
-    "@octokit/oauth-authorization-url": "npm:^8.0.0"
-    "@octokit/request": "npm:^10.0.6"
-    "@octokit/request-error": "npm:^7.0.2"
-    "@octokit/types": "npm:^16.0.0"
-  checksum: 10c0/51d2f3218839ce37609e6e0adc274efcc198bdcae57ef3ecf3ada95f6f30dcc3052f6db34e4aa3a1bc94545d7025baa44058d5c044fdd6bdd83562eb9b8510c2
-  languageName: node
-  linkType: hard
-
 "@octokit/openapi-types@npm:^27.0.0":
   version: 27.0.0
   resolution: "@octokit/openapi-types@npm:27.0.0"
@@ -14246,7 +14227,6 @@ __metadata:
     "@electron-forge/plugin-vite": "npm:^7.8.0"
     "@electron/fuses": "npm:^1.0.0"
     "@octokit/core": "npm:^7.0.6"
-    "@octokit/oauth-methods": "npm:^6.0.2"
     "@prisma/adapter-pg": "npm:^7.3.0"
     "@prisma/client": "npm:^7.3.0"
     "@reduxjs/toolkit": "npm:^2.8.2"

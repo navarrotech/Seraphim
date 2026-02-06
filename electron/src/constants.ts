@@ -1,7 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Misc
-import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
+import {
+  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES,
+  GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES,
+  SUPPORTED_MODELS_BY_LLM,
+} from '@common/constants'
 
 export const API_BASE_PATH = '/api/v1'
 export const API_DEFAULT_PORT = 9900
@@ -15,18 +19,13 @@ export const TRANSCRIBER_BASE_URL = 'http://localhost:9901'
 export const TRANSCRIBER_START_PATH = 'transcribe/start'
 export const TRANSCRIBER_STOP_PATH = 'transcribe/stop'
 
-export const GITHUB_OAUTH_DEFAULT_SCOPES = [
-  'read:user',
-  'user:email',
-  'public_repo',
-  'repo',
-  'read:org',
-] as const
-export const DEFAULT_OAUTH_STATE_TTL_MINUTES = 10
-
 export const IPC_SIGNALS = {
   getApiUrl: 'get-api-url',
   exitApp: 'exit-app',
 } as const
 
-export { SUPPORTED_MODELS_BY_LLM }
+export {
+  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES,
+  GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES,
+  SUPPORTED_MODELS_BY_LLM,
+}

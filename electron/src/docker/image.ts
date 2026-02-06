@@ -138,6 +138,7 @@ export function buildDockerfileContents(
     )
   }
 
+
   if (setupScriptName) {
     lines.push(
       '',

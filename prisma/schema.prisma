@@ -198,17 +198,16 @@ model AuthAccount {
   id String @id @default(uuid())
 
   // Provider
-  provider          AuthProvider
-  providerAccountId String       @map("provider_account_id")
-  accessToken       String       @map("access_token")
-  tokenType         String       @map("token_type")
-  scope             String
+  provider    AuthProvider
+  accessToken String       @map("access_token")
+  scope       String
+
+  // Auth identity
+  name String
 
   // Details
-  username    String
-  displayName String  @map("display_name")
-  avatarUrl   String? @map("avatar_url")
-  email       String?
+  username String
+  email    String
 
   // Metadata
   lastUsedAt DateTime? @map("last_used_at")
@@ -217,21 +216,6 @@ model AuthAccount {
 
   workspaces Workspace[]
 
-  @@unique([provider, providerAccountId])
+  @@unique([provider, username])
   @@map("auth_accounts")
-}
-
-model OAuthState {
-  id String @id @default(uuid())
-
-  provider              AuthProvider
-  state                 String       @unique
-  callbackUrl           String       @map("callback_url")
-  completionRedirectUrl String?      @map("completion_redirect_url")
-  scopes                String[]     @default([]) @map("scopes")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  expiresAt DateTime @map("expires_at")
-
-  @@map("oauth_states")
 }
