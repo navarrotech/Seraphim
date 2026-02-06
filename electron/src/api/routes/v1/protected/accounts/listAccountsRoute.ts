@@ -33,7 +33,9 @@ export async function handleListAccountsRequest(
   }
   catch (error) {
     console.error('Failed to list token accounts', error)
-    response.status(500).json({ accounts: [] })
+    response.status(500).json({
+      accounts: [],
+    })
     return
   }
 

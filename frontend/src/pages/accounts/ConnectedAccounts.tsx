@@ -6,8 +6,7 @@ import type { ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
 import { useEffect, useState } from 'react'
 
 // Redux
-import { accountActions } from '@frontend/framework/redux/stores/accounts'
-import { dispatch, useSelector } from '@frontend/framework/store'
+import { useSelector } from '@frontend/framework/store'
 
 // User interface
 import { Button, Card, Tooltip } from '@heroui/react'

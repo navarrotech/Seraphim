@@ -1,5 +1,9 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
+// Redux
+import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { dispatch } from '@frontend/framework/store'
+
 // Misc
 import { apiClient } from '../api'
 
@@ -87,9 +91,11 @@ type LogoutAccountResponse = {
   revoked: boolean
 }
 
-export function listAccounts() {
+export async function listAccounts(): Promise<ListAccountsResponse> {
   try {
-    const response = await listAccounts()
+    const response = await apiClient
+      .get('v1/protected/accounts')
+      .json<ListAccountsResponse>()
 
     dispatch(
       accountActions.setAccounts(response.accounts),
