@@ -2,7 +2,7 @@
 
 // Core
 import { useEffect } from 'react'
-import { Outlet } from 'react-router'
+import { Navigate, Outlet } from 'react-router'
 import { useLocation } from 'react-router-dom'
 
 // Lib
@@ -29,8 +29,7 @@ import { listLlms } from '@frontend/lib/routes/llmRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
-import { GettingStarted } from '../GettingStarted'
-import { UrlTree } from '@common/urls'
+import { getNextOnboardingStep, getOnboardingSteps, isSettingsRoute } from '../settings/onboardingFlow'
 
 export function DashboardGate() {
   const workspacesQuery = useSWR('workspaces', listWorkspaces)
@@ -99,11 +98,6 @@ export function DashboardGate() {
     || llmsQuery.isLoading
     || settingsQuery.isLoading,
   )
-  const hasEmptyData = Boolean(
-    !isLoading
-    && workspacesQuery.data?.workspaces?.length === 0
-    && tasksQuery.data?.tasks?.length === 0,
-  )
 
   if (isLoading) {
     return <main className='container p-8'>
@@ -127,8 +121,15 @@ export function DashboardGate() {
     </main>
   }
 
-  if (hasEmptyData && location.pathname !== UrlTree.workspaceCreate) {
-    return <GettingStarted />
+  const onboardingSteps = getOnboardingSteps({
+    llmCount: llmsQuery.data?.llms?.length || 0,
+    authAccountCount: accountsQuery.data?.accounts?.length || 0,
+    workspaceCount: workspacesQuery.data?.workspaces?.length || 0,
+  })
+  const nextOnboardingStep = getNextOnboardingStep(onboardingSteps)
+
+  if (nextOnboardingStep && !isSettingsRoute(location.pathname)) {
+    return <Navigate to={nextOnboardingStep.route} replace />
   }
 
   return <main className='flex min-h-screen overflow-hidden'>

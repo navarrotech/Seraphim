@@ -26,7 +26,6 @@ export type RequestBody = LlmUpdateRequest
 
 const apiKeyLlmTypes = new Set<Llm['type']>([
   'OPENAI_API_KEY',
-  'KIMI_API_KEY',
 ])
 
 const llmParamsSchema = z.object({

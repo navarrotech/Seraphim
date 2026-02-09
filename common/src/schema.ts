@@ -99,14 +99,6 @@ export const openAiApiKeyLlmCreateSchema = z.object({
   isDefault: z.boolean().optional().default(false),
 }).strict()
 
-export const kimiApiKeyLlmCreateSchema = z.object({
-  name: z.string().trim().min(1),
-  preferredModel: z.string().trim().min(1),
-  apiKey: z.string().trim().min(1),
-  tokenLimit: z.number().int().nonnegative().optional(),
-  isDefault: z.boolean().optional().default(false),
-}).strict()
-
 export const openAiLoginTokenLlmCreateSchema = z.object({
   name: z.string().trim().min(1),
   tokenLimit: z.number().int().nonnegative().optional(),
@@ -152,9 +144,6 @@ export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
 export type LlmUpdateRequest = z.infer<typeof llmUpdateSchema>
 export type OpenAiApiKeyLlmCreateRequest = z.infer<
   typeof openAiApiKeyLlmCreateSchema
->
-export type KimiApiKeyLlmCreateRequest = z.infer<
-  typeof kimiApiKeyLlmCreateSchema
 >
 export type OpenAiLoginTokenLlmCreateRequest = z.infer<
   typeof openAiLoginTokenLlmCreateSchema

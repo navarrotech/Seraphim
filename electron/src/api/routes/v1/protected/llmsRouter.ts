@@ -6,7 +6,6 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
-import { handleCreateKimiApiKeyLlmRequest } from './llms/createKimiApiKeyLlmRoute'
 import { handleCreateOpenAiApiKeyLlmRequest } from './llms/createOpenAiApiKeyLlmRoute'
 import { handleCreateOpenAiLoginTokenLlmRequest } from './llms/createOpenAiLoginTokenLlmRoute'
 import { handleDeleteLlmRequest } from './llms/deleteLlmRoute'
@@ -21,8 +20,6 @@ export function createLlmsRouter(): Router {
   llmsRouter.get('/', handleListLlmsRequest)
   // /api/v1/protected/llms/openai-api-key
   llmsRouter.post('/openai-api-key', handleCreateOpenAiApiKeyLlmRequest)
-  // /api/v1/protected/llms/kimi-api-key
-  llmsRouter.post('/kimi-api-key', handleCreateKimiApiKeyLlmRequest)
   // /api/v1/protected/llms/openai-login-token
   llmsRouter.post(
     '/openai-login-token',

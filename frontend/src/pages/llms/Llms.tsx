@@ -32,10 +32,7 @@ const llmDisplayByType: Record<LlmType, LlmDisplay> = {
     label: 'OpenAI (Login token)',
     logoUrl: '/llms/openai.png',
   },
-  KIMI_API_KEY: {
-    label: 'Kimi K2 (API key)',
-    logoUrl: '/llms/kimi-k2.png',
-  },
+
 }
 
 function getLlmDisplay(llmType: LlmType) {
