@@ -16,6 +16,7 @@ import { databaseMigrations } from './lib/migrations'
 import { startApi } from './api'
 import { connectToDocker } from './docker/docker'
 import { registerVoiceHotkeyListener } from './transcriber'
+import { getTaskManager } from './tasks/taskManager'
 
 // https://www.npmjs.com/package/electron-squirrel-startup
 import squirrelStartup from 'electron-squirrel-startup'
@@ -43,6 +44,14 @@ async function startup() {
     connectToDocker(),
     registerVoiceHotkeyListener(),
   ])
+
+  try {
+    const taskManager = getTaskManager()
+    await taskManager.initializeFromDatabase()
+  }
+  catch (error) {
+    console.error('Failed to initialize task manager', error)
+  }
 
   newWindow()
 }
