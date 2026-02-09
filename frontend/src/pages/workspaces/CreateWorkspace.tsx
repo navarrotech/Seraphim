@@ -1,8 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Environment } from '@common/schema'
 import type { RepoOption } from './CreateWorkspaceImportDrawer'
-import type { ControllerRenderProps } from 'react-hook-form'
 
 // Core
 import { useState } from 'react'
@@ -11,21 +9,14 @@ import { useNavigate } from 'react-router-dom'
 // Lib
 import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 // Redux
 import { useSelector } from '@frontend/framework/store'
 
 // UI
-import { Button, Card, Form, Input, Textarea } from '@heroui/react'
-import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
-import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
-import { Monaco } from '@frontend/common/Monaco'
-import { BaseDockerImageNotice } from '@frontend/common/workspaces/BaseDockerImageNotice'
-
-// Utility
-import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
+import { Button, Card, Form } from '@heroui/react'
 
 // Misc
 import { UrlTree } from '@common/urls'
@@ -34,16 +25,23 @@ import {
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
 import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
+import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+
+type BuildState = {
+  isBuilding: boolean
+}
 
 export function CreateWorkspace() {
   const navigate = useNavigate()
   const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
-  const buildSocket = useApiBuildSocket()
   const isImportDisabled = authAccounts.length === 0
   const [ isImportDrawerOpen, setIsImportDrawerOpen ] = useState(false)
   const [ importedRepoOption, setImportedRepoOption ] = useState<RepoOption | null>(null)
+  const [ buildState, setBuildState ] = useState<BuildState>({
+    isBuilding: false,
+  })
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -70,7 +68,7 @@ export function CreateWorkspace() {
     onDataRestored: (values) => form.reset(values),
   })
 
-  const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
+  const isFormLocked = buildState.isBuilding || form.formState.isSubmitting
   const isRepositoryLocked = Boolean(importedRepoOption)
 
   function handleOpenImportDrawer() {
@@ -81,53 +79,10 @@ export function CreateWorkspace() {
     setIsImportDrawerOpen(isOpen)
   }
 
-  function handleDockerfileCommandsChange(
-    onChange: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
-  ) {
-    return function onEditorChange(value: string | undefined) {
-      if (value === undefined) {
-        console.debug('CreateWorkspace dockerfile editor returned undefined value')
-        onChange('')
-        return
-      }
-
-      onChange(value)
-    }
-  }
-
-  function renderDockerfileCommandsField(
-    props: { field: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'> },
-  ) {
-    const { field } = props
-
-    return <div className='level w-full items-start'>
-      <div className='w-full'>
-        <div className='relaxed w-full'>
-          <label className='text-sm font-medium'>Custom Dockerfile commands</label>
-          <BaseDockerImageNotice />
-          <Monaco
-            height='220px'
-            fileLanguage='dockerfile'
-            minimapOverride={false}
-            value={field.value}
-            onChange={handleDockerfileCommandsChange(field.onChange)}
-            readOnly={isFormLocked}
-          />
-        </div>
-        <Button
-          type='button'
-          color='primary'
-          isLoading={buildSocket.isBuilding}
-          isDisabled={isFormLocked}
-          onPress={handleBuildImage}
-        >
-          <span>Build Image</span>
-        </Button>
-      </div>
-      <div className='w-full'>
-        <BuildLogsPanel buildSocket={buildSocket} />
-      </div>
-    </div>
+  function handleBuildStateChange(isBuilding: boolean) {
+    setBuildState({
+      isBuilding,
+    })
   }
 
   function handleImportRepo(repoOption: RepoOption) {
@@ -192,13 +147,6 @@ export function CreateWorkspace() {
     setIsImportDrawerOpen(false)
   }
 
-  async function handleBuildImage() {
-    const values = form.getValues()
-    await buildSocket.startBuild({
-      customDockerfileCommands: values.customDockerfileCommands || '',
-    })
-  }
-
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     try {
       await createWorkspace(data)
@@ -241,192 +189,27 @@ export function CreateWorkspace() {
         Define a workspace with its repository, scripts, and environment values.
       </p>
     </div>
-    <div className='relaxed'>{
-        importBanner
-      }</div>
+    <div className='relaxed'>
+      {importBanner}
+    </div>
     <Form onSubmit={onSubmit} className='relaxed'>
       <input type='hidden' {...form.register('authAccountId')} />
-      <Card className='relaxed p-4 w-full'>
-        <div className='level w-full items-start'>
-          <div className='w-full'>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='gitUserName'
-                render={({ field }) => (
-                  <Input
-                    label='Git user name'
-                    placeholder='Ada Lovelace'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.gitUserName)}
-                    errorMessage={form.formState.errors.gitUserName?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='gitUserEmail'
-                render={({ field }) => (
-                  <Input
-                    label='Git email'
-                    placeholder='ada@lovelace.dev'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.gitUserEmail)}
-                    errorMessage={form.formState.errors.gitUserEmail?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <Input
-                    autoFocus
-                    label='Workspace name'
-                    placeholder='Seraphim Playground'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.name)}
-                    errorMessage={form.formState.errors.name?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='repository'
-                render={({ field }) => (
-                  <Input
-                    label='Repository URL'
-                    placeholder='git@github.com:navarrotech/seraphim.git'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.repository)}
-                    errorMessage={form.formState.errors.repository?.message}
-                    isDisabled={isRepositoryLocked || isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='description'
-                render={({ field }) => (
-                  <Textarea
-                    label='Description'
-                    placeholder='What does this workspace do?'
-                    className='w-full'
-                    minRows={5}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-          </div>
-          <div className='w-full'>
-            <div>
-              <h4 className='compact text-xl'>Environment Variables</h4>
-              <Controller
-                control={form.control}
-                name='envEntries'
-                render={({ field }) => (
-                  <EnvironmentInputs
-                    id='workspace-environment'
-                    entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
-                    isDisabled={isFormLocked}
-                  />
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-      <Card className='relaxed p-4 w-full'>
-        <Controller
-          control={form.control}
-          name='customDockerfileCommands'
-          render={renderDockerfileCommandsField}
-        />
-      </Card>
-      <Card className='relaxed p-4 w-full'>
-        <div className='level w-full items-start'>
-          <Controller
-            control={form.control}
-            name='setupScript'
-            render={({ field }) => (
-              <Textarea
-                label='Setup script (bash)'
-                className='w-full'
-                placeholder='Commands to prepare the workspace environment.'
-                minRows={6}
-                isDisabled={isFormLocked}
-                value={field.value}
-                name={field.name}
-                onValueChange={field.onChange}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-          <Controller
-            control={form.control}
-            name='postScript'
-            render={({ field }) => (
-              <Textarea
-                label='Validate work script (bash)'
-                className='w-full'
-                placeholder='Deterministic commands to run and check the workspace with.'
-                minRows={6}
-                isDisabled={isFormLocked}
-                value={field.value}
-                name={field.name}
-                onValueChange={field.onChange}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-        </div>
-      </Card>
-      <Button
-        type='submit'
-        color='primary'
-        className='mx-auto'
-        isLoading={form.formState.isSubmitting}
-        isDisabled={isFormLocked}
-      >
-        <span>Create Workspace</span>
-      </Button>
+      <WorkspaceEditorForm
+        form={form}
+        isFormLocked={isFormLocked}
+        isRepositoryLocked={isRepositoryLocked}
+        autoFocusWorkspaceName
+        onBuildStateChange={handleBuildStateChange}
+        footer={<Button
+          type='submit'
+          color='primary'
+          className='mx-auto'
+          isLoading={form.formState.isSubmitting}
+          isDisabled={isFormLocked}
+        >
+          <span>Create Workspace</span>
+        </Button>}
+      />
       <CreateWorkspaceImportDrawer
         isOpen={isImportDrawerOpen}
         isDisabled={isImportDisabled || isFormLocked}
