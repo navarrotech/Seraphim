@@ -76,23 +76,9 @@ export function TasksSidebar() {
     })
   }
 
-  return <aside className={`h-full w-72 shrink-0 border-r border-black/5 bg-white/70 p-4 backdrop-blur
+  return <aside className={`h-[100vh] w-72 shrink-0 border-r border-black/5 bg-white/70 p-4 backdrop-blur
   dark:border-white/10 dark:bg-slate-950/70`}>
     <div className='flex h-full flex-col'>
-      <div>
-        <div className='relaxed text-xs uppercase tracking-wide opacity-50'>Navigation</div>
-        <div className='relaxed flex flex-col gap-2'>
-          <Button as={Link} to={UrlTree.tasksList} variant='light' className='w-full justify-start'>
-            <span>Tasks</span>
-          </Button>
-          <Button as={Link} to={UrlTree.workspacesList} variant='light' className='w-full justify-start'>
-            <span>Workspaces</span>
-          </Button>
-          <Button as={Link} to={UrlTree.llms} variant='light' className='w-full justify-start'>
-            <span>LLMs</span>
-          </Button>
-        </div>
-      </div>
       <div className='relaxed'>
         <Button
           as={Link}

@@ -10,7 +10,6 @@ import { useSelector } from '@frontend/framework/store'
 
 // User interface
 import { Button, Card, Tooltip } from '@heroui/react'
-import { SettingsTabs } from '../settings/SettingsTabs'
 import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
@@ -161,7 +160,6 @@ export function ConnectedAccounts() {
         <span>Add account</span>
       </Button>
     </div>
-    <SettingsTabs />
     <div className='relaxed'>
       {statusCard}
       {content}
