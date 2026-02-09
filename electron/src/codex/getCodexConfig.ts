@@ -86,32 +86,6 @@ function resolveLlmAuth(llm: Llm): ResolvedLlm | null {
     }
   }
 
-  if (llm.type === 'KIMI_API_KEY') {
-    const apiKey = llm.apiKey?.trim()
-    if (!apiKey) {
-      console.debug('Codex config missing Kimi API key', {
-        llmId: llm.id,
-      })
-      return null
-    }
-
-    return {
-      model,
-      modelProvider: 'kimi',
-      authJson: null,
-      environment: {
-        KIMI_API_KEY: apiKey,
-      },
-      providerLines: [
-        '[model_providers.kimi]',
-        'name = "Kimi"',
-        'base_url = "https://api.moonshot.cn/v1"',
-        'env_key = "KIMI_API_KEY"',
-        'wire_api = "responses"',
-      ],
-    }
-  }
-
   console.debug('Codex config does not support llm type yet', {
     llmId: llm.id,
     llmType: llm.type,
