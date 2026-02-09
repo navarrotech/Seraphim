@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { Selection } from '@react-types/shared'
 import type { LlmRecord } from '@common/types'
@@ -31,12 +31,10 @@ import {
 import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
 import {
   llmUpdateSchema,
-  kimiApiKeyLlmCreateSchema,
   openAiApiKeyLlmCreateSchema,
   openAiLoginTokenLlmCreateSchema,
 } from '@common/schema'
 import {
-  createKimiApiKeyLlm,
   createOpenAiApiKeyLlm,
   createOpenAiLoginTokenLlm,
   updateLlm,
@@ -44,37 +42,24 @@ import {
 
 const llmTypeOptions = [
   'OPENAI_API_KEY',
-  'KIMI_API_KEY',
   'OPENAI_LOGIN_TOKEN',
 ] as const
 
 const llmTypeSchema = z.enum(llmTypeOptions)
 
 type LlmType = z.infer<typeof llmTypeSchema>
-
 type DrawerMode = 'create' | 'edit'
-
 type LlmUpdatePayload = z.infer<typeof llmUpdateSchema>
 
 const llmTypeLabels: Record<LlmType, string> = {
   OPENAI_API_KEY: 'OpenAI (API key)',
-  KIMI_API_KEY: 'Kimi K2 (API key)',
   OPENAI_LOGIN_TOKEN: 'OpenAI (Login token)',
 }
 
 const openAiModelSchema = z.enum(SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY)
-const kimiModelSchema = z.enum(SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY)
 const tokenLimitSchema = z.number().int().nonnegative().optional()
 
 const openAiApiKeyEditSchema = z.object({
-  name: z.string().trim().min(1),
-  preferredModel: z.string().trim().min(1),
-  apiKey: z.string().trim().min(1).optional(),
-  tokenLimit: tokenLimitSchema,
-  isDefault: z.boolean().optional().default(false),
-}).strict()
-
-const kimiApiKeyEditSchema = z.object({
   name: z.string().trim().min(1),
   preferredModel: z.string().trim().min(1),
   apiKey: z.string().trim().min(1).optional(),
@@ -89,13 +74,8 @@ const openAiLoginTokenEditSchema = z.object({
 }).strict()
 
 type OpenAiApiKeyFormValues = z.infer<typeof openAiApiKeyLlmCreateSchema>
-type KimiApiKeyFormValues = z.infer<typeof kimiApiKeyLlmCreateSchema>
-type OpenAiLoginTokenFormValues = z.infer<
-  typeof openAiLoginTokenLlmCreateSchema
->
-
+type OpenAiLoginTokenFormValues = z.infer<typeof openAiLoginTokenLlmCreateSchema>
 type OpenAiApiKeyEditFormValues = z.infer<typeof openAiApiKeyEditSchema>
-type KimiApiKeyEditFormValues = z.infer<typeof kimiApiKeyEditSchema>
 type OpenAiLoginTokenEditFormValues = z.infer<typeof openAiLoginTokenEditSchema>
 
 type Props = {
@@ -119,19 +99,9 @@ function resolveSelection<OptionType extends string>(
     return null
   }
 
-  const selectedKeys = Array.from(selection)
-  const selectedKey = selectedKeys[0]
-
-  if (!selectedKey) {
+  const selectedKey = Array.from(selection)[0]
+  if (!selectedKey || typeof selectedKey !== 'string') {
     console.debug('CreateLlmDrawer failed to resolve a selection', {
-      context,
-      selection,
-    })
-    return null
-  }
-
-  if (typeof selectedKey !== 'string') {
-    console.debug('CreateLlmDrawer expected a string selection key', {
       context,
       selection,
     })
@@ -182,16 +152,8 @@ function createTokenLimitChangeHandler(
     }
 
     const parsedValue = Number(trimmedValue)
-    if (!Number.isFinite(parsedValue)) {
-      console.debug('CreateLlmDrawer token limit is not a number', {
-        context,
-        value,
-      })
-      return
-    }
-
-    if (!Number.isInteger(parsedValue) || parsedValue < 0) {
-      console.debug('CreateLlmDrawer token limit must be a whole number', {
+    if (!Number.isFinite(parsedValue) || !Number.isInteger(parsedValue) || parsedValue < 0) {
+      console.debug('CreateLlmDrawer token limit is invalid', {
         context,
         value,
       })
@@ -205,23 +167,7 @@ function createTokenLimitChangeHandler(
 function getOpenAiApiKeyDefaults(): OpenAiApiKeyFormValues {
   return {
     name: '',
-    preferredModel: getDefaultModel(
-      SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY,
-      'openai-api-key',
-    ),
-    apiKey: '',
-    tokenLimit: undefined,
-    isDefault: false,
-  }
-}
-
-function getKimiApiKeyDefaults(): KimiApiKeyFormValues {
-  return {
-    name: '',
-    preferredModel: getDefaultModel(
-      SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY,
-      'kimi-api-key',
-    ),
+    preferredModel: getDefaultModel(SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY, 'openai-api-key'),
     apiKey: '',
     tokenLimit: undefined,
     isDefault: false,
@@ -236,39 +182,17 @@ function getOpenAiLoginTokenDefaults(): OpenAiLoginTokenFormValues {
   }
 }
 
-function getOpenAiApiKeyEditDefaults(
-  llm: LlmRecord,
-): OpenAiApiKeyEditFormValues {
+function getOpenAiApiKeyEditDefaults(llm: LlmRecord): OpenAiApiKeyEditFormValues {
   return {
     name: llm.name || '',
-    preferredModel: llm.preferredModel || getDefaultModel(
-      SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY,
-      'openai-api-key-edit',
-    ),
+    preferredModel: llm.preferredModel || getDefaultModel(SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY, 'openai-edit'),
     apiKey: undefined,
     tokenLimit: llm.tokenLimit ?? undefined,
     isDefault: llm.isDefault,
   }
 }
 
-function getKimiApiKeyEditDefaults(
-  llm: LlmRecord,
-): KimiApiKeyEditFormValues {
-  return {
-    name: llm.name || '',
-    preferredModel: llm.preferredModel || getDefaultModel(
-      SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY,
-      'kimi-api-key-edit',
-    ),
-    apiKey: undefined,
-    tokenLimit: llm.tokenLimit ?? undefined,
-    isDefault: llm.isDefault,
-  }
-}
-
-function getOpenAiLoginTokenEditDefaults(
-  llm: LlmRecord,
-): OpenAiLoginTokenEditFormValues {
+function getOpenAiLoginTokenEditDefaults(llm: LlmRecord): OpenAiLoginTokenEditFormValues {
   return {
     name: llm.name || '',
     tokenLimit: llm.tokenLimit ?? undefined,
@@ -276,10 +200,7 @@ function getOpenAiLoginTokenEditDefaults(
   }
 }
 
-function buildApiKeyUpdatePayload(
-  values: OpenAiApiKeyEditFormValues | KimiApiKeyEditFormValues,
-  context: string,
-): LlmUpdatePayload {
+function buildApiKeyUpdatePayload(values: OpenAiApiKeyEditFormValues): LlmUpdatePayload {
   const payload: LlmUpdatePayload = {
     name: values.name,
     preferredModel: values.preferredModel,
@@ -294,18 +215,11 @@ function buildApiKeyUpdatePayload(
   if (trimmedApiKey) {
     payload.apiKey = trimmedApiKey
   }
-  else if (values.apiKey !== undefined) {
-    console.debug('CreateLlmDrawer received an empty apiKey', {
-      context,
-    })
-  }
 
   return payload
 }
 
-function buildLoginTokenUpdatePayload(
-  values: OpenAiLoginTokenEditFormValues,
-): LlmUpdatePayload {
+function buildLoginTokenUpdatePayload(values: OpenAiLoginTokenEditFormValues): LlmUpdatePayload {
   const payload: LlmUpdatePayload = {
     name: values.name,
     isDefault: values.isDefault,
@@ -319,19 +233,12 @@ function buildLoginTokenUpdatePayload(
 }
 
 export function CreateLlmDrawer(props: Props) {
-  const [ llmType, setLlmType ] = useState<LlmType>(
-    'OPENAI_API_KEY',
-  )
+  const [ llmType, setLlmType ] = useState<LlmType>('OPENAI_API_KEY')
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
 
   const openAiApiKeyForm = useForm<OpenAiApiKeyFormValues>({
     resolver: zodResolver(openAiApiKeyLlmCreateSchema),
     defaultValues: getOpenAiApiKeyDefaults(),
-  })
-
-  const kimiApiKeyForm = useForm<KimiApiKeyFormValues>({
-    resolver: zodResolver(kimiApiKeyLlmCreateSchema),
-    defaultValues: getKimiApiKeyDefaults(),
   })
 
   const openAiLoginTokenForm = useForm<OpenAiLoginTokenFormValues>({
@@ -353,20 +260,6 @@ export function CreateLlmDrawer(props: Props) {
     },
   })
 
-  const kimiApiKeyEditForm = useForm<KimiApiKeyEditFormValues>({
-    resolver: zodResolver(kimiApiKeyEditSchema),
-    defaultValues: {
-      name: '',
-      preferredModel: getDefaultModel(
-        SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY,
-        'kimi-api-key-edit-defaults',
-      ),
-      apiKey: undefined,
-      tokenLimit: undefined,
-      isDefault: false,
-    },
-  })
-
   const openAiLoginTokenEditForm = useForm<OpenAiLoginTokenEditFormValues>({
     resolver: zodResolver(openAiLoginTokenEditSchema),
     defaultValues: {
@@ -377,29 +270,12 @@ export function CreateLlmDrawer(props: Props) {
   })
 
   const isEditMode = props.mode === 'edit'
-  const activeOpenAiApiKeyForm = isEditMode
-    ? openAiApiKeyEditForm
-    : openAiApiKeyForm
-  const activeKimiApiKeyForm = isEditMode
-    ? kimiApiKeyEditForm
-    : kimiApiKeyForm
-  const activeOpenAiLoginTokenForm = isEditMode
-    ? openAiLoginTokenEditForm
-    : openAiLoginTokenForm
+  const activeOpenAiApiKeyForm = isEditMode ? openAiApiKeyEditForm : openAiApiKeyForm
+  const activeOpenAiLoginTokenForm = isEditMode ? openAiLoginTokenEditForm : openAiLoginTokenForm
 
-  const llmTypeKeys = llmType
-    ? [ llmType ]
-    : []
-
+  const llmTypeKeys = [ llmType ]
   const openAiModelValue = activeOpenAiApiKeyForm.watch('preferredModel')
-  const openAiModelKeys = openAiModelValue
-    ? [ openAiModelValue ]
-    : []
-
-  const kimiModelValue = activeKimiApiKeyForm.watch('preferredModel')
-  const kimiModelKeys = kimiModelValue
-    ? [ kimiModelValue ]
-    : []
+  const openAiModelKeys = openAiModelValue ? [ openAiModelValue ] : []
 
   useEffect(function resetDrawerState() {
     if (props.isOpen) {
@@ -409,24 +285,10 @@ export function CreateLlmDrawer(props: Props) {
     setLlmType('OPENAI_API_KEY')
     setStatusMessage(null)
     openAiApiKeyForm.reset(getOpenAiApiKeyDefaults())
-    kimiApiKeyForm.reset(getKimiApiKeyDefaults())
     openAiLoginTokenForm.reset(getOpenAiLoginTokenDefaults())
     openAiApiKeyEditForm.reset({
       name: '',
-      preferredModel: getDefaultModel(
-        SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY,
-        'openai-api-key-edit-defaults',
-      ),
-      apiKey: undefined,
-      tokenLimit: undefined,
-      isDefault: false,
-    })
-    kimiApiKeyEditForm.reset({
-      name: '',
-      preferredModel: getDefaultModel(
-        SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY,
-        'kimi-api-key-edit-defaults',
-      ),
+      preferredModel: getDefaultModel(SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY, 'openai-api-key-edit-defaults'),
       apiKey: undefined,
       tokenLimit: undefined,
       isDefault: false,
@@ -436,15 +298,7 @@ export function CreateLlmDrawer(props: Props) {
       tokenLimit: undefined,
       isDefault: false,
     })
-  }, [
-    props.isOpen,
-    openAiApiKeyForm,
-    kimiApiKeyForm,
-    openAiLoginTokenForm,
-    openAiApiKeyEditForm,
-    kimiApiKeyEditForm,
-    openAiLoginTokenEditForm,
-  ])
+  }, [ props.isOpen, openAiApiKeyForm, openAiLoginTokenForm, openAiApiKeyEditForm, openAiLoginTokenEditForm ])
 
   useEffect(function syncEditDefaults() {
     if (!props.isOpen || props.mode !== 'edit') {
@@ -465,29 +319,11 @@ export function CreateLlmDrawer(props: Props) {
       return
     }
 
-    if (props.llm.type === 'KIMI_API_KEY') {
-      kimiApiKeyEditForm.reset(getKimiApiKeyEditDefaults(props.llm))
-      return
-    }
-
-    openAiLoginTokenEditForm.reset(
-      getOpenAiLoginTokenEditDefaults(props.llm),
-    )
-  }, [
-    props.llm,
-    props.isOpen,
-    props.mode,
-    openAiApiKeyEditForm,
-    kimiApiKeyEditForm,
-    openAiLoginTokenEditForm,
-  ])
+    openAiLoginTokenEditForm.reset(getOpenAiLoginTokenEditDefaults(props.llm))
+  }, [ props.llm, props.isOpen, props.mode, openAiApiKeyEditForm, openAiLoginTokenEditForm ])
 
   function handleLlmTypeSelection(selection: Selection) {
-    const resolvedSelection = resolveSelection(
-      selection,
-      llmTypeSchema,
-      'llm-type',
-    )
+    const resolvedSelection = resolveSelection(selection, llmTypeSchema, 'llm-type')
     if (!resolvedSelection) {
       return
     }
@@ -497,11 +333,7 @@ export function CreateLlmDrawer(props: Props) {
   }
 
   function handleOpenAiModelSelection(selection: Selection) {
-    const resolvedSelection = resolveSelection(
-      selection,
-      openAiModelSchema,
-      'openai-preferred-model',
-    )
+    const resolvedSelection = resolveSelection(selection, openAiModelSchema, 'openai-preferred-model')
     if (!resolvedSelection) {
       return
     }
@@ -514,163 +346,81 @@ export function CreateLlmDrawer(props: Props) {
     })
   }
 
-  function handleKimiModelSelection(selection: Selection) {
-    const resolvedSelection = resolveSelection(
-      selection,
-      kimiModelSchema,
-      'kimi-preferred-model',
-    )
-    if (!resolvedSelection) {
+  const onSubmitOpenAiApiKey = openAiApiKeyForm.handleSubmit(async function onSubmit(values) {
+    setStatusMessage(null)
+
+    try {
+      await createOpenAiApiKeyLlm(values)
+      props.onOpenChange(false)
+      openAiApiKeyForm.reset(getOpenAiApiKeyDefaults())
+    }
+    catch (error) {
+      console.debug('CreateLlmDrawer failed to create OpenAI API key llm', { error })
+      setStatusMessage('Unable to create the OpenAI LLM right now.')
+    }
+  })
+
+  const onSubmitOpenAiLoginToken = openAiLoginTokenForm.handleSubmit(async function onSubmit(values) {
+    setStatusMessage(null)
+
+    try {
+      await createOpenAiLoginTokenLlm(values)
+      props.onOpenChange(false)
+      openAiLoginTokenForm.reset(getOpenAiLoginTokenDefaults())
+    }
+    catch (error) {
+      console.debug('CreateLlmDrawer failed to create OpenAI login token llm', { error })
+      setStatusMessage('Unable to create the OpenAI login LLM right now.')
+    }
+  })
+
+  const onSubmitOpenAiApiKeyEdit = openAiApiKeyEditForm.handleSubmit(async function onSubmit(values) {
+    setStatusMessage(null)
+
+    if (!props.llm) {
+      console.debug('CreateLlmDrawer edit submit missing llm')
+      setStatusMessage('Select an LLM to edit.')
       return
     }
 
+    try {
+      await updateLlm(props.llm.id, buildApiKeyUpdatePayload(values))
+      props.onOpenChange(false)
+    }
+    catch (error) {
+      console.debug('CreateLlmDrawer failed to edit OpenAI llm', {
+        error,
+        llmId: props.llm.id,
+      })
+      setStatusMessage('Unable to update the OpenAI LLM right now.')
+    }
+  })
+
+  const onSubmitOpenAiLoginTokenEdit = openAiLoginTokenEditForm.handleSubmit(async function onSubmit(values) {
     setStatusMessage(null)
-    activeKimiApiKeyForm.setValue('preferredModel', resolvedSelection, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-  }
 
-  const onSubmitOpenAiApiKey = openAiApiKeyForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
+    if (!props.llm) {
+      console.debug('CreateLlmDrawer edit submit missing llm')
+      setStatusMessage('Select an LLM to edit.')
+      return
+    }
 
-      try {
-        await createOpenAiApiKeyLlm(values)
-        props.onOpenChange(false)
-        openAiApiKeyForm.reset(getOpenAiApiKeyDefaults())
-      }
-      catch (error) {
-        console.debug(
-          'CreateLlmDrawer failed to create OpenAI API key llm',
-          { error },
-        )
-        setStatusMessage('Unable to create the OpenAI LLM right now.')
-      }
-    },
-  )
-
-  const onSubmitKimiApiKey = kimiApiKeyForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
-
-      try {
-        await createKimiApiKeyLlm(values)
-        props.onOpenChange(false)
-        kimiApiKeyForm.reset(getKimiApiKeyDefaults())
-      }
-      catch (error) {
-        console.debug(
-          'CreateLlmDrawer failed to create Kimi API key llm',
-          { error },
-        )
-        setStatusMessage('Unable to create the Kimi LLM right now.')
-      }
-    },
-  )
-
-  const onSubmitOpenAiLoginToken = openAiLoginTokenForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
-
-      try {
-        await createOpenAiLoginTokenLlm(values)
-        props.onOpenChange(false)
-        openAiLoginTokenForm.reset(getOpenAiLoginTokenDefaults())
-      }
-      catch (error) {
-        console.debug(
-          'CreateLlmDrawer failed to create OpenAI login token llm',
-          { error },
-        )
-        setStatusMessage('Unable to create the OpenAI login LLM right now.')
-      }
-    },
-  )
-
-  const onSubmitOpenAiApiKeyEdit = openAiApiKeyEditForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
-
-      if (!props.llm) {
-        console.debug('CreateLlmDrawer edit submit missing llm')
-        setStatusMessage('Select an LLM to edit.')
-        return
-      }
-
-      try {
-        const payload = buildApiKeyUpdatePayload(values, 'openai-api-key-edit')
-        await updateLlm(props.llm.id, payload)
-        props.onOpenChange(false)
-      }
-      catch (error) {
-        console.debug('CreateLlmDrawer failed to edit OpenAI llm', {
-          error,
-          llmId: props.llm.id,
-        })
-        setStatusMessage('Unable to update the OpenAI LLM right now.')
-      }
-    },
-  )
-
-  const onSubmitKimiApiKeyEdit = kimiApiKeyEditForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
-
-      if (!props.llm) {
-        console.debug('CreateLlmDrawer edit submit missing llm')
-        setStatusMessage('Select an LLM to edit.')
-        return
-      }
-
-      try {
-        const payload = buildApiKeyUpdatePayload(values, 'kimi-api-key-edit')
-        await updateLlm(props.llm.id, payload)
-        props.onOpenChange(false)
-      }
-      catch (error) {
-        console.debug('CreateLlmDrawer failed to edit Kimi llm', {
-          error,
-          llmId: props.llm.id,
-        })
-        setStatusMessage('Unable to update the Kimi LLM right now.')
-      }
-    },
-  )
-
-  const onSubmitOpenAiLoginTokenEdit = openAiLoginTokenEditForm.handleSubmit(
-    async function onSubmit(values) {
-      setStatusMessage(null)
-
-      if (!props.llm) {
-        console.debug('CreateLlmDrawer edit submit missing llm')
-        setStatusMessage('Select an LLM to edit.')
-        return
-      }
-
-      try {
-        const payload = buildLoginTokenUpdatePayload(values)
-        await updateLlm(props.llm.id, payload)
-        props.onOpenChange(false)
-      }
-      catch (error) {
-        console.debug('CreateLlmDrawer failed to edit login llm', {
-          error,
-          llmId: props.llm.id,
-        })
-        setStatusMessage('Unable to update the OpenAI login LLM right now.')
-      }
-    },
-  )
+    try {
+      await updateLlm(props.llm.id, buildLoginTokenUpdatePayload(values))
+      props.onOpenChange(false)
+    }
+    catch (error) {
+      console.debug('CreateLlmDrawer failed to edit login llm', {
+        error,
+        llmId: props.llm.id,
+      })
+      setStatusMessage('Unable to update the OpenAI login LLM right now.')
+    }
+  })
 
   function getActiveFormState() {
     if (llmType === 'OPENAI_API_KEY') {
       return activeOpenAiApiKeyForm.formState
-    }
-
-    if (llmType === 'KIMI_API_KEY') {
-      return activeKimiApiKeyForm.formState
     }
 
     return activeOpenAiLoginTokenForm.formState
@@ -678,29 +428,20 @@ export function CreateLlmDrawer(props: Props) {
 
   function getActiveSubmitHandler() {
     if (llmType === 'OPENAI_API_KEY') {
-      return isEditMode
-        ? onSubmitOpenAiApiKeyEdit
-        : onSubmitOpenAiApiKey
+      if (isEditMode) {
+        return onSubmitOpenAiApiKeyEdit
+      }
+      return onSubmitOpenAiApiKey
     }
 
-    if (llmType === 'KIMI_API_KEY') {
-      return isEditMode
-        ? onSubmitKimiApiKeyEdit
-        : onSubmitKimiApiKey
+    if (isEditMode) {
+      return onSubmitOpenAiLoginTokenEdit
     }
-
-    return isEditMode
-      ? onSubmitOpenAiLoginTokenEdit
-      : onSubmitOpenAiLoginToken
+    return onSubmitOpenAiLoginToken
   }
 
   function renderOpenAiApiKeyFields(isFormDisabled: boolean) {
-    const apiKeyLabel = isEditMode
-      ? 'API key (optional)'
-      : 'API key'
-    const apiKeyPlaceholder = isEditMode
-      ? 'Enter a new API key'
-      : 'sk-live-...'
+    const apiKeyLabel = isEditMode ? 'API key (optional)' : 'API key'
 
     return <Card className='relaxed w-full'>
       <div className='relaxed w-full'>
@@ -730,9 +471,7 @@ export function CreateLlmDrawer(props: Props) {
           selectedKeys={openAiModelKeys}
           onSelectionChange={handleOpenAiModelSelection}
           isInvalid={Boolean(activeOpenAiApiKeyForm.formState.errors.preferredModel)}
-          errorMessage={
-            activeOpenAiApiKeyForm.formState.errors.preferredModel?.message
-          }
+          errorMessage={activeOpenAiApiKeyForm.formState.errors.preferredModel?.message}
           isDisabled={isFormDisabled}
         >{
           SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY.map((model) => (
@@ -747,7 +486,7 @@ export function CreateLlmDrawer(props: Props) {
           render={({ field }) => (
             <Input
               label={apiKeyLabel}
-              placeholder={apiKeyPlaceholder}
+              placeholder='sk-live-...'
               className='compact w-full'
               type='password'
               isRequired={!isEditMode}
@@ -776,121 +515,13 @@ export function CreateLlmDrawer(props: Props) {
               isDisabled={isFormDisabled}
               value={getTokenLimitInputValue(field.value)}
               name={field.name}
-              onValueChange={createTokenLimitChangeHandler(
-                field.onChange,
-                'openai-token-limit',
-              )}
+              onValueChange={createTokenLimitChangeHandler(field.onChange, 'openai-token-limit')}
               onBlur={field.onBlur}
             />
           )}
         />
         <Controller
           control={activeOpenAiApiKeyForm.control}
-          name='isDefault'
-          render={({ field }) => (
-            <Checkbox
-              isSelected={Boolean(field.value)}
-              isDisabled={isFormDisabled}
-              onValueChange={field.onChange}
-            >{
-              'Set as default LLM'
-            }</Checkbox>
-          )}
-        />
-      </div>
-    </Card>
-  }
-
-  function renderKimiApiKeyFields(isFormDisabled: boolean) {
-    const apiKeyLabel = isEditMode
-      ? 'API key (optional)'
-      : 'API key'
-    const apiKeyPlaceholder = isEditMode
-      ? 'Enter a new API key'
-      : 'kimi-...'
-
-    return <Card className='relaxed w-full'>
-      <div className='relaxed w-full'>
-        <Controller
-          control={activeKimiApiKeyForm.control}
-          name='name'
-          render={({ field }) => (
-            <Input
-              autoFocus
-              label='Name'
-              placeholder='Kimi K2 Main'
-              className='compact w-full'
-              isRequired
-              isInvalid={Boolean(activeKimiApiKeyForm.formState.errors.name)}
-              errorMessage={activeKimiApiKeyForm.formState.errors.name?.message}
-              isDisabled={isFormDisabled}
-              value={field.value}
-              name={field.name}
-              onValueChange={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <Select
-          label='Preferred model'
-          className='compact w-full'
-          selectedKeys={kimiModelKeys}
-          onSelectionChange={handleKimiModelSelection}
-          isInvalid={Boolean(activeKimiApiKeyForm.formState.errors.preferredModel)}
-          errorMessage={activeKimiApiKeyForm.formState.errors.preferredModel?.message}
-          isDisabled={isFormDisabled}
-        >{
-          SUPPORTED_MODELS_BY_LLM.KIMI_API_KEY.map((model) => (
-            <SelectItem key={model}>{
-              model
-            }</SelectItem>
-          ))
-        }</Select>
-        <Controller
-          control={activeKimiApiKeyForm.control}
-          name='apiKey'
-          render={({ field }) => (
-            <Input
-              label={apiKeyLabel}
-              placeholder={apiKeyPlaceholder}
-              className='compact w-full'
-              type='password'
-              isRequired={!isEditMode}
-              isInvalid={Boolean(activeKimiApiKeyForm.formState.errors.apiKey)}
-              errorMessage={activeKimiApiKeyForm.formState.errors.apiKey?.message}
-              isDisabled={isFormDisabled}
-              value={field.value || ''}
-              name={field.name}
-              onValueChange={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <Controller
-          control={activeKimiApiKeyForm.control}
-          name='tokenLimit'
-          render={({ field }) => (
-            <Input
-              label='Token limit (optional)'
-              placeholder='500000'
-              className='compact w-full'
-              type='number'
-              min='0'
-              isInvalid={Boolean(activeKimiApiKeyForm.formState.errors.tokenLimit)}
-              errorMessage={activeKimiApiKeyForm.formState.errors.tokenLimit?.message}
-              isDisabled={isFormDisabled}
-              value={getTokenLimitInputValue(field.value)}
-              name={field.name}
-              onValueChange={createTokenLimitChangeHandler(
-                field.onChange,
-                'kimi-token-limit',
-              )}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <Controller
-          control={activeKimiApiKeyForm.control}
           name='isDefault'
           render={({ field }) => (
             <Checkbox
@@ -944,10 +575,7 @@ export function CreateLlmDrawer(props: Props) {
               isDisabled={isFormDisabled}
               value={getTokenLimitInputValue(field.value)}
               name={field.name}
-              onValueChange={createTokenLimitChangeHandler(
-                field.onChange,
-                'openai-login-token-limit',
-              )}
+              onValueChange={createTokenLimitChangeHandler(field.onChange, 'openai-login-token-limit')}
               onBlur={field.onBlur}
             />
           )}
@@ -974,10 +602,6 @@ export function CreateLlmDrawer(props: Props) {
       return renderOpenAiApiKeyFields(isFormDisabled)
     }
 
-    if (llmType === 'KIMI_API_KEY') {
-      return renderKimiApiKeyFields(isFormDisabled)
-    }
-
     return renderOpenAiLoginTokenFields(isFormDisabled)
   }
 
@@ -993,12 +617,8 @@ export function CreateLlmDrawer(props: Props) {
   const activeFormState = getActiveFormState()
   const isFormDisabled = props.isDisabled || activeFormState.isSubmitting
   const onSubmit = getActiveSubmitHandler()
-  const drawerTitle = isEditMode
-    ? 'Edit LLM'
-    : 'Create LLM'
-  const drawerCta = isEditMode
-    ? 'Save changes'
-    : 'Create LLM'
+  const drawerTitle = isEditMode ? 'Edit LLM' : 'Create LLM'
+  const drawerCta = isEditMode ? 'Save changes' : 'Create LLM'
   const isTypeSelectionDisabled = props.isDisabled || isEditMode
 
   return <Drawer

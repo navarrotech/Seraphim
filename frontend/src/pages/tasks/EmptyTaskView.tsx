@@ -218,9 +218,6 @@ function getLlmLabel(llm: LlmRecord) {
     return 'OpenAI (Login token)'
   }
 
-  if (llm.type === 'KIMI_API_KEY') {
-    return 'Kimi K2 (API key)'
-  }
 
   console.debug('EmptyTaskView received an unsupported llm type', {
     llmType: llm.type,

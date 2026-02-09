@@ -143,7 +143,6 @@ enum AudioFor {
 enum LlmType {
   OPENAI_API_KEY
   OPENAI_LOGIN_TOKEN
-  KIMI_API_KEY
 }
 
 enum TaskState {
