@@ -103,6 +103,7 @@ export function Tasks() {
 
   const isTaskLoading = Boolean(taskId && !taskQuery.data && !taskQuery.error)
   const taskMessages = taskQuery.data?.task.messages || []
+  const resolvedTask = taskQuery.data?.task || selectedTask
   const shouldShowEmpty = !taskId
   const taskName = taskQuery.data?.task.name || selectedTask?.name || 'Untitled task'
   const taskContainerName = taskQuery.data?.task.containerName || selectedTask?.containerName
@@ -116,6 +117,7 @@ export function Tasks() {
           <TaskView
             messages={[]}
             taskName={taskName}
+            task={resolvedTask}
             containerName={taskContainerName}
             isLoading
           />
@@ -137,6 +139,7 @@ export function Tasks() {
           <TaskView
             messages={taskMessages}
             taskName={taskName}
+            task={resolvedTask}
             containerName={taskContainerName}
           />
         )}

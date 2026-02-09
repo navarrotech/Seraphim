@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Message } from '@prisma/client'
+import type { Message, Task } from '@prisma/client'
 
 // Core
 import { useState } from 'react'
@@ -9,9 +9,13 @@ import { useState } from 'react'
 import { Button, Skeleton, Textarea } from '@heroui/react'
 import { TaskFilesView } from './TaskFilesView'
 
+// Misc
+import { GitTaskDropdown } from './gitActions/GitTaskDropdown'
+
 type Props = {
   messages: Message[]
   taskName: string
+  task?: Task
   isLoading?: boolean
   containerName?: string
 }
@@ -73,7 +77,7 @@ function getSkeletonWidths() {
 }
 
 export function TaskView(props: Props) {
-  const { messages, taskName, isLoading = false, containerName } = props
+  const { messages, taskName, task, isLoading = false, containerName } = props
   const [ draftMessage, setDraftMessage ] = useState<string>('')
   const [ activeTabId, setActiveTabId ] = useState<TaskTabId>('conversation')
   const skeletonWidths = getSkeletonWidths()
@@ -181,16 +185,26 @@ export function TaskView(props: Props) {
 
   return <div className='flex h-full flex-col'>
     <div className='relaxed'>
-      <h2 className='text-2xl'>
-        <strong>{
-          taskName
-        }</strong>
-      </h2>
-      {containerName && (
-        <p className='text-xs opacity-60'>
-          Container: {containerName}
-        </p>
-      )}
+      <div className='level'>
+        <div>
+          <h2 className='text-2xl'>
+            <strong>{
+              taskName
+            }</strong>
+          </h2>
+          {containerName && (
+            <p className='text-xs opacity-60'>
+              Container: {containerName}
+            </p>
+          )}
+        </div>
+        {task && (
+          <GitTaskDropdown
+            task={task}
+            provider='github'
+          />
+        )}
+      </div>
     </div>
     <div className='level-centered relaxed'>
       <div className='flex flex-wrap justify-center gap-2'>
