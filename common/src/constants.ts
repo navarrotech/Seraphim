@@ -43,8 +43,7 @@ export const SUPPORTED_MODELS_BY_LLM = {
     'gpt-5-codex-mini',
     'gpt-5',
   ],
-  KIMI_API_KEY: [ 'kimi-k2' ],
-} as const satisfies Record<LlmType, readonly string[]>
+} as const satisfies Partial<Record<LlmType, readonly string[]>>
 
 
 // GitHub Auth

@@ -8,7 +8,6 @@ import { z } from 'zod'
 // Utility
 import {
   llmUpdateSchema,
-  kimiApiKeyLlmCreateSchema,
   openAiApiKeyLlmCreateSchema,
   openAiLoginTokenLlmCreateSchema,
 } from '@common/schema'
@@ -42,17 +41,6 @@ export function createOpenAiApiKeyLlm(
     .json<CreateLlmResponse>()
 }
 
-type CreateKimiApiKeyLlmRequestBody = z.infer<
-  typeof kimiApiKeyLlmCreateSchema
->
-
-export function createKimiApiKeyLlm(
-  body: CreateKimiApiKeyLlmRequestBody,
-) {
-  return apiClient
-    .post('v1/protected/llms/kimi-api-key', { json: body })
-    .json<CreateLlmResponse>()
-}
 
 type CreateOpenAiLoginTokenLlmRequestBody = z.infer<
   typeof openAiLoginTokenLlmCreateSchema
