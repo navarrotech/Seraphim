@@ -59,3 +59,29 @@ export function deleteTask(taskId: string) {
   return apiClient
     .delete(`v1/protected/tasks/${taskId}`)
 }
+
+type TaskGitActionResponse = {
+  message: string
+}
+
+function postTaskGitAction(taskId: string, actionPath: string) {
+  return apiClient
+    .post(`v1/protected/tasks/${taskId}/git/${actionPath}`)
+    .json<TaskGitActionResponse>()
+}
+
+export function refreshTaskGit(taskId: string) {
+  return postTaskGitAction(taskId, 'refresh')
+}
+
+export function reUpTaskGit(taskId: string) {
+  return postTaskGitAction(taskId, 're-up')
+}
+
+export function createOrUpdateTaskPullRequest(taskId: string) {
+  return postTaskGitAction(taskId, 'pull-request')
+}
+
+export function viewTaskRepository(taskId: string) {
+  return postTaskGitAction(taskId, 'view-repository')
+}
