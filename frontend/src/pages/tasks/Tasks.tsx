@@ -30,6 +30,7 @@ type TaskRouteParams = {
 type TaskDraft = {
   message: string
   workspaceId: string
+  authAccountId: string
   llmId: string
 }
 
@@ -40,6 +41,7 @@ export function Tasks() {
   const tasks = useSelector((state) => state.tasks.items)
   const workspaces = useSelector((state) => state.workspaces.items)
   const llms = useSelector((state) => state.llms.items)
+  const authAccounts = useSelector((state) => state.accounts.items)
 
   const selectedTask = taskId
     ? tasks.find((task) => task.id === taskId)
@@ -73,12 +75,19 @@ export function Tasks() {
       return
     }
 
+    const authAccount = authAccounts.find((entry) => entry.id === draft.authAccountId)
+    if (!authAccount) {
+      console.debug('Tasks cannot create a task without an auth account', { draft })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const response = await createTask({
         userId: user.id,
         workspaceId: workspace.id,
+        authAccountId: authAccount.id,
         llmId: draft.llmId,
         message: draft.message,
         branch: DEFAULT_TASK_BRANCH,
