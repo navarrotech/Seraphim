@@ -4,7 +4,7 @@ import type { Key } from 'react'
 import type { AuthProvider } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // User interface
 import {
@@ -59,6 +59,13 @@ function getDefaultPayload(): CreateAccountPayload {
 
 export function CreateAccountDrawer(props: Props) {
   const [ payload, setPayload ] = useState<CreateAccountPayload>(getDefaultPayload)
+  const [ localErrorMessage, setLocalErrorMessage ] = useState<string | null>(null)
+
+  useEffect(function syncDrawerState() {
+    if (!props.isOpen) {
+      setLocalErrorMessage(null)
+    }
+  }, [ props.isOpen ])
 
   function handleProviderChange(keys: 'all' | Set<Key>) {
     if (keys === 'all') {
@@ -112,27 +119,33 @@ export function CreateAccountDrawer(props: Props) {
   }
 
   async function handleSubmit() {
+    setLocalErrorMessage(null)
+
     const trimmedName = payload.name.trim()
     if (!trimmedName) {
       console.debug('CreateAccountDrawer missing account name')
+      setLocalErrorMessage('Account name is required.')
       return
     }
 
     const trimmedAccessToken = payload.accessToken.trim()
     if (!trimmedAccessToken) {
       console.debug('CreateAccountDrawer missing access token')
+      setLocalErrorMessage('GitHub token is required.')
       return
     }
 
     const trimmedGitUserName = payload.gitUserName.trim()
     if (!trimmedGitUserName) {
       console.debug('CreateAccountDrawer missing git user name')
+      setLocalErrorMessage('Git user name is required.')
       return
     }
 
     const trimmedGitUserEmail = payload.gitUserEmail.trim()
     if (!trimmedGitUserEmail) {
       console.debug('CreateAccountDrawer missing git user email')
+      setLocalErrorMessage('Git user email is required.')
       return
     }
 
@@ -146,13 +159,16 @@ export function CreateAccountDrawer(props: Props) {
   }
 
   function handleClose() {
+    setLocalErrorMessage(null)
     props.onOpenChange(false)
   }
 
   let errorAlert = null
-  if (props.errorMessage) {
+  const drawerErrorMessage = props.errorMessage ?? localErrorMessage
+
+  if (drawerErrorMessage) {
     errorAlert = <Alert color='danger' className='compact'>
-      <p className='opacity-80'>{props.errorMessage}</p>
+      <p className='opacity-80'>{drawerErrorMessage}</p>
     </Alert>
   }
 

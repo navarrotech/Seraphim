@@ -9,7 +9,8 @@ import { useEffect, useState } from 'react'
 import { useSelector } from '@frontend/framework/store'
 
 // User interface
-import { Button, Card, Tooltip, doToast } from '@heroui/react'
+import { Button, Card, Tooltip } from '@heroui/react'
+import { addToast } from '@heroui/toast'
 import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
@@ -23,6 +24,14 @@ import {
 type AddAccountErrorResponse = {
   error?: string
   missingScopes?: string[]
+}
+
+type AddAccountPayload = {
+  provider: 'GITHUB'
+  name: string
+  accessToken: string
+  gitUserName: string
+  gitUserEmail: string
 }
 
 type ErrorWithResponse = {
@@ -101,13 +110,7 @@ export function ConnectedAccounts() {
     void listAccounts()
   }, [])
 
-  async function handleCreateAccount(payload: {
-    provider: 'GITHUB'
-    name: string
-    accessToken: string
-    gitUserName: string
-    gitUserEmail: string
-  }) {
+  async function handleCreateAccount(payload: AddAccountPayload) {
     setStatusMessage(null)
     setDrawerErrorMessage(null)
     setIsSubmitting(true)
@@ -128,7 +131,7 @@ export function ConnectedAccounts() {
 
       setDrawerErrorMessage(displayMessage)
       setStatusMessage(displayMessage)
-      doToast({
+      addToast({
         title: 'Unable to save account',
         description: displayMessage,
         color: 'danger',
