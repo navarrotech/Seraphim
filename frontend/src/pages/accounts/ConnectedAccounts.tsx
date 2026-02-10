@@ -142,7 +142,7 @@ export function ConnectedAccounts() {
     </Card>
   }
 
-  return <section className='container p-6'>
+  return <section>
     <div className='level relaxed'>
       <div>
         <h2 className='text-2xl'>
