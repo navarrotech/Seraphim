@@ -36,8 +36,7 @@ export const workspaceEnvEntrySchema = z.object({
 export const workspaceCreateSchema = z.object({
   authAccountId: z.string().trim().min(1),
   name: z.string().trim().min(1),
-  repositoryId: z.coerce.number().int().positive(),
-  repositoryFullName: z.string().trim().min(1),
+  sourceRepoUrl: z.string().trim().min(1),
   customDockerfileCommands: z.string().trim().optional().default(''),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
@@ -49,8 +48,7 @@ export const workspaceCreateSchema = z.object({
 export const workspaceUpdateSchema = z.object({
   authAccountId: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
-  repositoryId: z.coerce.number().int().positive().optional(),
-  repositoryFullName: z.string().trim().min(1).optional(),
+  sourceRepoUrl: z.string().trim().min(1).optional(),
   customDockerfileCommands: z.string().trim().optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),
@@ -66,7 +64,6 @@ export const taskCreateSchema = z.object({
   workspaceId: z.string().trim().min(1),
   llmId: z.string().trim().min(1),
   authAccountId: z.string().trim().min(1),
-  repoUrl: z.string().trim().min(1),
   message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
   archived: z.boolean().optional().default(false),

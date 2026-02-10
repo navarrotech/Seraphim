@@ -81,7 +81,7 @@ export function ListWorkspaces() {
             >
               <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
               <div className='opacity-60 text-sm'>
-                {workspace.repositoryFullName || 'Repository not selected'}
+                {workspace.sourceRepoUrl || 'Repository not selected'}
               </div>
             </Link>
             <Link

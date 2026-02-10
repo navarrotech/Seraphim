@@ -111,8 +111,16 @@ export class TaskInstance extends EventEmitter<EventMap> {
       authAccount,
       // messages,
       // user,
-      sourceRepoUrl,
     } = this.task
+
+    const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
+    if (!sourceRepoUrl) {
+      console.debug('TaskInstance missing workspace source repo URL', {
+        taskId: this.task.id,
+        workspaceId: workspace.id,
+      })
+      throw new Error('Workspace source repository is required')
+    }
 
     const cloner = getCloner(
       authAccount.provider,
@@ -124,7 +132,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     if (!canClone) {
       console.error('Cannot clone repository with provided URL and credentials', {
-        repository: sourceRepoUrl,
+        repository: workspace.sourceRepoUrl,
         authProvider: authAccount.provider,
       })
       throw new Error('Cannot clone repository with provided URL and credentials')

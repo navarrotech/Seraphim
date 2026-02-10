@@ -36,8 +36,7 @@ export async function handleCreateWorkspaceRequest(
   const {
     authAccountId,
     name,
-    repositoryId,
-    repositoryFullName,
+    sourceRepoUrl,
     customDockerfileCommands,
     description,
     setupScript,
@@ -49,8 +48,7 @@ export async function handleCreateWorkspaceRequest(
   try {
     const baseWorkspaceData = {
       name,
-      repositoryId,
-      repositoryFullName,
+      sourceRepoUrl,
       customDockerfileCommands,
       description,
       setupScript,

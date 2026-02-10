@@ -70,8 +70,7 @@ export function EditWorkspace() {
     defaultValues: {
       authAccountId: '',
       name: '',
-      repositoryId: 0,
-      repositoryFullName: '',
+      sourceRepoUrl: '',
       customDockerfileCommands: '',
       description: '',
       setupScript: '',
@@ -94,8 +93,7 @@ export function EditWorkspace() {
     const workspace = workspaceQuery.data.workspace
     form.reset({
       name: workspace.name,
-      repositoryId: workspace.repositoryId,
-      repositoryFullName: workspace.repositoryFullName,
+      sourceRepoUrl: workspace.sourceRepoUrl || '',
       customDockerfileCommands: workspace.customDockerfileCommands || '',
       description: workspace.description || '',
       setupScript: workspace.setupScript || '',

@@ -57,24 +57,31 @@ export function WorkspaceRepositoryPicker(props: Props) {
   const repoFailures = reposQuery.data?.failures || []
   const isRepoLoading = reposQuery.isLoading
 
-  const repositoryId = props.form.watch('repositoryId')
-  const repositoryFullName = props.form.watch('repositoryFullName')
+  const sourceRepoUrl = props.form.watch('sourceRepoUrl')
   const authAccountId = props.form.watch('authAccountId')
 
   useEffect(() => {
-    if (!selectedRepoId && repositoryId) {
-      setSelectedRepoId(repositoryId.toString())
+    if (!repoSearchQuery && sourceRepoUrl) {
+      setRepoSearchQuery(sourceRepoUrl)
     }
-  }, [ repositoryId, selectedRepoId ])
+  }, [ repoSearchQuery, sourceRepoUrl ])
 
   useEffect(() => {
-    if (!repoSearchQuery && repositoryFullName) {
-      setRepoSearchQuery(repositoryFullName)
+    if (selectedRepoId || !sourceRepoUrl) {
+      return
     }
-  }, [ repoSearchQuery, repositoryFullName ])
+
+    const matchedOption = repoOptions.find((option) => option.repo.fullName === sourceRepoUrl)
+    if (!matchedOption) {
+      return
+    }
+
+    setSelectedRepoId(matchedOption.repo.id.toString())
+    setSelectedRepoOption(matchedOption)
+  }, [ repoOptions, selectedRepoId, sourceRepoUrl ])
 
   function clearSelection(reason: string) {
-    if (repositoryId || repositoryFullName || authAccountId) {
+    if (sourceRepoUrl || authAccountId) {
       console.debug('WorkspaceRepositoryPicker clearing repository selection', {
         reason,
       })
@@ -82,12 +89,7 @@ export function WorkspaceRepositoryPicker(props: Props) {
 
     setSelectedRepoId(null)
     setSelectedRepoOption(null)
-    props.form.setValue('repositoryId', 0, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-    props.form.setValue('repositoryFullName', '', {
+    props.form.setValue('sourceRepoUrl', '', {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -132,38 +134,32 @@ export function WorkspaceRepositoryPicker(props: Props) {
       shouldTouch: true,
       shouldValidate: true,
     })
-    props.form.setValue('repositoryId', matchedOption.repo.id, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-    props.form.setValue('repositoryFullName', matchedOption.repo.fullName, {
+    props.form.setValue('sourceRepoUrl', matchedOption.repo.fullName, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
     })
   }
 
-  const repositoryError = props.form.formState.errors.repositoryId?.message
-    || props.form.formState.errors.repositoryFullName?.message
+  const repositoryError = props.form.formState.errors.sourceRepoUrl?.message
     || props.form.formState.errors.authAccountId?.message
 
   const selectedRepo = selectedRepoOption
-    || repoOptions.find((option) => option.repo.id === repositoryId)
+    || repoOptions.find((option) => option.repo.fullName === sourceRepoUrl)
 
   const repoConnectionSuffix = selectedRepo?.username
     ? ` via ${selectedRepo.username}.`
     : '.'
 
   let repoStatusBanner = null
-  if (repositoryFullName) {
+  if (sourceRepoUrl) {
     repoStatusBanner = <div className='relaxed'>
       <Alert color='success' variant='flat' className='p-4'>
         <div className='text-lg'>
           <strong>Selected repository</strong>
         </div>
         <p className='opacity-80'>
-          {repositoryFullName}{repoConnectionSuffix}
+          {sourceRepoUrl}{repoConnectionSuffix}
         </p>
       </Alert>
     </div>

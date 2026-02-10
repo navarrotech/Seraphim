@@ -43,9 +43,9 @@ export function WorkspaceEditorForm(props: Props) {
           <input type='hidden' {...form.register('authAccountId')} />
           <input
             type='hidden'
-            {...form.register('repositoryId', { valueAsNumber: true })}
+            {...form.register('sourceRepoUrl')}
           />
-          <input type='hidden' {...form.register('repositoryFullName')} />
+
           <div className='relaxed w-full'>
             <Controller
               control={form.control}

@@ -102,14 +102,13 @@ class TaskManager {
       }
     }
 
-    const repository = workspace.repositoryId
-    if (!repository) {
-      console.debug('Task creation failed, workspace missing repository', {
+    if (!workspace.sourceRepoUrl?.trim()) {
+      console.debug('Task creation failed, workspace missing source repo URL', {
         workspaceId: request.workspaceId,
       })
       return {
         status: 'error',
-        error: 'Workspace repository is required',
+        error: 'Workspace source repository is required',
         httpStatus: 400,
       }
     }
@@ -137,7 +136,6 @@ class TaskManager {
         authAccountId: request.authAccountId,
         name: codexTaskName,
         sourceGitBranch: request.branch,
-        sourceRepoUrl: request.repoUrl,
         container: 'pending',
         containerName: resolvedContainerName,
         archived: request.archived,
