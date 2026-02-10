@@ -6,6 +6,9 @@ import type { LlmType } from '@prisma/client'
 // Core
 import { useState } from 'react'
 
+// Lib
+import { useConfirm } from '@frontend/hooks/useConfirm'
+
 // Redux
 import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { dispatch, useSelector } from '@frontend/framework/store'
@@ -15,7 +18,7 @@ import { Button, Card, Chip, Tooltip } from '@heroui/react'
 
 // Misc
 import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
-import { listLlms, updateLlm } from '@frontend/lib/routes/llmRoutes'
+import { deleteLlm, listLlms, updateLlm } from '@frontend/lib/routes/llmRoutes'
 import { CreateLlmDrawer } from './CreateLlmDrawer'
 
 type LlmDisplay = {
@@ -69,7 +72,9 @@ function getUsageLabel(llm: LlmRecord) {
 
 export function Llms() {
   const llms = useSelector((state) => state.llms.items)
+  const confirm = useConfirm()
   const [ isUpdatingDefault, setIsUpdatingDefault ] = useState(false)
+  const [ deletingLlmId, setDeletingLlmId ] = useState<string | null>(null)
   const [ isCreateDrawerOpen, setIsCreateDrawerOpen ] = useState(false)
   const [ drawerMode, setDrawerMode ] = useState<'create' | 'edit'>('create')
   const [ editingLlm, setEditingLlm ] = useState<LlmRecord | null>(null)
@@ -134,8 +139,39 @@ export function Llms() {
   }
 
   function handleDeleteLlm(llm: LlmRecord) {
-    console.debug('LLMs delete placeholder', {
-      llmId: llm.id,
+    if (!llm?.id) {
+      console.debug('LLMs cannot delete LLM without id', {
+        llm,
+      })
+      return
+    }
+
+    const llmName = getLlmName(llm)
+
+    confirm({
+      title: 'Delete LLM?',
+      message: `Delete "${llmName}"? This cannot be undone.`,
+      confirmText: 'Delete LLM',
+      confirmColor: 'danger',
+      onConfirm: async function onConfirm() {
+        try {
+          setDeletingLlmId(llm.id)
+          await deleteLlm(llm.id)
+
+          dispatch(
+            llmActions.removeLlm(llm.id),
+          )
+        }
+        catch (error) {
+          console.debug('LLMs failed to delete LLM', {
+            error,
+            llmId: llm.id,
+          })
+        }
+        finally {
+          setDeletingLlmId(null)
+        }
+      },
     })
   }
 
@@ -210,6 +246,8 @@ export function Llms() {
               size='sm'
               variant='light'
               isIconOnly
+              isDisabled={deletingLlmId === llm.id}
+              isLoading={deletingLlmId === llm.id}
               onPress={() => handleDeleteLlm(llm)}
             >
               <span className='icon'>
