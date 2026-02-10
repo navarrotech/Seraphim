@@ -9,9 +9,7 @@ import { z } from 'zod'
 import { parseRequestParams } from '../../validation'
 
 // Misc
-import { broadcastSseChange } from '@electron/api/sse/sseEvents'
-import { requireDatabaseClient } from '@electron/database'
-import { teardownTask } from '@electron/jobs/teardownTask'
+import { getTaskManager } from '@electron/tasks/taskManager'
 
 type RouteParams = {
   taskId: string
@@ -25,8 +23,6 @@ export async function handleDeleteTaskRequest(
   request: Request<RouteParams>,
   response: Response,
 ): Promise<void> {
-  const databaseClient = requireDatabaseClient('Delete task API')
-
   const params = parseRequestParams(
     taskParamsSchema,
     request,
@@ -40,34 +36,16 @@ export async function handleDeleteTaskRequest(
     return
   }
 
-  const { taskId } = params
-
   try {
-    const existingTask = await databaseClient.task.findUnique({
-      where: { id: taskId },
-    })
+    const taskManager = getTaskManager()
+    const result = await taskManager.deleteTask(params.taskId)
 
-    if (!existingTask) {
-      console.debug('Task delete failed, task not found', {
-        taskId,
-      })
-      response.status(404).json({ error: 'Task not found' })
+    if (result.status === 'error') {
+      response.status(result.httpStatus).json({ error: result.error })
       return
     }
 
-    await teardownTask(existingTask.container)
-
-    await databaseClient.task.delete({
-      where: { id: taskId },
-    })
-
-    broadcastSseChange({
-      type: 'delete',
-      kind: 'tasks',
-      data: [ existingTask ],
-    })
-
-    response.status(200).json({ deleted: true, taskId })
+    response.status(200).json({ deleted: true, taskId: result.taskId })
   }
   catch (error) {
     console.error('Failed to delete task', error)

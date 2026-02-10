@@ -1,6 +1,14 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Llm, Workspace, WorkspaceEnv } from '@prisma/client'
+import type {
+  AuthAccount,
+  Llm,
+  Message,
+  Task,
+  User,
+  Workspace,
+  WorkspaceEnv,
+} from '@prisma/client'
 
 // ////////////////////////// //
 //        Common Basic        //
@@ -20,6 +28,14 @@ export type StandardFilePointer = string | string[]
 
 export type WorkspaceWithEnv = Workspace & {
   envEntries: WorkspaceEnv[]
+}
+
+export type TaskWithFullContext = Task & {
+  llm: Llm
+  authAccount: AuthAccount
+  messages: Message[]
+  user: User
+  workspace: WorkspaceWithEnv
 }
 
 export type LlmRecord = Llm & {

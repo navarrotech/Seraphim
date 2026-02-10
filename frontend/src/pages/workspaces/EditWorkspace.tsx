@@ -93,7 +93,6 @@ export function EditWorkspace() {
 
     const workspace = workspaceQuery.data.workspace
     form.reset({
-      authAccountId: workspace.authAccountId || '',
       name: workspace.name,
       repositoryId: workspace.repositoryId,
       repositoryFullName: workspace.repositoryFullName,

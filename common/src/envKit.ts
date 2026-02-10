@@ -75,6 +75,13 @@ export function convertEnvironmentToDotEnv(environment: Environment[]): string {
   return result.trim() + '\n'
 }
 
+export function convertEnvironmentToStringArray(environment: Environment[]): string[] {
+  return convertEnvironmentToDotEnv(environment)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => Boolean(line))
+}
+
 export function convertDotEnvToEnvironment(dotEnv: string): Environment[] {
   const asLines = dotEnv.split('\n')
   const result: Environment[] = []

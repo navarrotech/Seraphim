@@ -84,3 +84,8 @@ export const DOCKER_DEBIAN_PACKAGES = [
 
 export const ACT_VERSION = '0.2.80' as const
 export const ACT_SCRIPT_NAME = 'install-act.sh' as const
+
+export const BACKUP_GITHUB_CLONE_SAMPLE_URL = 'https://github.com/github-samples/pets-workshop' as const
+
+export const SETUP_SCRIPT_NAME = 'setup.sh' as const
+export const VALIDATE_SCRIPT_NAME = 'validate.sh' as const

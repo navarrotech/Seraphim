@@ -6,43 +6,42 @@ import {
   DOCKER_DEBIAN_PACKAGES,
   DOCKER_WORKDIR,
   ACT_SCRIPT_NAME,
+  SETUP_SCRIPT_NAME,
+  VALIDATE_SCRIPT_NAME,
+  BACKUP_GITHUB_CLONE_SAMPLE_URL,
 } from '@common/constants'
 
-type GitIdentity = {
-  name: string | null
-  email: string | null
+type Options = {
+  customCommands?: string,
+  gitName?: string
+  gitEmail?: string
 }
 
 export function buildDockerfileContents(
-  customCommands?: string,
-  setupScriptName?: string,
-  validateScriptName?: string,
-  gitIdentity?: GitIdentity | null,
-  gitUrl?: string,
+  gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
+  options: Options = {},
 ): string {
-  const lines: string[] = [ `FROM ${DEFAULT_DOCKER_BASE_IMAGE}` ]
+  const {
+    customCommands,
+    gitName = 'codex',
+    gitEmail = 'codex@jalapenolabs.io',
+  } = options
 
-  lines.push(
+  const lines: string[] = [
+    `FROM ${DEFAULT_DOCKER_BASE_IMAGE}`,
     '',
     '# Install primary build tools',
     'RUN apt-get update',
     `RUN apt-get install -y --no-install-recommends ${DOCKER_DEBIAN_PACKAGES.join(' ')}`,
-  )
-
-  lines.push(
     '',
     '# Setup the workspace',
     `WORKDIR ${DOCKER_WORKDIR}`,
-    'RUN npm --global install @openai/codex@0.92.0 corepack',
-  )
-
-  lines.push(
+    'RUN npm --global install @openai/codex@0.92.0 tsx corepack',
     '',
     '# Install act for GitHub Actions execution',
-    `COPY ${ACT_SCRIPT_NAME} /opt/seraphim/${ACT_SCRIPT_NAME}`,
+    `COPY utils/${ACT_SCRIPT_NAME} /opt/seraphim/${ACT_SCRIPT_NAME}`,
     `RUN bash /opt/seraphim/${ACT_SCRIPT_NAME} ${ACT_VERSION}`,
-  )
-
+  ]
 
   if (customCommands) {
     lines.push(
@@ -52,56 +51,25 @@ export function buildDockerfileContents(
     )
   }
 
-  const gitUserName = gitIdentity?.name?.trim()
-  const gitUserEmail = gitIdentity?.email?.trim()
-  if (gitIdentity && (!gitUserName || !gitUserEmail)) {
-    console.debug('buildDockerfileContents missing git identity details', {
-      gitIdentity,
-    })
-  }
-
-  if (gitUserEmail && gitUserName) {
-    lines.push(
-      '',
-      '# Setup git',
-      `RUN git config --global user.name  "${gitUserName}" \\`,
-      ` && git config --global user.email "${gitUserEmail}"`,
-    )
-  }
-
-  if (gitUrl) {
-    lines.push(
-      '',
-      '# Clone initial repository',
-      `RUN git clone --recurse-submodules ${gitUrl} .`,
-    )
-  }
-
-  if (setupScriptName) {
-    lines.push(
-      '',
-      '# Run setup script',
-      `COPY ${setupScriptName} /opt/seraphim/${setupScriptName}`,
-      `RUN chmod +x /opt/seraphim/${setupScriptName}`,
-      `ENTRYPOINT /opt/seraphim/${setupScriptName}`,
-      'CMD ["bash"]',
-    )
-  }
-  else {
-    lines.push(
-      '',
-      'CMD ["tail", "-f", "/dev/null"]',
-    )
-  }
-
-  if (validateScriptName) {
-    lines.push(
-      '',
-      '# Copy the validation script',
-      `COPY ${validateScriptName} /opt/seraphim/${validateScriptName}`,
-      `RUN chmod +x /opt/seraphim/${validateScriptName}`,
-    )
-  }
+  lines.push(
+    '',
+    '# Setup git',
+    `RUN git config --global user.name  "${gitName}" \\`,
+    ` && git config --global user.email "${gitEmail}"`,
+    '',
+    '# Clone initial repository',
+    `RUN git clone --recurse-submodules ${gitCloneUrl} .`,
+    '',
+    '# Copy the validation script',
+    `COPY ${VALIDATE_SCRIPT_NAME} /opt/seraphim/${VALIDATE_SCRIPT_NAME}`,
+    `RUN chmod +x /opt/seraphim/${VALIDATE_SCRIPT_NAME}`,
+    '',
+    '# Run setup script',
+    `COPY ${SETUP_SCRIPT_NAME} /opt/seraphim/${SETUP_SCRIPT_NAME}`,
+    `RUN chmod +x /opt/seraphim/${SETUP_SCRIPT_NAME}`,
+    `ENTRYPOINT /opt/seraphim/${SETUP_SCRIPT_NAME}`,
+    'CMD ["bash"]',
+  )
 
   return `${lines.join('\n')}\n`
 }

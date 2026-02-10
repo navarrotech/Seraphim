@@ -2,22 +2,17 @@
 
 // Lib
 import Docker from 'dockerode'
+import { getDockerSocketPath } from './dockerSocket'
 
 // Utility
 import { logFailed, logSuccess } from '../lib/logging'
-import {
-  resolveDockerSocketMount,
-  resolveDockerSocketPath,
-} from './dockerSocket'
 
 let docker: Docker
-
-export { resolveDockerSocketMount, resolveDockerSocketPath }
 
 export async function connectToDocker() {
   try {
     // Always prioritize the user-preferred socket path first
-    docker = new Docker({ socketPath: resolveDockerSocketPath() })
+    docker = new Docker({ socketPath: getDockerSocketPath() })
     await docker.ping()
 
     const version = await docker.version()

@@ -9,10 +9,6 @@ datasource db {
 model Workspace {
   id String @id @default(uuid())
 
-  // Import
-  authAccountId String?      @map("auth_account_id")
-  authAccount   AuthAccount? @relation(fields: [authAccountId], references: [id])
-
   name                     String
   description              String   @default("")
   repositoryId             Int      @map("repository_id")
@@ -48,25 +44,32 @@ model Task {
   workspaceId String    @map("workspace_id")
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
 
-  llmId String     @map("llm_id")
-  llm   Llm @relation(fields: [llmId], references: [id])
+  llmId String @map("llm_id")
+  llm   Llm    @relation(fields: [llmId], references: [id])
+
+  authAccountId String
+  authAccount   AuthAccount @relation(fields: [authAccountId], references: [id])
 
   messages Message[]
 
-  name      String
-  branch    String
+  name      String?
+  issueLink String? @map("issue_link")
 
-  // Git
-  gitBranch             String?  @map("git_branch")
-  pullRequestLink       String?  @map("pull_request_link")
-  isPullRequestUpToDate Boolean  @default(false) @map("is_pull_request_up_to_date")
-  isMerged              Boolean  @default(false) @map("is_merged")
-  isBehind              Boolean  @default(false) @map("is_behind")
+  // Git source
+  sourceRepoUrl   String? @map("source_repo_url")
+  sourceGitBranch String? @map("source_git_branch")
 
-  container String    @map("container")
-  containerName String? @map("container_name")
-  archived  Boolean   @default(false)
-  state     TaskState @default(SettingUp)
+  // Git push
+  workGitBranch         String? @map("work_git_branch")
+  pullRequestLink       String? @map("pull_request_link")
+  isPullRequestUpToDate Boolean @default(false) @map("is_pull_request_up_to_date")
+  isMerged              Boolean @default(false) @map("is_merged")
+  isBehind              Boolean @default(false) @map("is_behind")
+
+  container     String    @map("container")
+  containerName String?   @map("container_name")
+  archived      Boolean   @default(false)
+  state         TaskState @default(SettingUp)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -87,10 +90,10 @@ model Message {
 model User {
   id String @id @default(uuid())
 
-  settings    UserSettings?
-  audioFiles  AudioFile[]
-  threads     Task[]
-  llms Llm[]
+  settings   UserSettings?
+  audioFiles AudioFile[]
+  threads    Task[]
+  llms       Llm[]
 
   username String @unique
   name     String
@@ -217,7 +220,7 @@ model AuthAccount {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  workspaces Workspace[]
+  tasks Task[]
 
   @@unique([provider, username])
   @@map("auth_accounts")
