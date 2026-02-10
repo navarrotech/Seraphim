@@ -22,7 +22,8 @@
   ],
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
-    "setup": "yarn prisma db push",
+    "setup": "yarn prisma generate && yarn prisma db push",
+    "postinstall": "yarn setup",
     "build": "yarn workspaces foreach -Apt run build",
     "typecheck": "yarn workspaces foreach -Apt run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
