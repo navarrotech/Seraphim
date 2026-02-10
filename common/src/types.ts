@@ -41,3 +41,18 @@ export type TaskWithFullContext = Task & {
 export type LlmRecord = Llm & {
   preferredModel?: string | null
 }
+
+// ////////////////////////// //
+//        Other types         //
+// ////////////////////////// //
+
+export type CodexAuthJson = {
+  OPENAI_API_KEY?: string | null,
+  tokens: {
+    id_token?: string
+    access_token?: string
+    refresh_token?: string
+    account_id?: string
+  },
+  last_refresh?: string,
+}

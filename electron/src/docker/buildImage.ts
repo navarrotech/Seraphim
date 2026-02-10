@@ -2,7 +2,7 @@
 
 import type { Workspace } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
-import type { Cloner } from '@common/cloning/cloner'
+import type { Cloner } from '@common/cloning/polymorphism/cloner'
 
 // Core
 import { getDockerClient } from '@electron/docker/docker'
@@ -10,9 +10,10 @@ import { buildDockerfileContents } from '@electron/docker/image'
 
 // Node.js
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { cpSync, mkdirSync, existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { resourcesDir } from '@electron/lib/internalFiles'
-import { cpSync, mkdirSync, existsSync } from 'node:fs'
 
 // Utility
 import { v7 as uuid } from 'uuid'
@@ -70,7 +71,9 @@ export async function buildImage(
     //     PREPARE CONTEXT DIR     //
     // /////////////////////////// //
 
-    contextDir = await mkdtemp('seraphim-task-')
+    contextDir = await mkdtemp(
+      resolve(tmpdir(), 'seraphim-task-'),
+    )
 
     if (!existsSync(contextDir)) {
       mkdirSync(contextDir, { recursive: true })

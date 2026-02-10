@@ -113,10 +113,7 @@ class TaskManager {
       }
     }
 
-    const codexTaskName = await requestTaskName(llm, {
-      message: request.message,
-      workspaceName: workspace.name,
-    })
+    const codexTaskName = await requestTaskName(llm, request.message)
 
     if (!codexTaskName) {
       return {

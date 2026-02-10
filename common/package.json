@@ -13,7 +13,10 @@
     "build": "echo"
   },
   "dependencies": {
+    "@openai/codex": "0.92.0",
+    "@openai/codex-sdk": "^0.98.0",
     "glob": "^13.0.0",
+    "openai": "^6.21.0",
     "typescript": "^5.8.3"
   }
 }

@@ -2,8 +2,8 @@
 
 import type { AuthProvider } from '@prisma/client'
 
-import { Cloner } from './cloner'
-import { GithubCloner } from './github'
+import { Cloner } from './polymorphism/cloner'
+import { GithubCloner } from './polymorphism/github'
 
 export function getCloner(authProvider: AuthProvider, sourceRepoUrl: string, token?: string): Cloner {
   if (authProvider === 'GITHUB') {

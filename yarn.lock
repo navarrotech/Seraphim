@@ -3310,7 +3310,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openai/codex@npm:^0.92.0":
+"@openai/codex-sdk@npm:^0.98.0":
+  version: 0.98.0
+  resolution: "@openai/codex-sdk@npm:0.98.0"
+  checksum: 10c0/7a43633a88d6ceef96d5d02f8a1977cf19c17bc72f50f91cfe7b9f7bf2270d3b22f21fc1f0b64bc3a4e6f6cb36bedd63518bd7994eaf5a600ac54fbd0abe0c1c
+  languageName: node
+  linkType: hard
+
+"@openai/codex@npm:0.92.0":
   version: 0.92.0
   resolution: "@openai/codex@npm:0.92.0"
   bin:
@@ -7990,7 +7997,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "common@workspace:common"
   dependencies:
+    "@openai/codex": "npm:0.92.0"
+    "@openai/codex-sdk": "npm:^0.98.0"
     glob: "npm:^13.0.0"
+    openai: "npm:^6.21.0"
     typescript: "npm:^5.8.3"
   languageName: unknown
   linkType: soft
@@ -12558,6 +12568,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openai@npm:^6.21.0":
+  version: 6.21.0
+  resolution: "openai@npm:6.21.0"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.25 || ^4.0
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 10c0/e1898295e791f35ff7892ec6145a52e41233cc703f72eb76f06b57cecdcc68a1d7b43a5615f00af35e66ce984459522cacdb72347e0d67f10afe0802d7852ae1
+  languageName: node
+  linkType: hard
+
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -14183,7 +14210,6 @@ __metadata:
   resolution: "seraphim-app@workspace:."
   dependencies:
     "@jalapenolabs/cli": "https://github.com/jalapenolabs/cli.git#7372df994ace977ca9130160b47d1fb032f6f1a4"
-    "@openai/codex": "npm:^0.92.0"
     "@types/argparse": "npm:^2.0.17"
     "@types/express": "npm:^5.0.3"
     "@types/hjson": "npm:^2.4.6"
