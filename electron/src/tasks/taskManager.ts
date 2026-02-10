@@ -73,7 +73,10 @@ class TaskManager {
       })
 
       this.taskInstances.set(task.id, taskInstance)
-      await taskInstance.refreshContainerStatus()
+      const containerExists = await taskInstance.refreshContainerStatus()
+      if (containerExists) {
+        await taskInstance.attachToContainer()
+      }
     }
   }
 

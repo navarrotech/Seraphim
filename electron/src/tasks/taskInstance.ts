@@ -3,6 +3,11 @@
 import type { Task } from '@prisma/client'
 import type { WorkspaceWithEnv } from '@common/types'
 
+// Core
+import { EventEmitter } from 'node:events'
+import { createInterface } from 'node:readline'
+import { PassThrough } from 'node:stream'
+
 // Utility
 import { requireDatabaseClient } from '@electron/database'
 import { getDockerClient } from '@electron/docker/docker'
@@ -14,11 +19,16 @@ type TaskInstanceOptions = {
   containerExists: boolean
 }
 
-export class TaskInstance {
+export class TaskInstance extends EventEmitter {
   private task: Task
   private containerExists: boolean
+  private ioStream: NodeJS.ReadWriteStream | null = null
+  private stdoutStream: PassThrough | null = null
+  private stderrStream: PassThrough | null = null
+  private isAttached = false
 
   constructor(options: TaskInstanceOptions) {
+    super()
     this.task = options.task
     this.containerExists = options.containerExists
   }
@@ -86,6 +96,7 @@ export class TaskInstance {
 
     this.task = updatedTask
     this.containerExists = true
+    await this.attachToContainer()
 
     return updatedTask
   }
@@ -100,6 +111,117 @@ export class TaskInstance {
       where: { id: this.task.id },
     })
   }
+
+  async attachToContainer(): Promise<void> {
+    if (this.isAttached) {
+      console.debug('TaskInstance attach requested but already attached', {
+        taskId: this.task.id,
+      })
+      return
+    }
+
+    const containerId = this.task.container?.trim()
+    if (!containerId) {
+      console.debug('TaskInstance attach requested without container id', {
+        taskId: this.task.id,
+      })
+      return
+    }
+
+    const dockerClient = getDockerClient()
+    if (!dockerClient) {
+      console.debug('TaskInstance attach requested without docker client', {
+        taskId: this.task.id,
+        containerId,
+      })
+      return
+    }
+
+    const container = dockerClient.getContainer(containerId)
+    const stream = await container.attach({
+      stream: true,
+      stdin: true,
+      stdout: true,
+      stderr: true,
+    })
+
+    const stdoutStream = new PassThrough()
+    const stderrStream = new PassThrough()
+
+    dockerClient.modem.demuxStream(stream, stdoutStream, stderrStream)
+
+    this.ioStream = stream
+    this.stdoutStream = stdoutStream
+    this.stderrStream = stderrStream
+    this.isAttached = true
+
+    const stdoutReader = createInterface({ input: stdoutStream })
+    stdoutReader.on('line', handleStdoutLine.bind(this))
+
+    stdoutStream.on('data', handleStdoutData.bind(this))
+    stderrStream.on('data', handleStderrData.bind(this))
+    stream.on('error', handleStreamError.bind(this))
+
+    function handleStdoutLine(this: TaskInstance, line: string) {
+      this.emit('stdoutLine', line)
+      this.emit('line', line)
+
+      const parsedMessage = safeParseJson(line)
+      if (parsedMessage) {
+        this.emit('message', parsedMessage)
+      }
+    }
+
+    function handleStdoutData(this: TaskInstance, chunk: Buffer) {
+      this.emit('stdout', chunk)
+      this.emit('data', chunk)
+    }
+
+    function handleStderrData(this: TaskInstance, chunk: Buffer) {
+      this.emit('stderr', chunk)
+      this.emit('data', chunk)
+    }
+
+    function handleStreamError(this: TaskInstance, error: Error) {
+      console.error('TaskInstance stream error', {
+        taskId: this.task.id,
+        containerId,
+        error,
+      })
+    }
+  }
+
+  sendMessage(message: unknown): void {
+    if (!this.ioStream) {
+      console.debug('TaskInstance sendMessage requested without stream', {
+        taskId: this.task.id,
+      })
+      return
+    }
+
+    const payload = `${JSON.stringify(message)}\n`
+    this.ioStream.write(payload)
+  }
+
+  sendRawInput(value: string): void {
+    if (!this.ioStream) {
+      console.debug('TaskInstance sendRawInput requested without stream', {
+        taskId: this.task.id,
+      })
+      return
+    }
+
+    this.ioStream.write(value)
+  }
+}
+
+export interface TaskInstance {
+  on(event: 'stdout', listener: (chunk: Buffer) => void): this
+  on(event: 'stderr', listener: (chunk: Buffer) => void): this
+  on(event: 'data', listener: (chunk: Buffer) => void): this
+  on(event: 'stdoutLine', listener: (line: string) => void): this
+  on(event: 'line', listener: (line: string) => void): this
+  on(event: 'message', listener: (message: unknown) => void): this
 }
 
 async function doesContainerExist(containerId: string): Promise<boolean> {
@@ -130,5 +252,28 @@ async function doesContainerExist(containerId: string): Promise<boolean> {
       error,
     })
     return false
+  }
+}
+
+function safeParseJson(line: string): unknown | null {
+  const trimmedLine = line.trim()
+  if (!trimmedLine) {
+    return null
+  }
+
+  const startsWithJson = trimmedLine.startsWith('{') || trimmedLine.startsWith('[')
+  if (!startsWithJson) {
+    return null
+  }
+
+  try {
+    return JSON.parse(trimmedLine)
+  }
+  catch (error) {
+    console.debug('TaskInstance failed to parse stdout line as JSON', {
+      line: trimmedLine,
+      error,
+    })
+    return null
   }
 }
