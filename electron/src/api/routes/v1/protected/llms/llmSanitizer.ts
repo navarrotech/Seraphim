@@ -7,8 +7,8 @@ import { maskToken } from '@common/maskToken'
 export function sanitizeLlm(llm: Llm) {
   return {
     ...llm,
-    apiKey: maskToken(llm.apiKey, 8),
-    accessToken: maskToken(llm.accessToken, 8),
-    refreshToken: maskToken(llm.refreshToken, 8),
+    apiKey: maskToken(llm.apiKey),
+    accessToken: maskToken(llm.accessToken),
+    refreshToken: maskToken(llm.refreshToken),
   } as const
 }

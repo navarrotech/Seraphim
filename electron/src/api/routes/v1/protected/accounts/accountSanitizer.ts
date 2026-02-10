@@ -24,7 +24,7 @@ export function sanitizeAccount(account: AuthAccount): AccountSummary {
     name: account.name,
     username: account.username,
     email: account.email,
-    tokenPreview: maskToken(account.accessToken, 6),
+    tokenPreview: maskToken(account.accessToken),
     scope: account.scope,
     lastUsedAt: account.lastUsedAt,
     createdAt: account.createdAt,

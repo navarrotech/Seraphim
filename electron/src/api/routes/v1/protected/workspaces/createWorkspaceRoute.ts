@@ -29,6 +29,7 @@ export async function handleCreateWorkspaceRequest(
       errorMessage: 'Invalid request body',
     },
   )
+
   if (!body) {
     return
   }
