@@ -26,7 +26,7 @@ export function getOnboardingSteps(counts: OnboardingCounts): OnboardingStep[] {
     },
     {
       key: 'authAccounts',
-      label: 'git repo',
+      label: 'connected account',
       route: UrlTree.settingsGitRepos,
       isComplete: counts.authAccountCount > 0,
     },

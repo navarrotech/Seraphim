@@ -36,6 +36,13 @@ type EventMap = {
   'message': [ unknown ]
 }
 
+type ExecuteCommandResult = {
+  command: string
+  stdout: string
+  stderr: string
+  exitCode: number
+}
+
 export class TaskInstance extends EventEmitter<EventMap> {
   private task: TaskWithFullContext
   private containerExists: boolean
@@ -321,5 +328,91 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     const payload = `${JSON.stringify(message)}\n`
     this.ioStream.write(payload)
+  }
+
+  public async executeCmd(command: string): Promise<ExecuteCommandResult> {
+    const containerId = this.containerId
+    if (!containerId) {
+      console.debug('TaskInstance executeCmd requested without container id', {
+        taskId: this.task.id,
+        command,
+      })
+      throw new Error('Cannot execute command without a container id')
+    }
+
+    const dockerClient = getDockerClient()
+    if (!dockerClient) {
+      console.debug('TaskInstance executeCmd requested without docker client', {
+        taskId: this.task.id,
+        containerId,
+        command,
+      })
+      throw new Error('Docker client is not available')
+    }
+
+    const container = dockerClient.getContainer(containerId)
+    const execInstance = await container.exec({
+      AttachStdout: true,
+      AttachStderr: true,
+      Cmd: [ 'bash', '-lc', command ],
+    })
+
+    const stdoutStream = new PassThrough()
+    const stderrStream = new PassThrough()
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+
+    function handleStdoutData(chunk: Buffer) {
+      stdoutChunks.push(chunk)
+    }
+
+    function handleStderrData(chunk: Buffer) {
+      stderrChunks.push(chunk)
+    }
+
+    function handleStreamError(this: TaskInstance, error: Error) {
+      console.debug('TaskInstance executeCmd stream error', {
+        taskId: this.task.id,
+        containerId,
+        command,
+        error,
+      })
+    }
+
+    stdoutStream.on('data', handleStdoutData)
+    stderrStream.on('data', handleStderrData)
+
+    const executionStream = await execInstance.start({
+      hijack: true,
+      stdin: false,
+    })
+
+    executionStream.on('error', handleStreamError.bind(this))
+    dockerClient.modem.demuxStream(executionStream, stdoutStream, stderrStream)
+
+    await new Promise<void>((resolve, reject) => {
+      function handleEnd() {
+        resolve()
+      }
+
+      function handleError(error: Error) {
+        reject(error)
+      }
+
+      executionStream.once('end', handleEnd)
+      executionStream.once('error', handleError)
+    })
+
+    const inspectionResult = await execInstance.inspect()
+    const exitCode = inspectionResult.ExitCode ?? -1
+    const stdout = Buffer.concat(stdoutChunks).toString('utf8')
+    const stderr = Buffer.concat(stderrChunks).toString('utf8')
+
+    return {
+      command,
+      stdout,
+      stderr,
+      exitCode,
+    }
   }
 }
