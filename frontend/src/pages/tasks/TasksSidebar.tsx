@@ -13,7 +13,7 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 
 // User interface
-import { Button, Card, Tooltip } from '@heroui/react'
+import { Button, Card, Chip, Tooltip } from '@heroui/react'
 
 // Misc
 import { getTaskViewUrl, UrlTree } from '@common/urls'
@@ -36,6 +36,43 @@ function getSelectedTaskId(pathname: string) {
 
   const pathParts = pathname.split('/')
   return pathParts[2]
+}
+
+function getTaskStateColor(taskState: Task['state']) {
+  if (taskState === 'Working') {
+    return 'primary'
+  }
+
+  if (taskState === 'Validating') {
+    return 'warning'
+  }
+
+  if (taskState === 'Reviewing' || taskState === 'AwaitingReview') {
+    return 'secondary'
+  }
+
+  if (taskState === 'Failed') {
+    return 'danger'
+  }
+
+  if (taskState === 'SettingUp') {
+    return 'default'
+  }
+
+  console.debug('TasksSidebar received unknown task state, using default chip color', { taskState })
+  return 'default'
+}
+
+function getTaskStateLabel(taskState: Task['state']) {
+  if (taskState === 'AwaitingReview') {
+    return 'Awaiting Review'
+  }
+
+  if (taskState === 'SettingUp') {
+    return 'Setting Up'
+  }
+
+  return taskState
 }
 
 export function TasksSidebar() {
@@ -110,8 +147,18 @@ export function TasksSidebar() {
               <div className='level'>
                 <Link to={getTaskViewUrl(task.id)} className='block min-w-0 flex-1'>
                   <div className='text-sm font-semibold truncate'>{task.name || 'Untitled task'}</div>
-                  <div className='text-xs opacity-60 truncate'>
-                    {getWorkspaceLabel(workspaces, task.workspaceId)}
+                  <div className='compact flex items-center gap-2'>
+                    <Chip
+                      size='sm'
+                      variant='flat'
+                      color={getTaskStateColor(task.state)}
+                      className='max-w-full'
+                    >
+                      <span className='truncate'>{getTaskStateLabel(task.state)}</span>
+                    </Chip>
+                    <div className='min-w-0 text-xs opacity-60 truncate'>
+                      {getWorkspaceLabel(workspaces, task.workspaceId)}
+                    </div>
                   </div>
                 </Link>
                 <Tooltip content='Delete Task'>
