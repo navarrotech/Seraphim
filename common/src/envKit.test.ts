@@ -4,7 +4,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 // Misc
-import { parseEnvBool, parseEnvInt, parseEnvNumber } from './envKit.js'
+import { parseEnvBool, parseEnvInt, parseEnvNumber } from './envKit'
 
 describe('parseEnvInt', () => {
   it('returns the default when the value is missing', () => {

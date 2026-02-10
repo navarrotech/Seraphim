@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { execFileAsync } from '../node/execFileAsync.js'
+import { execFileAsync } from '../node/execFileAsync'
 
 // Polymorophism!
 // Github and other types can get their own extensions of this class
