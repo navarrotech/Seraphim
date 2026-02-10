@@ -27,7 +27,7 @@ export class CallableOpenAI extends CallableLLM {
   public async query(prompt: string, systemPrompt?: string): Promise<string> {
     const timer = new Timer('OpenAI query')
 
-    console.debug('Calling OpenAI with prompt', { prompt, systemPrompt })
+    console.debug('Calling OpenAI with prompt', { systemPrompt, prompt })
 
     const instructions = systemPrompt?.trim() || undefined
     const input = prompt?.trim() || ''

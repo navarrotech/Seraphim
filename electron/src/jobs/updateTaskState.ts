@@ -12,16 +12,6 @@ export async function updateTaskState(
   newState: TaskState,
 ): Promise<Task | null> {
   const trimmedTaskId = taskId?.trim()
-  if (!trimmedTaskId) {
-    console.debug('updateTaskState missing taskId', { taskId })
-    return null
-  }
-
-  if (!newState) {
-    console.debug('updateTaskState missing newState', { taskId: trimmedTaskId })
-    return null
-  }
-
   const databaseClient = requireDatabaseClient('Update task state job')
 
   try {

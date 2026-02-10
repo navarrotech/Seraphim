@@ -184,7 +184,7 @@ class TaskManager {
       broadcastSseChange({
         type: 'update',
         kind: 'tasks',
-        data: [ updatedTask ],
+        data: [ updatedTask.data ],
       })
     }
     catch (error) {

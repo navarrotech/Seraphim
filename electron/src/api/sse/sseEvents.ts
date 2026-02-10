@@ -19,6 +19,10 @@ export function broadcastSseChange<Shape>(payload: SseChangePayload<Shape>): voi
   }
   catch (error) {
     console.debug('Failed to serialize SSE payload', {
+      payload,
+      data: payload.data?.length === 1
+        ? payload.data[0]
+        : payload.data,
       kind: payload.kind,
       type: payload.type,
     })

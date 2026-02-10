@@ -61,6 +61,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
     return this.task.id
   }
 
+  get data() {
+    return this.task
+  }
+
   get containerId(): string | null {
     const containerId = this.task.container?.trim()
     if (!containerId) {
@@ -172,6 +176,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
         volumes.push(`${socketMount.source}:${socketMount.target}`)
       }
 
+      console.debug('Creating Docker container for task')
+
       const container = await dockerClient.createContainer({
         name: this.task.containerName,
         Image,
@@ -181,6 +187,12 @@ export class TaskInstance extends EventEmitter<EventMap> {
         },
       })
 
+      console.debug('Docker container created for task', {
+        containerId: container.id,
+        containerName: this.task.containerName,
+        taskId: this.task.id,
+      })
+
       const databaseClient = requireDatabaseClient('TaskInstance create container')
       const updatedTask = await databaseClient.task.update({
         where: { id: this.task.id },
@@ -188,18 +200,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
           container: container.id,
           state: 'SettingUp',
         },
-        include: {
-          llm: true,
-          authAccount: true,
-          messages: true,
-          user: true,
-          workspace: {
-            include: {
-              envEntries: true,
-            },
-          },
-        },
       })
+
+      this.task.container = container.id
 
       broadcastSseChange({
         kind: 'tasks',
@@ -207,16 +210,22 @@ export class TaskInstance extends EventEmitter<EventMap> {
         data: [ updatedTask ],
       })
 
-      this.task = updatedTask
       this.containerExists = true
+
+      console.debug('Starting Docker container for task')
 
       await container.start()
       await this.attachToContainer()
 
+      console.debug('Beginning task codex work...')
+
       await updateTaskState(this.task.id, 'Working')
     }
     catch (error) {
-      console.log(error)
+      console.log('TaskInstance createContainer failed', {
+        taskId: this.task.id,
+        error,
+      })
       await updateTaskState(this.task.id, 'Failed')
     }
 

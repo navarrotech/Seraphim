@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Task, Workspace } from '@prisma/client'
+import type { Task, TaskState, Workspace } from '@prisma/client'
 import type { ChipProps } from '@heroui/react'
 
 // Core
@@ -28,16 +28,16 @@ import {
   SettingsIcon,
 } from '@frontend/common/IconNexus'
 
-type TaskState = 'SettingUp' | 'Working' | 'Validating' | 'Reviewing' | 'AwaitingReview' | 'Failed'
-
-const TASK_STATE_COLOR_BY_STATE = {
+const TASK_STATE_COLOR_BY_STATE: Record<TaskState, ChipProps['color']> = {
+  Creating: 'default',
   SettingUp: 'default',
   Working: 'primary',
   Validating: 'warning',
+  Halting: 'warning',
   Reviewing: 'secondary',
   AwaitingReview: 'secondary',
   Failed: 'danger',
-} satisfies Record<TaskState, ChipProps['color']>
+}
 
 function getWorkspaceNameById(workspaces: Workspace[]) {
   const workspaceNameById = new Map<string, string>()
