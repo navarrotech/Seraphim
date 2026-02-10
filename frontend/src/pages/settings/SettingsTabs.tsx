@@ -20,7 +20,7 @@ const settingsTabs: SettingsTab[] = [
     url: UrlTree.settingsGeneral,
   },
   {
-    label: 'Git repos',
+    label: 'Connected accounts',
     url: UrlTree.settingsGitRepos,
   },
   {

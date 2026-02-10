@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Task, Workspace } from '@prisma/client'
+import type { ChipProps } from '@heroui/react'
 
 // Core
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -13,7 +14,10 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 
 // User interface
-import { Button, Card, Tooltip } from '@heroui/react'
+import { Button, Card, Chip, Tooltip } from '@heroui/react'
+
+// Utility
+import { startCase } from 'lodash-es'
 
 // Misc
 import { getTaskViewUrl, UrlTree } from '@common/urls'
@@ -24,9 +28,50 @@ import {
   SettingsIcon,
 } from '@frontend/common/IconNexus'
 
-function getWorkspaceLabel(workspaces: Workspace[], workspaceId: string) {
-  const workspace = workspaces.find((entry) => entry.id === workspaceId)
-  return workspace?.name || 'Unknown workspace'
+type TaskState = 'SettingUp' | 'Working' | 'Validating' | 'Reviewing' | 'AwaitingReview' | 'Failed'
+
+const TASK_STATE_COLOR_BY_STATE = {
+  SettingUp: 'default',
+  Working: 'primary',
+  Validating: 'warning',
+  Reviewing: 'secondary',
+  AwaitingReview: 'secondary',
+  Failed: 'danger',
+} satisfies Record<TaskState, ChipProps['color']>
+
+function getWorkspaceNameById(workspaces: Workspace[]) {
+  const workspaceNameById = new Map<string, string>()
+
+  for (const workspace of workspaces) {
+    workspaceNameById.set(workspace.id, workspace.name)
+  }
+
+  return workspaceNameById
+}
+
+
+function isTaskState(taskState: string): taskState is TaskState {
+  return taskState in TASK_STATE_COLOR_BY_STATE
+}
+
+function getTaskStateColor(taskState: string) {
+  if (!isTaskState(taskState)) {
+    console.debug('TasksSidebar received unknown task state, using default chip color', { taskState })
+    return 'default'
+  }
+
+  const chipColor = TASK_STATE_COLOR_BY_STATE[taskState]
+
+  if (!chipColor) {
+    console.debug('TasksSidebar received unknown task state, using default chip color', { taskState })
+    return 'default'
+  }
+
+  return chipColor
+}
+
+function getTaskStateLabel(taskState: string) {
+  return startCase(taskState)
 }
 
 function getSelectedTaskId(pathname: string) {
@@ -41,6 +86,7 @@ function getSelectedTaskId(pathname: string) {
 export function TasksSidebar() {
   const tasks = useSelector((state) => state.tasks.items)
   const workspaces = useSelector((state) => state.workspaces.items)
+  const workspaceNameById = getWorkspaceNameById(workspaces)
   const location = useLocation()
   const selectedTaskId = getSelectedTaskId(location.pathname)
   const confirm = useConfirm()
@@ -110,8 +156,18 @@ export function TasksSidebar() {
               <div className='level'>
                 <Link to={getTaskViewUrl(task.id)} className='block min-w-0 flex-1'>
                   <div className='text-sm font-semibold truncate'>{task.name || 'Untitled task'}</div>
-                  <div className='text-xs opacity-60 truncate'>
-                    {getWorkspaceLabel(workspaces, task.workspaceId)}
+                  <div className='compact flex items-center gap-2'>
+                    <Chip
+                      size='sm'
+                      variant='flat'
+                      color={getTaskStateColor(task.state)}
+                      className='max-w-full'
+                    >
+                      <span className='truncate'>{getTaskStateLabel(task.state)}</span>
+                    </Chip>
+                    <div className='min-w-0 text-xs opacity-60 truncate'>
+                      {workspaceNameById.get(task.workspaceId) || 'Unknown workspace'}
+                    </div>
                   </div>
                 </Link>
                 <Tooltip content='Delete Task'>

@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 // UI
-import { Button, Form } from '@heroui/react'
+import { Button } from '@heroui/react'
 import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 // Misc
@@ -61,15 +61,21 @@ export function CreateWorkspace() {
     })
   }, [])
 
-  const onSubmit = form.handleSubmit(async (data) => {
-    try {
-      await createWorkspace(data)
-      navigate(UrlTree.tasksList)
-    }
-    catch (error) {
-      console.debug('CreateWorkspace failed to submit form', { error })
-    }
-  })
+  const handleSubmit = useCallback(async function handleSubmit() {
+    const submitWithValidation = form.handleSubmit(
+      async function submitWithValidation(data) {
+        try {
+          await createWorkspace(data)
+          navigate(UrlTree.tasksList)
+        }
+        catch (error) {
+          console.debug('CreateWorkspace failed to submit form', { error })
+        }
+      },
+    )
+
+    await submitWithValidation()
+  }, [ form, navigate ])
 
   return <section className='container p-6'>
     <div className='relaxed'>
@@ -80,23 +86,22 @@ export function CreateWorkspace() {
         Define a workspace with its repository, scripts, and environment values.
       </p>
     </div>
-    <Form onSubmit={onSubmit} className='relaxed'>
+    <div className='relaxed'>
       <WorkspaceEditorForm
         form={form}
         isFormLocked={isFormLocked}
         autoFocusWorkspaceName
         onBuildStateChange={handleBuildStateChange}
         footer={<Button
-          type='submit'
           color='primary'
           className='mx-auto'
           isLoading={form.formState.isSubmitting}
           isDisabled={isFormLocked}
-          onPress={() => onSubmit()}
+          onPress={handleSubmit}
         >
           <span>Create Workspace</span>
         </Button>}
       />
-    </Form>
+    </div>
   </section>
 }
