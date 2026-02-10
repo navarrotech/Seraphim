@@ -24,15 +24,14 @@ export function Router() {
         <Route index element={<Navigate to={UrlTree.tasksList} replace />} />
         <Route path={UrlTree.settings} element={<Settings />}>
           <Route index element={<Navigate to={UrlTree.settingsGeneral} replace />} />
-          <Route path='general' element={<SettingsGeneral />} />
-          <Route path='git-repos' element={<ConnectedAccounts />} />
-          <Route path='workspaces' element={<ListWorkspaces />} />
-          <Route path='llms' element={<Llms />} />
+          <Route path={UrlTree.settingsGeneral} element={<SettingsGeneral />} />
+          <Route path={UrlTree.settingsGitRepos} element={<ConnectedAccounts />} />
+          <Route path={UrlTree.settingsLlms} element={<Llms />} />
+          <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
+          <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
+          <Route path={UrlTree.workspaceEdit} element={<EditWorkspace />} />
         </Route>
         <Route path={UrlTree.llms} element={<Llms />} />
-        <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />
-        <Route path={UrlTree.workspaceCreate} element={<CreateWorkspace />} />
-        <Route path={UrlTree.workspaceEdit} element={<EditWorkspace />} />
         <Route path={UrlTree.tasksList} element={<Tasks />} />
         <Route path={UrlTree.taskView} element={<Tasks />} />
       </Route>

@@ -1,8 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Task } from '@prisma/client'
 import type { TaskCreateRequest } from '@common/schema'
-import type { WorkspaceWithEnv } from '@common/types'
+import type { CreateTaskResult, DeleteTaskResult } from './types'
 
 // Utility
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
@@ -12,40 +11,10 @@ import { teardownTask } from '@electron/jobs/teardownTask'
 
 // Misc
 import { TaskInstance } from './taskInstance'
-
-type TaskLaunchContext = {
-  workspace: WorkspaceWithEnv
-  repository: string
-  githubTokens: string[]
-}
-
-type CreateTaskResult =
-  | {
-    status: 'error'
-    error: string
-    httpStatus: number
-  }
-  | {
-    status: 'created'
-    task: Task
-    launchContext: TaskLaunchContext
-  }
-
-type DeleteTaskResult =
-  | {
-    status: 'error'
-    error: string
-    httpStatus: number
-  }
-  | {
-    status: 'deleted'
-    taskId: string
-  }
-
 class TaskManager {
   private taskInstances = new Map<string, TaskInstance>()
 
-  getTask(taskId: string): TaskInstance | null {
+  public getTask(taskId: string): TaskInstance | null {
     const trimmedTaskId = taskId?.trim()
     if (!trimmedTaskId) {
       console.debug('TaskManager getTask called with empty taskId', { taskId })
@@ -55,9 +24,21 @@ class TaskManager {
     return this.taskInstances.get(trimmedTaskId) ?? null
   }
 
-  async initializeFromDatabase(): Promise<void> {
+  public async initializeFromDatabase(): Promise<void> {
     const databaseClient = requireDatabaseClient('TaskManager initialize')
-    const tasks = await databaseClient.task.findMany()
+    const tasks = await databaseClient.task.findMany({
+      include: {
+        llm: true,
+        authAccount: true,
+        messages: true,
+        user: true,
+        workspace: {
+          include: {
+            envEntries: true,
+          },
+        },
+      },
+    })
 
     for (const task of tasks) {
       if (this.taskInstances.has(task.id)) {
@@ -80,13 +61,24 @@ class TaskManager {
     }
   }
 
-  async createTask(request: TaskCreateRequest): Promise<CreateTaskResult> {
+  public async createTask(request: TaskCreateRequest): Promise<CreateTaskResult> {
     const databaseClient = requireDatabaseClient('TaskManager createTask')
 
-    const workspace = await databaseClient.workspace.findUnique({
-      where: { id: request.workspaceId },
-      include: { envEntries: true },
-    })
+    const [ workspace, llm ] = await Promise.all([
+      databaseClient.workspace.findUnique({
+        where: {
+          id: request.workspaceId,
+        },
+        include: {
+          envEntries: true,
+        },
+      }),
+      databaseClient.llm.findUnique({
+        where: {
+          id: request.llmId,
+        },
+      }),
+    ])
 
     if (!workspace) {
       console.debug('Task creation failed, workspace not found', {
@@ -99,22 +91,6 @@ class TaskManager {
       }
     }
 
-    const repository = workspace.repository?.trim()
-    if (!repository) {
-      console.debug('Task creation failed, workspace missing repository', {
-        workspaceId: request.workspaceId,
-      })
-      return {
-        status: 'error',
-        error: 'Workspace repository is required',
-        httpStatus: 400,
-      }
-    }
-
-    const llm = await databaseClient.llm.findUnique({
-      where: { id: request.llmId },
-    })
-
     if (!llm) {
       console.debug('Task creation failed, llm not found', {
         llmId: request.llmId,
@@ -126,10 +102,23 @@ class TaskManager {
       }
     }
 
+    const repository = workspace.repositoryId
+    if (!repository) {
+      console.debug('Task creation failed, workspace missing repository', {
+        workspaceId: request.workspaceId,
+      })
+      return {
+        status: 'error',
+        error: 'Workspace repository is required',
+        httpStatus: 400,
+      }
+    }
+
     const codexTaskName = await requestTaskName(llm, {
       message: request.message,
       workspaceName: workspace.name,
     })
+
     if (!codexTaskName) {
       return {
         status: 'error',
@@ -139,17 +128,30 @@ class TaskManager {
     }
 
     const resolvedContainerName = toContainerName(codexTaskName)
-    const githubTokens = await fetchGithubTokens(databaseClient)
+
     const createdTask = await databaseClient.task.create({
       data: {
         userId: request.userId,
         workspaceId: request.workspaceId,
         llmId: request.llmId,
+        authAccountId: request.authAccountId,
         name: codexTaskName,
-        branch: request.branch,
+        sourceGitBranch: request.branch,
+        sourceRepoUrl: request.repoUrl,
         container: 'pending',
         containerName: resolvedContainerName,
         archived: request.archived,
+      },
+      include: {
+        llm: true,
+        messages: true,
+        authAccount: true,
+        user: true,
+        workspace: {
+          include: {
+            envEntries: true,
+          },
+        },
       },
     })
 
@@ -169,15 +171,10 @@ class TaskManager {
     return {
       status: 'created',
       task: createdTask,
-      launchContext: {
-        workspace,
-        repository,
-        githubTokens,
-      },
     }
   }
 
-  async launchTask(taskId: string, context: TaskLaunchContext): Promise<void> {
+  public async launchTask(taskId: string): Promise<void> {
     const taskInstance = this.taskInstances.get(taskId)
     if (!taskInstance) {
       console.debug('TaskManager launch requested without task instance', {
@@ -187,11 +184,7 @@ class TaskManager {
     }
 
     try {
-      const updatedTask = await taskInstance.launch(
-        context.workspace,
-        context.repository,
-        context.githubTokens,
-      )
+      const updatedTask = await taskInstance.createContainer()
 
       broadcastSseChange({
         type: 'update',
@@ -204,7 +197,7 @@ class TaskManager {
     }
   }
 
-  async deleteTask(taskId: string): Promise<DeleteTaskResult> {
+  public async deleteTask(taskId: string): Promise<DeleteTaskResult> {
     const trimmedTaskId = taskId?.trim()
     if (!trimmedTaskId) {
       console.debug('Task delete requested without taskId', { taskId })
@@ -234,7 +227,6 @@ class TaskManager {
     const taskInstance = this.taskInstances.get(trimmedTaskId)
     if (taskInstance) {
       await taskInstance.teardown()
-      await taskInstance.deleteFromDatabase()
     }
     else {
       console.debug('Task delete requested without task instance', {
@@ -261,26 +253,7 @@ class TaskManager {
   }
 }
 
-let taskManager: TaskManager | null = null
-
+const taskManager: TaskManager = new TaskManager()
 export function getTaskManager(): TaskManager {
-  if (!taskManager) {
-    taskManager = new TaskManager()
-  }
-
   return taskManager
-}
-
-async function fetchGithubTokens(
-  databaseClient: ReturnType<typeof requireDatabaseClient>,
-) {
-  const authAccounts = await databaseClient.authAccount.findMany({
-    where: {
-      provider: 'GITHUB',
-    },
-  })
-
-  return authAccounts
-    .map((account) => account.accessToken)
-    .filter((token): token is string => Boolean(token?.trim()))
 }

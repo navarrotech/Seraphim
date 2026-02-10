@@ -132,9 +132,9 @@ export function DashboardGate() {
     return <Navigate to={nextOnboardingStep.route} replace />
   }
 
-  return <main className='flex min-h-screen overflow-hidden'>
+  return <main className='flex min-h-screen max-h-[100vh] overflow-hidden'>
     <TasksSidebar />
-    <div className='flex flex-1 min-h-0 overflow-hidden'>
+    <div className='flex flex-1 min-h-0 overflow-y-auto'>
       <Outlet />
     </div>
   </main>

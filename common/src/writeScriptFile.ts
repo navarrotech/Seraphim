@@ -2,7 +2,7 @@
 
 // Core
 import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { resolve } from 'node:path'
 
 // Misc
 import { DOCKER_WORKDIR } from './constants.js'
@@ -12,30 +12,32 @@ export async function writeScriptFile(
   filename: string,
   contents?: string | null,
 ) {
-  const trimmed = contents?.trim()
-  if (!trimmed) {
-    console.debug('writeScriptFile received empty contents', { filename, trimmed })
-    return undefined
+  let customUserSetupCommands = contents?.trim()
+  if (customUserSetupCommands) {
+    customUserSetupCommands = `
+echo "======== RUNNING CUSTOM SETUP SCRIPT ========"
+${customUserSetupCommands}
+echo "======== FINISHED CUSTOM SETUP SCRIPT ========"
+`
   }
 
   const updatedContent = `
 #!/usr/bin/env bash
 set -eu pipefail
+
 trap 'echo "======== CUSTOM SETUP SCRIPT FAILED (exit $?) ========"; touch /opt/seraphim/setup-failed; exit 1' ERR
 
 cd ${DOCKER_WORKDIR}
 
-echo "======== RUNNING CUSTOM SETUP SCRIPT ========"
-${trimmed}
+${customUserSetupCommands}
 
-echo "======== FINISHED CUSTOM SETUP SCRIPT ========"
 touch /opt/seraphim/setup-success
 echo "System is ready to begin generation commands"
 
-tail -f /dev/null
+codex app-server
   `
 
-  const scriptPath = join(contextDir, filename)
+  const scriptPath = resolve(contextDir, filename)
   await writeFile(scriptPath, updatedContent, 'utf8')
 
   return filename

@@ -1,31 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Environment } from '@common/schema'
-import type { RepoOption } from './CreateWorkspaceImportDrawer'
-import type { ControllerRenderProps } from 'react-hook-form'
-
 // Core
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Lib
-import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-// Redux
-import { useSelector } from '@frontend/framework/store'
-
 // UI
-import { Button, Card, Form, Input, Textarea } from '@heroui/react'
-import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
-import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
-import { Monaco } from '@frontend/common/Monaco'
-import { BaseDockerImageNotice } from '@frontend/common/workspaces/BaseDockerImageNotice'
-
-// Utility
-import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
+import { Button, Form } from '@heroui/react'
+import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 // Misc
 import { UrlTree } from '@common/urls'
@@ -33,405 +19,87 @@ import {
   createWorkspace,
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
-import { CreateWorkspaceImportDrawer } from './CreateWorkspaceImportDrawer'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+const zodResolved = zodResolver(createWorkspaceSchema)
+
+const defaultValues: CreateWorkspaceFormValues = {
+  authAccountId: '',
+  name: '',
+  repositoryId: 0,
+  repositoryFullName: '',
+  customDockerfileCommands: '',
+  description: '',
+  setupScript: 'yarn install',
+  postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
+  cacheFiles: [],
+  envEntries: [{
+    key: '',
+    value: '',
+  }],
+}
+
+type BuildState = {
+  isBuilding: boolean
+}
 
 export function CreateWorkspace() {
   const navigate = useNavigate()
-  const authAccounts = useSelector((reduxState) => reduxState.accounts.items)
-  const buildSocket = useApiBuildSocket()
-  const isImportDisabled = authAccounts.length === 0
-  const [ isImportDrawerOpen, setIsImportDrawerOpen ] = useState(false)
-  const [ importedRepoOption, setImportedRepoOption ] = useState<RepoOption | null>(null)
+  const [ buildState, setBuildState ] = useState<BuildState>({
+    isBuilding: false,
+  })
 
   const form = useForm<CreateWorkspaceFormValues>({
-    resolver: zodResolver(createWorkspaceSchema),
-    defaultValues: {
-      gitUserName: '',
-      gitUserEmail: '',
-      name: '',
-      repository: '',
-      customDockerfileCommands: '',
-      description: '',
-      setupScript: 'yarn install',
-      postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
-      cacheFiles: [],
-      envEntries: [{
-        key: '',
-        value: '',
-      }],
-    },
+    resolver: zodResolved,
+    defaultValues,
   })
 
-  const { clear } = useFormPersist<CreateWorkspaceFormValues>('create-workspace', {
-    control: form.control,
-    setValue: form.setValue,
-    onDataRestored: (values) => form.reset(values),
-  })
+  const isFormLocked = buildState.isBuilding || form.formState.isSubmitting
 
-  const isFormLocked = buildSocket.isBuilding || form.formState.isSubmitting
-  const isRepositoryLocked = Boolean(importedRepoOption)
+  const handleBuildStateChange = useCallback((isBuilding: boolean) => {
+    setBuildState({
+      isBuilding,
+    })
+  }, [])
 
-  function handleOpenImportDrawer() {
-    setIsImportDrawerOpen(true)
-  }
-
-  function handleImportDrawerOpenChange(isOpen: boolean) {
-    setIsImportDrawerOpen(isOpen)
-  }
-
-  function handleDockerfileCommandsChange(
-    onChange: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'>['onChange'],
-  ) {
-    return function onEditorChange(value: string | undefined) {
-      if (value === undefined) {
-        console.debug('CreateWorkspace dockerfile editor returned undefined value')
-        onChange('')
-        return
+  const onSubmit = useCallback(() => form.handleSubmit(
+    async (data) => {
+      try {
+        console.log(data)
+        await createWorkspace(data)
+        navigate(UrlTree.tasksList)
       }
-
-      onChange(value)
-    }
-  }
-
-  function renderDockerfileCommandsField(
-    props: { field: ControllerRenderProps<CreateWorkspaceFormValues, 'customDockerfileCommands'> },
-  ) {
-    const { field } = props
-
-    return <div className='level w-full items-start'>
-      <div className='w-full'>
-        <div className='relaxed w-full'>
-          <label className='text-sm font-medium'>Custom Dockerfile commands</label>
-          <BaseDockerImageNotice />
-          <Monaco
-            height='220px'
-            fileLanguage='dockerfile'
-            minimapOverride={false}
-            value={field.value}
-            onChange={handleDockerfileCommandsChange(field.onChange)}
-            readOnly={isFormLocked}
-          />
-        </div>
-        <Button
-          type='button'
-          color='primary'
-          isLoading={buildSocket.isBuilding}
-          isDisabled={isFormLocked}
-          onPress={handleBuildImage}
-        >
-          <span>Build Image</span>
-        </Button>
-      </div>
-      <div className='w-full'>
-        <BuildLogsPanel buildSocket={buildSocket} />
-      </div>
-    </div>
-  }
-
-  function handleImportRepo(repoOption: RepoOption) {
-    form.setValue('name', repoOption.repo.name, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-    form.setValue('repository', repoOption.repo.cloneUrl, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-    form.setValue('authAccountId', repoOption.accountId, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-
-    const trimmedAccountName = repoOption.name.trim()
-    const trimmedUsername = repoOption.username.trim()
-    const isNameMissing = trimmedAccountName.length === 0
-      || trimmedAccountName === trimmedUsername
-
-    if (isNameMissing) {
-      console.debug('CreateWorkspace import missing git user name', {
-        accountId: repoOption.accountId,
-      })
-      form.setValue('gitUserName', '', {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      })
-    }
-    else {
-      form.setValue('gitUserName', trimmedAccountName, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      })
-    }
-
-    if (!repoOption.email || repoOption.email.trim().length === 0) {
-      console.debug('CreateWorkspace import missing git user email', {
-        accountId: repoOption.accountId,
-      })
-      form.setValue('gitUserEmail', '', {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      })
-    }
-    else {
-      form.setValue('gitUserEmail', repoOption.email, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      })
-    }
-
-    setImportedRepoOption(repoOption)
-    setIsImportDrawerOpen(false)
-  }
-
-  async function handleBuildImage() {
-    const values = form.getValues()
-    await buildSocket.startBuild({
-      customDockerfileCommands: values.customDockerfileCommands || '',
-    })
-  }
-
-  const onSubmit = form.handleSubmit(async function onSubmit(data) {
-    try {
-      await createWorkspace(data)
-      clear()
-      navigate(UrlTree.tasksList)
-    }
-    catch (error) {
-      console.debug('CreateWorkspace failed to submit form', { error })
-    }
-  })
-
-  let importBanner = null
-  if (importedRepoOption) {
-    importBanner = <Card className='relaxed p-4 border border-emerald-500/30 bg-emerald-500/10'>
-      <div className='text-lg'>
-        <strong>Importing repository</strong>
-      </div>
-      <p className='opacity-80'>
-        Connected to {importedRepoOption.repo.fullName} via {importedRepoOption.username}.
-      </p>
-    </Card>
-  }
+      catch (error) {
+        console.debug('CreateWorkspace failed to submit form', { error })
+      }
+    },
+    ), [])
 
   return <section className='container p-6'>
     <div className='relaxed'>
-      <div className='level'>
-        <h2 className='text-2xl'>
-          <strong>Create Workspace</strong>
-        </h2>
-        <Button
-          type='button'
-          variant='flat'
-          isDisabled={isImportDisabled || isFormLocked}
-          onPress={handleOpenImportDrawer}
-        >
-          <span>Import</span>
-        </Button>
-      </div>
+      <h2 className='text-2xl'>
+        <strong>Create Workspace</strong>
+      </h2>
       <p className='opacity-80'>
         Define a workspace with its repository, scripts, and environment values.
       </p>
     </div>
-    <div className='relaxed'>{
-        importBanner
-      }</div>
     <Form onSubmit={onSubmit} className='relaxed'>
-      <input type='hidden' {...form.register('authAccountId')} />
-      <Card className='relaxed p-4 w-full'>
-        <div className='level w-full items-start'>
-          <div className='w-full'>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='gitUserName'
-                render={({ field }) => (
-                  <Input
-                    label='Git user name'
-                    placeholder='Ada Lovelace'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.gitUserName)}
-                    errorMessage={form.formState.errors.gitUserName?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='gitUserEmail'
-                render={({ field }) => (
-                  <Input
-                    label='Git email'
-                    placeholder='ada@lovelace.dev'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.gitUserEmail)}
-                    errorMessage={form.formState.errors.gitUserEmail?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <Input
-                    autoFocus
-                    label='Workspace name'
-                    placeholder='Seraphim Playground'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.name)}
-                    errorMessage={form.formState.errors.name?.message}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='repository'
-                render={({ field }) => (
-                  <Input
-                    label='Repository URL'
-                    placeholder='git@github.com:navarrotech/seraphim.git'
-                    className='w-full'
-                    isRequired
-                    isInvalid={Boolean(form.formState.errors.repository)}
-                    errorMessage={form.formState.errors.repository?.message}
-                    isDisabled={isRepositoryLocked || isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-            <div className='relaxed w-full'>
-              <Controller
-                control={form.control}
-                name='description'
-                render={({ field }) => (
-                  <Textarea
-                    label='Description'
-                    placeholder='What does this workspace do?'
-                    className='w-full'
-                    minRows={5}
-                    isDisabled={isFormLocked}
-                    value={field.value}
-                    name={field.name}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-          </div>
-          <div className='w-full'>
-            <div>
-              <h4 className='compact text-xl'>Environment Variables</h4>
-              <Controller
-                control={form.control}
-                name='envEntries'
-                render={({ field }) => (
-                  <EnvironmentInputs
-                    id='workspace-environment'
-                    entries={field.value || []}
-                    onEntriesChange={(entries: Environment[]) => field.onChange(entries)}
-                    isDisabled={isFormLocked}
-                  />
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-      <Card className='relaxed p-4 w-full'>
-        <Controller
-          control={form.control}
-          name='customDockerfileCommands'
-          render={renderDockerfileCommandsField}
-        />
-      </Card>
-      <Card className='relaxed p-4 w-full'>
-        <div className='level w-full items-start'>
-          <Controller
-            control={form.control}
-            name='setupScript'
-            render={({ field }) => (
-              <Textarea
-                label='Setup script (bash)'
-                className='w-full'
-                placeholder='Commands to prepare the workspace environment.'
-                minRows={6}
-                isDisabled={isFormLocked}
-                value={field.value}
-                name={field.name}
-                onValueChange={field.onChange}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-          <Controller
-            control={form.control}
-            name='postScript'
-            render={({ field }) => (
-              <Textarea
-                label='Validate work script (bash)'
-                className='w-full'
-                placeholder='Deterministic commands to run and check the workspace with.'
-                minRows={6}
-                isDisabled={isFormLocked}
-                value={field.value}
-                name={field.name}
-                onValueChange={field.onChange}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-        </div>
-      </Card>
-      <Button
-        type='submit'
-        color='primary'
-        className='mx-auto'
-        isLoading={form.formState.isSubmitting}
-        isDisabled={isFormLocked}
-      >
-        <span>Create Workspace</span>
-      </Button>
-      <CreateWorkspaceImportDrawer
-        isOpen={isImportDrawerOpen}
-        isDisabled={isImportDisabled || isFormLocked}
-        onOpenChange={handleImportDrawerOpenChange}
-        onImport={handleImportRepo}
+      <WorkspaceEditorForm
+        form={form}
+        isFormLocked={isFormLocked}
+        autoFocusWorkspaceName
+        onBuildStateChange={handleBuildStateChange}
+        footer={<Button
+          type='submit'
+          color='primary'
+          className='mx-auto'
+          isLoading={form.formState.isSubmitting}
+          isDisabled={isFormLocked}
+          onPress={() => onSubmit()}
+        >
+          <span>Create Workspace</span>
+        </Button>}
       />
     </Form>
   </section>

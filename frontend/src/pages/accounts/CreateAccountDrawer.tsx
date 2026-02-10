@@ -158,7 +158,7 @@ export function CreateAccountDrawer(props: Props) {
           <div className='text-2xl'>
             <strong>Add account</strong>
           </div>
-          <p className='opacity-80'>
+          <p className='opacity-80 text-sm font-light'>
             Save a GitHub token and git identity for repository actions.
           </p>
         </div>
@@ -166,6 +166,7 @@ export function CreateAccountDrawer(props: Props) {
       <DrawerBody>
         <div className='relaxed'>
           <Select
+            className='compact'
             label='Auth provider'
             selectedKeys={new Set([ payload.provider ])}
             onSelectionChange={handleProviderChange}
@@ -179,13 +180,15 @@ export function CreateAccountDrawer(props: Props) {
           <Input
             autoFocus
             label='Account name'
-            placeholder='Team Automation Token'
+            placeholder='My personal token'
+            className='compact'
             value={payload.name}
             onValueChange={handleNameChange}
           />
           <Input
             label='GitHub token'
             placeholder='ghp_********'
+            className='compact'
             type='password'
             value={payload.accessToken}
             onValueChange={handleAccessTokenChange}
@@ -201,12 +204,14 @@ export function CreateAccountDrawer(props: Props) {
           <Input
             label='Git user name'
             placeholder='Some Name'
+            className='compact'
             value={payload.gitUserName}
             onValueChange={handleGitUserNameChange}
           />
           <Input
             label='Git user email'
             placeholder='some@email.com'
+            className='compact'
             value={payload.gitUserEmail}
             onValueChange={handleGitUserEmailChange}
           />
