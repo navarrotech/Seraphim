@@ -19,7 +19,9 @@ import { PassThrough } from 'node:stream'
 
 // Utility
 import { convertEnvironmentToStringArray } from '@common/envKit'
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { safeParseJson } from '@common/json'
+import { updateTaskState } from '@electron/jobs/updateTaskState'
 
 type TaskInstanceOptions = {
   task: TaskWithFullContext
@@ -32,6 +34,13 @@ type EventMap = {
   'data': [ Buffer ]
   'line': [ string ]
   'message': [ unknown ]
+}
+
+type ExecuteCommandResult = {
+  command: string
+  stdout: string
+  stderr: string
+  exitCode: number
 }
 
 export class TaskInstance extends EventEmitter<EventMap> {
@@ -100,161 +109,116 @@ export class TaskInstance extends EventEmitter<EventMap> {
   }
 
   public async createContainer(): Promise<this> {
-    const dockerClient = getDockerClient()
-    if (!dockerClient) {
-      throw new Error('Docker client is not available')
-    }
+    try {
+      const dockerClient = getDockerClient()
+      if (!dockerClient) {
+        throw new Error('Docker client is not available')
+      }
 
-    const {
-      // llm,
-      workspace,
-      authAccount,
-      // messages,
-      // user,
-    } = this.task
+      const {
+        // llm,
+        workspace,
+        authAccount,
+        // messages,
+        // user,
+      } = this.task
 
-    const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
-    if (!sourceRepoUrl) {
-      console.debug('TaskInstance missing workspace source repo URL', {
-        taskId: this.task.id,
-        workspaceId: workspace.id,
+      const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
+      if (!sourceRepoUrl) {
+        console.debug('TaskInstance missing workspace source repo URL', {
+          taskId: this.task.id,
+          workspaceId: workspace.id,
+        })
+        throw new Error('Workspace source repository is required')
+      }
+
+      await updateTaskState(this.task.id, 'Creating')
+
+      const cloner = getCloner(
+        authAccount.provider,
+        sourceRepoUrl,
+        authAccount.accessToken,
+      )
+
+      const canClone = await cloner.checkIfCanClone()
+
+      if (!canClone) {
+        console.error('Cannot clone repository with provided URL and credentials', {
+          repository: workspace.sourceRepoUrl,
+          authProvider: authAccount.provider,
+        })
+        throw new Error('Cannot clone repository with provided URL and credentials')
+      }
+
+      const buildImageResult = await buildImage(
+        workspace,
+        this.task,
+        cloner,
+      )
+
+      if (!buildImageResult.success) {
+        console.error('Image build failed', {
+          errors: buildImageResult.errors,
+        })
+        throw new Error(`Image build failed: ${buildImageResult.errors?.join('; ')}`)
+      }
+
+      const Image = buildImageResult.imageTag
+      const Env = convertEnvironmentToStringArray(workspace.envEntries)
+
+      const socketMount = getDockerSocketMount()
+      const volumes = []
+      if (socketMount) {
+        volumes.push(`${socketMount.source}:${socketMount.target}`)
+      }
+
+      const container = await dockerClient.createContainer({
+        name: this.task.containerName,
+        Image,
+        Env,
+        HostConfig: {
+          Binds: volumes,
+        },
       })
-      throw new Error('Workspace source repository is required')
-    }
 
-    const cloner = getCloner(
-      authAccount.provider,
-      sourceRepoUrl,
-      authAccount.accessToken,
-    )
-
-    const canClone = await cloner.checkIfCanClone()
-
-    if (!canClone) {
-      console.error('Cannot clone repository with provided URL and credentials', {
-        repository: workspace.sourceRepoUrl,
-        authProvider: authAccount.provider,
+      const databaseClient = requireDatabaseClient('TaskInstance create container')
+      const updatedTask = await databaseClient.task.update({
+        where: { id: this.task.id },
+        data: {
+          container: container.id,
+          state: 'SettingUp',
+        },
+        include: {
+          llm: true,
+          authAccount: true,
+          messages: true,
+          user: true,
+          workspace: {
+            include: {
+              envEntries: true,
+            },
+          },
+        },
       })
-      throw new Error('Cannot clone repository with provided URL and credentials')
-    }
 
-    const buildImageResult = await buildImage(
-      workspace,
-      this.task,
-      cloner,
-    )
-
-    if (!buildImageResult.success) {
-      console.error('Image build failed', {
-        errors: buildImageResult.errors,
+      broadcastSseChange({
+        kind: 'tasks',
+        type: 'update',
+        data: [ updatedTask ],
       })
-      throw new Error(`Image build failed: ${buildImageResult.errors?.join('; ')}`)
+
+      this.task = updatedTask
+      this.containerExists = true
+
+      await container.start()
+      await this.attachToContainer()
+
+      await updateTaskState(this.task.id, 'Working')
     }
-
-    const Image = buildImageResult.imageTag
-    const Env = convertEnvironmentToStringArray(workspace.envEntries)
-
-    const socketMount = getDockerSocketMount()
-    const volumes = []
-    if (socketMount) {
-      volumes.push(`${socketMount.source}:${socketMount.target}`)
+    catch (error) {
+      console.log(error)
+      await updateTaskState(this.task.id, 'Failed')
     }
-
-    const container = await dockerClient.createContainer({
-      name: this.task.containerName,
-      Image,
-      Env,
-      HostConfig: {
-        Binds: volumes,
-      },
-    })
-
-    this.task.container = container.id
-    this.containerExists = true
-
-    await container.start()
-
-    //   containerId = container.id
-
-    //   const didSetupComplete = setupScriptName
-    //     ? await waitForSetupScriptCompletion(container, taskId)
-    //     : true
-
-    //   if (!didSetupComplete) {
-    //     console.debug('Setup script failed before completion marker', {
-    //       taskId,
-    //       containerId,
-    //     })
-
-    //     const failedState: TaskState = 'Failed'
-    //     await updateTaskState(taskId, failedState)
-    //     throw new Error('Setup script failed before completion marker')
-    //   }
-
-    //   const workingState: TaskState = 'Working'
-    //   await updateTaskState(taskId, workingState)
-
-    //   return {
-    //     containerId,
-    //     containerName: resolvedContainerName,
-    //     imageTag: buildTag,
-    //     usingToken: cloneResolution.usingToken,
-    //   } as const
-    // }
-    // catch (error) {
-    //   try {
-    //     const failedState: TaskState = 'Failed'
-    //     await updateTaskState(taskId, failedState)
-    //   }
-    //   catch (stateError) {
-    //     console.debug('Failed to update task state after launch error', {
-    //       taskId,
-    //       stateError,
-    //     })
-    //   }
-
-    //   if (containerId) {
-    //     await teardownTask(containerId)
-    //   }
-    //   throw error
-    // }
-    // finally {
-    //   try {
-    //     await rm(contextDir, { recursive: true, force: true })
-    //   }
-    //   catch (cleanupError) {
-    //     console.debug('Failed to remove task build context', {
-    //       contextDir,
-    //       cleanupError,
-    //     })
-    //   }
-    // }
-
-
-    // /////////////////////////////////////////
-
-    // const launchResult = await launchTask(
-    //   workspace,
-    //   repository,
-    //   githubTokens,
-    //   this.task.id,
-    //   this.task.containerName ?? undefined,
-    // )
-
-    // const databaseClient = requireDatabaseClient('TaskInstance launch')
-    // const updatedTask = await databaseClient.task.update({
-    //   where: { id: this.task.id },
-    //   data: {
-    //     container: launchResult.containerId,
-    //     containerName: launchResult.containerName,
-    //   },
-    // })
-
-    // this.task = updatedTask
-    // this.containerExists = true
-    // await this.attachToContainer()
-
-    // return updatedTask
 
     return this
   }
@@ -364,5 +328,91 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     const payload = `${JSON.stringify(message)}\n`
     this.ioStream.write(payload)
+  }
+
+  public async executeCmd(command: string): Promise<ExecuteCommandResult> {
+    const containerId = this.containerId
+    if (!containerId) {
+      console.debug('TaskInstance executeCmd requested without container id', {
+        taskId: this.task.id,
+        command,
+      })
+      throw new Error('Cannot execute command without a container id')
+    }
+
+    const dockerClient = getDockerClient()
+    if (!dockerClient) {
+      console.debug('TaskInstance executeCmd requested without docker client', {
+        taskId: this.task.id,
+        containerId,
+        command,
+      })
+      throw new Error('Docker client is not available')
+    }
+
+    const container = dockerClient.getContainer(containerId)
+    const execInstance = await container.exec({
+      AttachStdout: true,
+      AttachStderr: true,
+      Cmd: [ 'bash', '-lc', command ],
+    })
+
+    const stdoutStream = new PassThrough()
+    const stderrStream = new PassThrough()
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+
+    function handleStdoutData(chunk: Buffer) {
+      stdoutChunks.push(chunk)
+    }
+
+    function handleStderrData(chunk: Buffer) {
+      stderrChunks.push(chunk)
+    }
+
+    function handleStreamError(this: TaskInstance, error: Error) {
+      console.debug('TaskInstance executeCmd stream error', {
+        taskId: this.task.id,
+        containerId,
+        command,
+        error,
+      })
+    }
+
+    stdoutStream.on('data', handleStdoutData)
+    stderrStream.on('data', handleStderrData)
+
+    const executionStream = await execInstance.start({
+      hijack: true,
+      stdin: false,
+    })
+
+    executionStream.on('error', handleStreamError.bind(this))
+    dockerClient.modem.demuxStream(executionStream, stdoutStream, stderrStream)
+
+    await new Promise<void>((resolve, reject) => {
+      function handleEnd() {
+        resolve()
+      }
+
+      function handleError(error: Error) {
+        reject(error)
+      }
+
+      executionStream.once('end', handleEnd)
+      executionStream.once('error', handleError)
+    })
+
+    const inspectionResult = await execInstance.inspect()
+    const exitCode = inspectionResult.ExitCode ?? -1
+    const stdout = Buffer.concat(stdoutChunks).toString('utf8')
+    const stderr = Buffer.concat(stderrChunks).toString('utf8')
+
+    return {
+      command,
+      stdout,
+      stderr,
+      exitCode,
+    }
   }
 }
