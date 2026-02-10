@@ -3,6 +3,7 @@
 import type { Workspace } from '@prisma/client'
 import type { LlmRecord } from '@common/types'
 import type { Selection } from '@react-types/shared'
+import type { ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
@@ -16,6 +17,7 @@ import { Button, Card, Select, SelectItem, Textarea } from '@heroui/react'
 type TaskDraft = {
   message: string
   workspaceId: string
+  authAccountId: string
   llmId: string
 }
 
@@ -35,9 +37,11 @@ export function EmptyTaskView(props: Props) {
   } = props
 
   const llms = useSelector((state) => state.llms.items)
+  const authAccounts = useSelector((state) => state.accounts.items)
 
   const [ message, setMessage ] = useState<string>('')
   const [ workspaceId, setWorkspaceId ] = useState<string>('')
+  const [ authAccountId, setAuthAccountId ] = useState<string>('')
   const [ llmId, setLlmId ] = useState<string>('')
 
   useEffect(() => {
@@ -53,6 +57,15 @@ export function EmptyTaskView(props: Props) {
 
     console.debug('EmptyTaskView has no workspaces to select from')
   }, [ defaultWorkspaceId, workspaces ])
+
+  useEffect(() => {
+    if (authAccounts.length > 0) {
+      setAuthAccountId(authAccounts[0].id)
+      return
+    }
+
+    console.debug('EmptyTaskView has no auth accounts to select from')
+  }, [ authAccounts ])
 
   useEffect(() => {
     const defaultLlm = llms.find((llm) => llm.isDefault)
@@ -107,6 +120,25 @@ export function EmptyTaskView(props: Props) {
     setLlmId(String(selectedLlmId))
   }
 
+  function handleAuthAccountSelection(selection: Selection) {
+    if (selection === 'all') {
+      console.debug('EmptyTaskView received an unexpected auth account selection', {
+        selection,
+      })
+      return
+    }
+
+    const selectedKeys = Array.from(selection)
+    const selectedAuthAccountId = selectedKeys[0]
+
+    if (!selectedAuthAccountId) {
+      console.debug('EmptyTaskView failed to select an auth account', { selection })
+      return
+    }
+
+    setAuthAccountId(String(selectedAuthAccountId))
+  }
+
   async function handleSubmit() {
     const trimmedMessage = message.trim()
 
@@ -120,6 +152,11 @@ export function EmptyTaskView(props: Props) {
       return
     }
 
+    if (!authAccountId) {
+      console.debug('EmptyTaskView cannot submit without an auth account')
+      return
+    }
+
     if (!llmId) {
       console.debug('EmptyTaskView cannot submit without a llm')
       return
@@ -128,15 +165,18 @@ export function EmptyTaskView(props: Props) {
     await onSubmit({
       message: trimmedMessage,
       workspaceId,
+      authAccountId,
       llmId,
     })
   }
 
   const hasWorkspaces = workspaces.length > 0
+  const hasAuthAccounts = authAccounts.length > 0
   const hasLlms = llms.length > 0
   const isMessageEmpty = message.trim().length === 0
   const isSubmitDisabled = isSubmitting
     || !workspaceId
+    || !authAccountId
     || !llmId
     || isMessageEmpty
 
@@ -147,7 +187,7 @@ export function EmptyTaskView(props: Props) {
           <strong>Start a new task</strong>
         </h2>
         <p className='opacity-80'>
-          Share a first message to spin up a task and pick a workspace for it.
+          Share a first message, then pick a workspace, auth account, and llm.
         </p>
       </div>
       <div className='relaxed'>
@@ -172,6 +212,21 @@ export function EmptyTaskView(props: Props) {
           {workspaces.map((workspace) => (
             <SelectItem key={workspace.id}>
               {workspace.name}
+            </SelectItem>
+          ))}
+        </Select>
+      </div>
+      <div className='relaxed'>
+        <Select
+          label='Auth account'
+          placeholder='Select an auth account'
+          selectedKeys={authAccountId ? [ authAccountId ] : []}
+          onSelectionChange={handleAuthAccountSelection}
+          isDisabled={!hasAuthAccounts || isSubmitting}
+        >
+          {authAccounts.map((authAccount) => (
+            <SelectItem key={authAccount.id}>
+              {getAuthAccountLabel(authAccount)}
             </SelectItem>
           ))}
         </Select>
@@ -203,6 +258,22 @@ export function EmptyTaskView(props: Props) {
       </div>
     </Card>
   </div>
+}
+
+function getAuthAccountLabel(authAccount: ConnectedAccount) {
+  if (authAccount.username) {
+    return `${authAccount.name} (${authAccount.username})`
+  }
+
+  if (authAccount.name) {
+    return authAccount.name
+  }
+
+  console.debug('EmptyTaskView received an auth account missing name and username', {
+    authAccountId: authAccount.id,
+  })
+
+  return authAccount.id
 }
 
 function getLlmLabel(llm: LlmRecord) {
