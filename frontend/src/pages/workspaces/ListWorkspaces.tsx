@@ -31,7 +31,7 @@ export function ListWorkspaces() {
   }
 
   if (!workspaces || workspaces.length === 0) {
-    return <section className='container p-6'>
+    return <section>
       <div className='relaxed'>
         <h2 className='text-2xl'>
           <strong>Workspaces</strong>
@@ -50,7 +50,7 @@ export function ListWorkspaces() {
     </section>
   }
 
-  return <section className='container p-6'>
+  return <section>
     <div className='level relaxed'>
       <div>
         <h2 className='text-2xl'>Workspaces</h2>
@@ -80,7 +80,9 @@ export function ListWorkspaces() {
               to={getWorkspaceEditUrl(workspace.id)}
             >
               <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
-              <div className='opacity-60 text-sm'>{workspace.repository}</div>
+              <div className='opacity-60 text-sm'>
+                {workspace.repositoryFullName || 'Repository not selected'}
+              </div>
             </Link>
             <Link
               className='col-span-6'

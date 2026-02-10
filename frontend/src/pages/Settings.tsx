@@ -7,7 +7,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useSelector } from '@frontend/framework/store'
 
 // User interface
-import { Alert, Button, Tooltip } from '@heroui/react'
+import { Alert, Button } from '@heroui/react'
 import { SettingsTabs } from './settings/SettingsTabs'
 
 // Misc
@@ -40,27 +40,26 @@ export function Settings() {
         ? <div className='relaxed'>
           <div className='level'>
             <div className='w-full'>
-              <Alert
-                color='warning'
-                variant='flat'
-                title={`Complete onboarding: ${nextOnboardingStep.label}`}
-                description={`You must setup at least one ${nextOnboardingStep.label} in order to proceed.`}
-              >
-                <Tooltip content={`You must setup at least one ${nextOnboardingStep.label} in order to proceed.`}>
+              <Alert color='warning' variant='flat'>
+                <div className='level w-full'>
                   <div>
-                    <Button
+                    <h1>
+                      <strong>Complete {nextOnboardingStep.label} onboarding</strong>
+                    </h1>
+                    <p>You must setup at least one {nextOnboardingStep.label} in order to proceed.</p>
+                  </div>
+                  { showNextButton
+                    ? <Button
                       as={Link}
                       to={nextOnboardingStep.route}
-                      className='mt-2'
                       color='warning'
                       variant='bordered'
-                      size='sm'
-                      isDisabled={!showNextButton}
                       >
-                      <span>Next</span>
+                      <span>Go there</span>
                     </Button>
-                  </div>
-                </Tooltip>
+                    : <></>
+                  }
+                </div>
               </Alert>
             </div>
           </div>

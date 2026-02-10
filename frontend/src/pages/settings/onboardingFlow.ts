@@ -55,5 +55,5 @@ export function isSettingsRoute(pathname: string) {
     return false
   }
 
-  return pathname.startsWith(UrlTree.settings)
+  return pathname.startsWith(UrlTree.settings) || pathname.startsWith(UrlTree.workspaceCreate)
 }

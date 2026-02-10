@@ -34,11 +34,10 @@ export const workspaceEnvEntrySchema = z.object({
 })
 
 export const workspaceCreateSchema = z.object({
-  authAccountId: z.string().trim().min(1).optional(),
-  gitUserName: z.string().trim().min(1),
-  gitUserEmail: z.string().trim().min(1),
+  authAccountId: z.string().trim().min(1),
   name: z.string().trim().min(1),
-  repository: z.string().trim().min(1),
+  repositoryId: z.coerce.number().int().positive(),
+  repositoryFullName: z.string().trim().min(1),
   customDockerfileCommands: z.string().trim().optional().default(''),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
@@ -49,10 +48,9 @@ export const workspaceCreateSchema = z.object({
 
 export const workspaceUpdateSchema = z.object({
   authAccountId: z.string().trim().min(1).optional(),
-  gitUserName: z.string().trim().min(1).optional(),
-  gitUserEmail: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
-  repository: z.string().trim().min(1).optional(),
+  repositoryId: z.coerce.number().int().positive().optional(),
+  repositoryFullName: z.string().trim().min(1).optional(),
   customDockerfileCommands: z.string().trim().optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),

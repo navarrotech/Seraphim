@@ -223,7 +223,7 @@ export function Llms() {
   }
 
   if (!llms || llms.length === 0) {
-    return <section className='container p-6'>
+    return <section>
       <div className='relaxed'>
         <h2 className='text-2xl'>
           <strong>LLMs</strong>
@@ -254,7 +254,7 @@ export function Llms() {
     </section>
   }
 
-  return <section className='container p-6'>
+  return <section>
     <div className='level relaxed'>
       <div>
         <h2 className='text-2xl'>

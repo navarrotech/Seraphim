@@ -9,9 +9,9 @@ export const UrlTree = {
   settingsWorkspaces: '/settings/workspaces',
   settingsLlms: '/settings/llms',
   llms: '/llms',
-  workspacesList: '/workspaces',
-  workspaceCreate: '/workspaces/create',
-  workspaceEdit: '/workspace/:workspaceId/edit',
+  workspacesList: '/settings/workspaces',
+  workspaceCreate: '/settings/workspaces/create',
+  workspaceEdit: '/settings/workspaces/:workspaceId/edit',
   tasksList: '/tasks',
   taskView: '/tasks/:taskId',
 } as const

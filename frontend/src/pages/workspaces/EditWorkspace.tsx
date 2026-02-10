@@ -14,6 +14,7 @@ import useSWR from 'swr'
 
 // UI
 import { Button, Card } from '@heroui/react'
+import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 // Utility
 import { useHotkey } from '@frontend/hooks/useHotkey'
@@ -25,7 +26,6 @@ import {
   updateWorkspace,
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
-import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 
@@ -68,10 +68,10 @@ export function EditWorkspace() {
   const form = useForm<EditWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
-      gitUserName: '',
-      gitUserEmail: '',
+      authAccountId: '',
       name: '',
-      repository: '',
+      repositoryId: 0,
+      repositoryFullName: '',
       customDockerfileCommands: '',
       description: '',
       setupScript: '',
@@ -93,10 +93,10 @@ export function EditWorkspace() {
 
     const workspace = workspaceQuery.data.workspace
     form.reset({
-      gitUserName: workspace.gitUserName,
-      gitUserEmail: workspace.gitUserEmail,
+      authAccountId: workspace.authAccountId || '',
       name: workspace.name,
-      repository: workspace.repository,
+      repositoryId: workspace.repositoryId,
+      repositoryFullName: workspace.repositoryFullName,
       customDockerfileCommands: workspace.customDockerfileCommands || '',
       description: workspace.description || '',
       setupScript: workspace.setupScript || '',
