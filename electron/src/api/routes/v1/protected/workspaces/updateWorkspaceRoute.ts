@@ -57,7 +57,7 @@ export async function handleUpdateWorkspaceRequest(
     return
   }
 
-  const { authAccountId, envEntries, ...workspaceUpdates } = updateData
+  const { envEntries, ...workspaceUpdates } = updateData
   const { workspaceId } = params
 
   try {
@@ -74,13 +74,6 @@ export async function handleUpdateWorkspaceRequest(
     }
 
     const workspaceUpdateData: Record<string, unknown> = { ...workspaceUpdates }
-    if (authAccountId) {
-      workspaceUpdateData.authAccount = {
-        connect: {
-          id: authAccountId,
-        },
-      }
-    }
 
     if (envEntries) {
       workspaceUpdateData.envEntries = {

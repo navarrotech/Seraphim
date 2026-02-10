@@ -24,17 +24,14 @@ export const workspaceEnvEntrySchema = z.object({
   key: z
     .string()
     .trim()
-    .min(1)
     .max(256),
   value: z
     .string()
     .trim()
-    .min(1)
     .max(2048),
 })
 
 export const workspaceCreateSchema = z.object({
-  authAccountId: z.string().trim().min(1),
   name: z.string().trim().min(1),
   sourceRepoUrl: z.string().trim().min(1),
   customDockerfileCommands: z.string().trim().optional().default(''),
@@ -46,7 +43,6 @@ export const workspaceCreateSchema = z.object({
 }).strict()
 
 export const workspaceUpdateSchema = z.object({
-  authAccountId: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
   sourceRepoUrl: z.string().trim().min(1).optional(),
   customDockerfileCommands: z.string().trim().optional(),
@@ -62,8 +58,8 @@ export const workspaceUpdateSchema = z.object({
 export const taskCreateSchema = z.object({
   userId: z.string().trim().min(1),
   workspaceId: z.string().trim().min(1),
-  llmId: z.string().trim().min(1),
   authAccountId: z.string().trim().min(1),
+  llmId: z.string().trim().min(1),
   message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
   archived: z.boolean().optional().default(false),

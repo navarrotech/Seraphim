@@ -23,7 +23,6 @@ type Props = {
   form: UseFormReturn<WorkspaceFormValues>
   isFormLocked: boolean
   autoFocusWorkspaceName?: boolean
-  onBuildStateChange?: (isBuilding: boolean) => void
   footer?: ReactNode
 }
 
@@ -32,7 +31,6 @@ export function WorkspaceEditorForm(props: Props) {
     form,
     isFormLocked,
     autoFocusWorkspaceName = false,
-    onBuildStateChange,
     footer,
   } = props
 
@@ -40,7 +38,6 @@ export function WorkspaceEditorForm(props: Props) {
     <Card className='relaxed p-4 w-full'>
       <div className='level w-full items-start'>
         <div className='w-full'>
-          <input type='hidden' {...form.register('authAccountId')} />
           <input
             type='hidden'
             {...form.register('sourceRepoUrl')}
@@ -122,7 +119,6 @@ export function WorkspaceEditorForm(props: Props) {
             value={field.value}
             onChange={field.onChange}
             isDisabled={isFormLocked}
-            onBuildStateChange={onBuildStateChange}
           />
         )}
       />

@@ -28,13 +28,24 @@ import {
 } from '@frontend/lib/routes/workspaceRoutes'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+const zodResolved = zodResolver(createWorkspaceSchema)
+
+const defaultValues: EditWorkspaceFormValues = {
+  name: '',
+  sourceRepoUrl: '',
+  customDockerfileCommands: '',
+  description: '',
+  setupScript: '',
+  postScript: '',
+  cacheFiles: [],
+  envEntries: [{
+    key: '',
+    value: '',
+  }],
+}
 
 type WorkspaceRouteParams = {
   workspaceId?: string
-}
-
-type BuildState = {
-  isBuilding: boolean
 }
 
 function ensureEnvEntries(entries?: Environment[]) {
@@ -52,9 +63,6 @@ export function EditWorkspace() {
   const navigate = useNavigate()
   const { workspaceId } = useParams<WorkspaceRouteParams>()
   const [ isSubmitting, setIsSubmitting ] = useState(false)
-  const [ buildState, setBuildState ] = useState<BuildState>({
-    isBuilding: false,
-  })
 
   if (!workspaceId) {
     console.debug('EditWorkspace missing workspaceId in route params', { workspaceId })
@@ -66,24 +74,11 @@ export function EditWorkspace() {
   )
 
   const form = useForm<EditWorkspaceFormValues>({
-    resolver: zodResolver(createWorkspaceSchema),
-    defaultValues: {
-      authAccountId: '',
-      name: '',
-      sourceRepoUrl: '',
-      customDockerfileCommands: '',
-      description: '',
-      setupScript: '',
-      postScript: '',
-      cacheFiles: [],
-      envEntries: [{
-        key: '',
-        value: '',
-      }],
-    },
+    resolver: zodResolved,
+    defaultValues,
   })
 
-  const isFormLocked = buildState.isBuilding || isSubmitting
+  const isFormLocked = isSubmitting
 
   useEffect(function syncWorkspace() {
     if (!workspaceQuery.data?.workspace) {
@@ -103,12 +98,6 @@ export function EditWorkspace() {
     })
   }, [ form, workspaceQuery.data ])
 
-  function handleBuildStateChange(isBuilding: boolean) {
-    setBuildState({
-      isBuilding,
-    })
-  }
-
   const handleSubmit = useCallback(async function handleSubmit() {
     if (!workspaceId) {
       console.debug('EditWorkspace cannot submit without workspaceId', { workspaceId })
@@ -120,7 +109,7 @@ export function EditWorkspace() {
       return
     }
 
-    const sanitizedValues = sanitizeWorkspaceValues(form.getValues())
+    const sanitizedValues = form.getValues()
     const validationResult = createWorkspaceSchema.safeParse(sanitizedValues)
     if (!validationResult.success) {
       console.debug('EditWorkspace form validation failed', {
@@ -208,22 +197,7 @@ export function EditWorkspace() {
       <WorkspaceEditorForm
         form={form}
         isFormLocked={isFormLocked}
-        onBuildStateChange={handleBuildStateChange}
       />
     </div>
   </section>
-}
-
-function sanitizeWorkspaceValues(values: EditWorkspaceFormValues) {
-  const environmentEntries = (values.envEntries || [])
-    .map((entry) => ({
-      key: entry.key?.trim() || '',
-      value: entry.value?.trim() || '',
-    }))
-    .filter((entry) => entry.key.length > 0 && entry.value.length > 0)
-
-  return {
-    ...values,
-    envEntries: environmentEntries,
-  }
 }

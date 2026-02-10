@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Lib
@@ -24,7 +24,6 @@ type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 const zodResolved = zodResolver(createWorkspaceSchema)
 
 const defaultValues: CreateWorkspaceFormValues = {
-  authAccountId: '',
   name: '',
   sourceRepoUrl: '',
   customDockerfileCommands: '',
@@ -38,32 +37,19 @@ const defaultValues: CreateWorkspaceFormValues = {
   }],
 }
 
-type BuildState = {
-  isBuilding: boolean
-}
-
 export function CreateWorkspace() {
   const navigate = useNavigate()
-  const [ buildState, setBuildState ] = useState<BuildState>({
-    isBuilding: false,
-  })
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolved,
     defaultValues,
   })
 
-  const isFormLocked = buildState.isBuilding || form.formState.isSubmitting
+  const isFormLocked = form.formState.isSubmitting
 
-  const handleBuildStateChange = useCallback((isBuilding: boolean) => {
-    setBuildState({
-      isBuilding,
-    })
-  }, [])
-
-  const handleSubmit = useCallback(async function handleSubmit() {
+  const handleSubmit = useCallback(async () => {
     const submitWithValidation = form.handleSubmit(
-      async function submitWithValidation(data) {
+      async (data) => {
         try {
           await createWorkspace(data)
           navigate(UrlTree.tasksList)
@@ -77,30 +63,35 @@ export function CreateWorkspace() {
     await submitWithValidation()
   }, [ form, navigate ])
 
+  if (form.formState.errors) {
+    console.debug(form.formState.errors)
+  }
+
   return <section className='container p-6'>
-    <div className='relaxed'>
-      <h2 className='text-2xl'>
-        <strong>Create Workspace</strong>
-      </h2>
-      <p className='opacity-80'>
-        Define a workspace with its repository, scripts, and environment values.
-      </p>
+    <div className='relaxed level'>
+      <div className='w-full'>
+        <h2 className='text-2xl'>
+          <strong>Create Workspace</strong>
+        </h2>
+        <p className='opacity-80'>
+          Define a workspace with its repository, scripts, and environment values.
+        </p>
+      </div>
+      <Button
+        color='primary'
+        className='mx-auto'
+        isLoading={form.formState.isSubmitting}
+        isDisabled={isFormLocked}
+        onPress={handleSubmit}
+      >
+        <span>Create Workspace</span>
+      </Button>
     </div>
     <div className='relaxed'>
       <WorkspaceEditorForm
         form={form}
-        isFormLocked={isFormLocked}
         autoFocusWorkspaceName
-        onBuildStateChange={handleBuildStateChange}
-        footer={<Button
-          color='primary'
-          className='mx-auto'
-          isLoading={form.formState.isSubmitting}
-          isDisabled={isFormLocked}
-          onPress={handleSubmit}
-        >
-          <span>Create Workspace</span>
-        </Button>}
+        isFormLocked={isFormLocked}
       />
     </div>
   </section>

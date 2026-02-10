@@ -35,7 +35,6 @@ export async function handleCreateWorkspaceRequest(
   }
 
   const {
-    authAccountId,
     name,
     sourceRepoUrl,
     customDockerfileCommands,
@@ -55,15 +54,6 @@ export async function handleCreateWorkspaceRequest(
       setupScript,
       postScript,
       cacheFiles,
-      ...(authAccountId
-        ? {
-            authAccount: {
-              connect: {
-                id: authAccountId,
-              },
-            },
-          }
-        : {}),
     } satisfies Prisma.WorkspaceCreateInput
 
     let workspaceData: Prisma.WorkspaceCreateInput = baseWorkspaceData
