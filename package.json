@@ -43,6 +43,7 @@
     "hjson": "^3.2.2",
     "humanize-duration": "^3.33.0",
     "lodash-es": "^4.17.21",
+    "moment": "^2.30.1",
     "node-global-key-listener": "^0.3.0",
     "openai": "^5.7.0",
     "prisma": "7",

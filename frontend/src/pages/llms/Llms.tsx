@@ -17,6 +17,11 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { Button, Card, Chip, Tooltip } from '@heroui/react'
 
 // Misc
+import {
+  moment,
+  STANDARD_TIME_FORMAT_FULL,
+  STANDARD_TIME_FORMAT_SHORT,
+} from '@common/time'
 import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
 import { deleteLlm, listLlms, updateLlm } from '@frontend/lib/routes/llmRoutes'
 import { CreateLlmDrawer } from './CreateLlmDrawer'
@@ -59,6 +64,26 @@ function getLlmName(llm: LlmRecord) {
 
   const display = getLlmDisplay(llm.type)
   return display.label
+}
+
+
+function formatTimestamp(dateIso: string | Date) {
+  const parsedDate = moment(dateIso)
+
+  if (!parsedDate.isValid()) {
+    console.debug('LLMs received invalid timestamp for formatting', {
+      dateIso,
+    })
+    return {
+      short: 'Unknown',
+      full: 'Unknown timestamp',
+    }
+  }
+
+  return {
+    short: parsedDate.format(STANDARD_TIME_FORMAT_SHORT),
+    full: parsedDate.format(STANDARD_TIME_FORMAT_FULL),
+  }
 }
 
 function getUsageLabel(llm: LlmRecord) {
@@ -178,6 +203,8 @@ export function Llms() {
     const display = getLlmDisplay(llm.type)
     const llmName = getLlmName(llm)
     const usageLabel = getUsageLabel(llm)
+    const createdAt = formatTimestamp(llm.createdAt)
+    const updatedAt = formatTimestamp(llm.updatedAt)
 
     let defaultChip = null
     if (llm.isDefault) {
@@ -193,9 +220,9 @@ export function Llms() {
 
     return <div
       key={llm.id}
-      className='group relative grid grid-cols-12 items-center gap-4 px-4 py-4'
+      className='group relative grid grid-cols-14 items-center gap-4 px-4 py-4'
     >
-      <div className='col-span-4 flex items-center gap-3'>
+      <div className='col-span-3 flex items-center gap-3'>
         <div className='h-10 w-10 overflow-hidden rounded-full border border-black/10'>
           <img
             src={display.logoUrl}
@@ -214,8 +241,18 @@ export function Llms() {
       <div className='col-span-3'>
         <div className='text-sm opacity-80'>{preferredModel}</div>
       </div>
-      <div className='col-span-3'>
+      <div className='col-span-2'>
         <div className='text-sm opacity-80'>{usageLabel}</div>
+      </div>
+      <div className='col-span-2'>
+        <Tooltip content={createdAt.full}>
+          <div className='text-sm opacity-80 w-fit'>{createdAt.short}</div>
+        </Tooltip>
+      </div>
+      <div className='col-span-2'>
+        <Tooltip content={updatedAt.full}>
+          <div className='text-sm opacity-80 w-fit'>{updatedAt.short}</div>
+        </Tooltip>
       </div>
       <div className='col-span-2'>
         <div className='flex items-center justify-end gap-2'>
@@ -307,10 +344,12 @@ export function Llms() {
       </Button>
     </div>
     <Card className='relaxed p-2'>
-      <div className='grid grid-cols-12 gap-4 px-4 py-3 text-sm opacity-70'>
-        <div className='col-span-4'>LLM</div>
+      <div className='grid grid-cols-14 gap-4 px-4 py-3 text-sm opacity-70'>
+        <div className='col-span-3'>LLM</div>
         <div className='col-span-3'>Preferred Model</div>
-        <div className='col-span-3'>Usage</div>
+        <div className='col-span-2'>Usage</div>
+        <div className='col-span-2'>Created at</div>
+        <div className='col-span-2'>Updated at</div>
         <div className='col-span-2 text-right'>Actions</div>
       </div>
       <div className='divide-y'>{

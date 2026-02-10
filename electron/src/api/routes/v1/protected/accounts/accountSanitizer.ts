@@ -15,6 +15,7 @@ export type AccountSummary = {
   scope: string
   lastUsedAt: Date | null
   createdAt: Date
+  updatedAt: Date
 }
 
 export function sanitizeAccount(account: AuthAccount): AccountSummary {
@@ -28,5 +29,6 @@ export function sanitizeAccount(account: AuthAccount): AccountSummary {
     scope: account.scope,
     lastUsedAt: account.lastUsedAt,
     createdAt: account.createdAt,
+    updatedAt: account.updatedAt,
   }
 }
