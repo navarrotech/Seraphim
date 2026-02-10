@@ -10,6 +10,7 @@ import { useSelector } from '@frontend/framework/store'
 
 // User interface
 import { Button, Card, Tooltip } from '@heroui/react'
+import { addToast } from '@heroui/toast'
 import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
@@ -20,9 +21,88 @@ import {
   logoutAccount,
 } from '@frontend/lib/routes/accountsRoutes'
 
+type AddAccountErrorResponse = {
+  error?: string
+  missingScopes?: string[]
+}
+
+type AddAccountPayload = {
+  provider: 'GITHUB'
+  name: string
+  accessToken: string
+  gitUserName: string
+  gitUserEmail: string
+}
+
+type ErrorWithResponse = {
+  response: Response
+}
+
+function isErrorWithResponse(error: unknown): error is ErrorWithResponse {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  if (!('response' in error)) {
+    return false
+  }
+
+  const responseValue = Reflect.get(error, 'response')
+  return responseValue instanceof Response
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+}
+
+function getAccountErrorMessage(payload: AddAccountErrorResponse) {
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    return payload.error.trim()
+  }
+
+  if (isStringArray(payload.missingScopes) && payload.missingScopes.length > 0) {
+    return `GitHub token is missing required scopes: ${payload.missingScopes.join(', ')}`
+  }
+
+  return null
+}
+
+async function parseAddAccountError(error: unknown): Promise<string | null> {
+  if (!isErrorWithResponse(error)) {
+    console.debug('ConnectedAccounts add account failed without response payload', { error })
+    return null
+  }
+
+  let responseBody: AddAccountErrorResponse | null = null
+  try {
+    const parsedBody = await error.response.json()
+    if (typeof parsedBody === 'object' && parsedBody !== null) {
+      responseBody = parsedBody
+    }
+  }
+  catch (parseError) {
+    console.debug('ConnectedAccounts failed to parse add account error response', { parseError })
+  }
+
+  if (!responseBody) {
+    console.debug('ConnectedAccounts add account error response was empty')
+    return null
+  }
+
+  const message = getAccountErrorMessage(responseBody)
+  if (!message) {
+    console.debug('ConnectedAccounts add account error response was missing message details', {
+      responseBody,
+    })
+  }
+
+  return message
+}
+
 export function ConnectedAccounts() {
   const [ isDrawerOpen, setIsDrawerOpen ] = useState(false)
   const [ isSubmitting, setIsSubmitting ] = useState(false)
+  const [ drawerErrorMessage, setDrawerErrorMessage ] = useState<string | null>(null)
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
   const accounts = useSelector((reduxState) => reduxState.accounts.items)
 
@@ -30,14 +110,9 @@ export function ConnectedAccounts() {
     void listAccounts()
   }, [])
 
-  async function handleCreateAccount(payload: {
-    provider: 'GITHUB'
-    name: string
-    accessToken: string
-    gitUserName: string
-    gitUserEmail: string
-  }) {
+  async function handleCreateAccount(payload: AddAccountPayload) {
     setStatusMessage(null)
+    setDrawerErrorMessage(null)
     setIsSubmitting(true)
 
     try {
@@ -50,7 +125,17 @@ export function ConnectedAccounts() {
       console.debug('ConnectedAccounts failed to save account', {
         error,
       })
-      setStatusMessage('Failed to save account. Verify your token and scopes.')
+      const errorMessage = await parseAddAccountError(error)
+      const fallbackMessage = 'Failed to save account. Verify your token and scopes.'
+      const displayMessage = errorMessage ?? fallbackMessage
+
+      setDrawerErrorMessage(displayMessage)
+      setStatusMessage(displayMessage)
+      addToast({
+        title: 'Unable to save account',
+        description: displayMessage,
+        color: 'danger',
+      })
     }
     finally {
       setIsSubmitting(false)
@@ -71,6 +156,13 @@ export function ConnectedAccounts() {
         accountId: account.id,
       })
     }
+  }
+
+  function handleDrawerOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setDrawerErrorMessage(null)
+    }
+    setIsDrawerOpen(nextOpen)
   }
 
   let statusCard = null
@@ -167,7 +259,8 @@ export function ConnectedAccounts() {
     <CreateAccountDrawer
       isOpen={isDrawerOpen}
       isSubmitting={isSubmitting}
-      onOpenChange={setIsDrawerOpen}
+      errorMessage={drawerErrorMessage}
+      onOpenChange={handleDrawerOpenChange}
       onSubmit={handleCreateAccount}
     />
   </section>
