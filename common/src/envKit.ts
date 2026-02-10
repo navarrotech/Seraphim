@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Environment } from './schema.js'
+import type { Environment } from './schema'
 
 export function parseEnvInt(value: string | undefined, defaultValue: number): number {
   if (!value) {
