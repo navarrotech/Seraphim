@@ -30,16 +30,15 @@
     "noFallthroughCasesInSwitch": false,
     "noUncheckedSideEffectImports": true,
     // Absolute import paths
-    "baseUrl": ".",
     "paths": {
       "@common/*": [
-        "common/src/*"
+        "./common/src/*"
       ],
       "@frontend/*": [
-        "frontend/src/*"
+        "./frontend/src/*"
       ],
       "@electron/*": [
-        "electron/src/*"
+        "./electron/src/*"
       ],
     }
   },
