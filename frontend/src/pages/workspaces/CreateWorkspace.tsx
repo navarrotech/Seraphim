@@ -5,13 +5,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Lib
-import { useFormPersist } from '@liorpo/react-hook-form-persist'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 // UI
 import { Button, Form } from '@heroui/react'
+import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 // Misc
 import { UrlTree } from '@common/urls'
@@ -19,9 +19,9 @@ import {
   createWorkspace,
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
-import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
+const zodResolved = zodResolver(createWorkspaceSchema)
 
 type BuildState = {
   isBuilding: boolean
@@ -34,7 +34,7 @@ export function CreateWorkspace() {
   })
 
   const form = useForm<CreateWorkspaceFormValues>({
-    resolver: zodResolver(createWorkspaceSchema),
+    resolver: zodResolved,
     defaultValues: {
       authAccountId: '',
       name: '',
@@ -52,12 +52,6 @@ export function CreateWorkspace() {
     },
   })
 
-  const { clear } = useFormPersist<CreateWorkspaceFormValues>('create-workspace', {
-    control: form.control,
-    setValue: form.setValue,
-    onDataRestored: (values) => form.reset(values),
-  })
-
   const isFormLocked = buildState.isBuilding || form.formState.isSubmitting
 
   function handleBuildStateChange(isBuilding: boolean) {
@@ -69,7 +63,6 @@ export function CreateWorkspace() {
   const onSubmit = form.handleSubmit(async function onSubmit(data) {
     try {
       await createWorkspace(data)
-      clear()
       navigate(UrlTree.tasksList)
     }
     catch (error) {
@@ -98,6 +91,7 @@ export function CreateWorkspace() {
           className='mx-auto'
           isLoading={form.formState.isSubmitting}
           isDisabled={isFormLocked}
+          onPress={() => onSubmit()}
         >
           <span>Create Workspace</span>
         </Button>}

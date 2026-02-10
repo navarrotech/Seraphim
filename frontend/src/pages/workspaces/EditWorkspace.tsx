@@ -14,6 +14,7 @@ import useSWR from 'swr'
 
 // UI
 import { Button, Card } from '@heroui/react'
+import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 // Utility
 import { useHotkey } from '@frontend/hooks/useHotkey'
@@ -25,7 +26,6 @@ import {
   updateWorkspace,
   createWorkspaceSchema,
 } from '@frontend/lib/routes/workspaceRoutes'
-import { WorkspaceEditorForm } from './WorkspaceEditorForm'
 
 type EditWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 
