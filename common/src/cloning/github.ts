@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import { Cloner } from './cloner.js'
+import { Cloner } from './cloner'
 
 export class GithubCloner extends Cloner {
   public getCloneUrl(): string {

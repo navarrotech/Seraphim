@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 // Lib to test
-import { Cloner } from './cloner.js'
+import { Cloner } from './cloner'
 
 class TestCloner extends Cloner {
   public getOrgName() {

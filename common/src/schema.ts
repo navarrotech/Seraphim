@@ -7,7 +7,7 @@ import {
   DONE_SOUND_MIME_TYPES,
   USER_LANGUAGE_OPTIONS,
   USER_THEME_OPTIONS,
-} from './constants.js'
+} from './constants'
 
 export const environmentSchema = z.object({
   key: z

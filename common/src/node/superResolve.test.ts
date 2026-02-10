@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resolve } from 'node:path'
 
 // Lib to test
-import { superResolve, expandEnvString } from './superResolve.js'
+import { superResolve, expandEnvString } from './superResolve'
 
 const fakeHomedir = '/home/testuser'
 

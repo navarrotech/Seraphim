@@ -5,7 +5,7 @@ import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 // Misc
-import { DOCKER_WORKDIR } from './constants.js'
+import { DOCKER_WORKDIR } from './constants'
 
 export async function writeScriptFile(
   contextDir: string,

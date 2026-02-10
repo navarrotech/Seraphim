@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 // Lib to test
-import { GithubCloner } from './github.js'
+import { GithubCloner } from './github'
 
 describe('GithubCloner', () => {
   let debugSpy: ReturnType<typeof vi.spyOn>
