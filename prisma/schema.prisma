@@ -11,8 +11,7 @@ model Workspace {
 
   name                     String
   description              String   @default("")
-  repositoryId             Int      @map("repository_id")
-  repositoryFullName       String   @map("repository_full_name")
+  sourceRepoUrl            String?  @map("source_repo_url")
   customDockerfileCommands String   @default("") @map("custom_dockerfile_commands")
   setupScript              String   @default("") @map("setup_script")
   postScript               String   @default("") @map("post_script")
@@ -56,7 +55,6 @@ model Task {
   issueLink String? @map("issue_link")
 
   // Git source
-  sourceRepoUrl   String? @map("source_repo_url")
   sourceGitBranch String? @map("source_git_branch")
 
   // Git push

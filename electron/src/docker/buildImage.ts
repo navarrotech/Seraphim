@@ -54,7 +54,7 @@ export async function buildImage(
     if (!cloner && task?.authAccount) {
       const cloner = getCloner(
         task.authAccount.provider,
-        task.sourceRepoUrl,
+        workspace.sourceRepoUrl || '',
         task.authAccount.accessToken,
       )
       cloneUrl = cloner.getCloneUrl()
