@@ -24,7 +24,7 @@
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
     "setup": "yarn prisma generate && yarn prisma db push",
     "build": "yarn workspaces foreach -Apt run build",
-    "typecheck": "yarn prisma generate && yarn workspaces foreach -Apt run typecheck",
+    "typecheck": "yarn workspaces foreach -Apt run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
     "test": "vitest run",
     "test:dev": "vitest watch --coverage.enabled=false --reporter verbose",
