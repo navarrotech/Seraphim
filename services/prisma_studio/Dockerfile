@@ -17,4 +17,4 @@ RUN corepack enable && yarn install --immutable
 
 EXPOSE 5555
 
-CMD [ "yarn", "prisma", "studio", "--config", "./prisma.config.ts", "--port", "5555" ]
+CMD [ "yarn", "prisma", "studio", "--config", "./prisma.config.ts", "--port", "5555", "--browser", "none" ]
