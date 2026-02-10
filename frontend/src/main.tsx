@@ -13,14 +13,16 @@ import { store } from './framework/store'
 // Gates
 import { ToastProvider } from '@heroui/react'
 import { HeroUIProviderCustom } from './gates/HeroUiGate'
+import { ConfirmGate } from './gates/ConfirmGate'
+import { PromptGate } from './gates/PromptGate'
+import { UnsavedWorkGate } from './gates/UnsavedWorkGate'
+import { InitialDataGate } from './pages/gates/InitialDataGate'
+import { ApiSocketGate } from './pages/gates/ApiSocketGate'
 import { Provider } from 'react-redux'
 import { Router } from './Router'
 
 // Styles
 import './index.css'
-import { ConfirmGate } from './gates/ConfirmGate'
-import { PromptGate } from './gates/PromptGate'
-import { UnsavedWorkGate } from './gates/UnsavedWorkGate'
 
 initMonaco()
 
@@ -31,14 +33,18 @@ root.render(
   <Provider store={store}>
     <BrowserRouter>
       <HeroUIProviderCustom>
-        <ConfirmGate>
-          <PromptGate>
-            <UnsavedWorkGate>
-                <ToastProvider />
-                <Router />
-            </UnsavedWorkGate>
-          </PromptGate>
-        </ConfirmGate>
+        <ApiSocketGate>
+          <InitialDataGate>
+            <ConfirmGate>
+              <PromptGate>
+                <UnsavedWorkGate>
+                  <ToastProvider />
+                  <Router />
+                </UnsavedWorkGate>
+              </PromptGate>
+            </ConfirmGate>
+          </InitialDataGate>
+        </ApiSocketGate>
       </HeroUIProviderCustom>
     </BrowserRouter>
   </Provider>,

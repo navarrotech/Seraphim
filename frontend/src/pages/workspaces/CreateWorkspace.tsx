@@ -61,18 +61,15 @@ export function CreateWorkspace() {
     })
   }, [])
 
-  const onSubmit = useCallback(() => form.handleSubmit(
-    async (data) => {
-      try {
-        console.log(data)
-        await createWorkspace(data)
-        navigate(UrlTree.tasksList)
-      }
-      catch (error) {
-        console.debug('CreateWorkspace failed to submit form', { error })
-      }
-    },
-    ), [])
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await createWorkspace(data)
+      navigate(UrlTree.tasksList)
+    }
+    catch (error) {
+      console.debug('CreateWorkspace failed to submit form', { error })
+    }
+  })
 
   return <section className='container p-6'>
     <div className='relaxed'>

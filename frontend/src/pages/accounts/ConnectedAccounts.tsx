@@ -3,7 +3,7 @@
 import type { ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 // Redux
 import { useSelector } from '@frontend/framework/store'
@@ -17,7 +17,6 @@ import { CreateAccountDrawer } from './CreateAccountDrawer'
 import { DeleteIcon, PlusIcon } from '@frontend/common/IconNexus'
 import {
   addAccount,
-  listAccounts,
   logoutAccount,
 } from '@frontend/lib/routes/accountsRoutes'
 
@@ -106,10 +105,6 @@ export function ConnectedAccounts() {
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
   const accounts = useSelector((reduxState) => reduxState.accounts.items)
 
-  useEffect(function loadAccountsOnMount() {
-    void listAccounts()
-  }, [])
-
   async function handleCreateAccount(payload: AddAccountPayload) {
     setStatusMessage(null)
     setDrawerErrorMessage(null)
@@ -118,7 +113,6 @@ export function ConnectedAccounts() {
     try {
       await addAccount(payload)
       setIsDrawerOpen(false)
-      await listAccounts()
       setStatusMessage('Account saved successfully.')
     }
     catch (error) {
@@ -148,7 +142,6 @@ export function ConnectedAccounts() {
         provider: account.provider,
         accountId: account.id,
       })
-      await listAccounts()
     }
     catch (error) {
       console.debug('ConnectedAccounts failed to disconnect account', {
@@ -187,10 +180,9 @@ export function ConnectedAccounts() {
     content = <Card className='relaxed p-2'>
       <div className='grid grid-cols-12 gap-4 px-4 py-3 text-sm opacity-70'>
         <div className='col-span-3'>Account</div>
-        <div className='col-span-2'>Provider</div>
         <div className='col-span-2'>GitHub user</div>
-        <div className='col-span-2'>Email</div>
-        <div className='col-span-2'>Token</div>
+        <div className='col-span-3'>Email</div>
+        <div className='col-span-3'>Token</div>
         <div className='col-span-1 text-right'>Remove</div>
       </div>
       <div className='divide-y'>
@@ -203,15 +195,12 @@ export function ConnectedAccounts() {
               <div className='text-lg'>{account.name}</div>
             </div>
             <div className='col-span-2'>
-              <div className='text-sm opacity-80'>{account.provider}</div>
-            </div>
-            <div className='col-span-2'>
               <div className='text-sm opacity-80'>@{account.username}</div>
             </div>
-            <div className='col-span-2'>
+            <div className='col-span-3'>
               <div className='text-sm opacity-80'>{account.email}</div>
             </div>
-            <div className='col-span-2'>
+            <div className='col-span-3'>
               <div className='text-sm opacity-80'>{account.tokenPreview}</div>
             </div>
             <div className='col-span-1 text-right'>

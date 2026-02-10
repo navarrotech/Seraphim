@@ -48,12 +48,3 @@ export function getNextOnboardingStep(steps: OnboardingStep[]) {
 
   return nextIncompleteStep
 }
-
-export function isSettingsRoute(pathname: string) {
-  if (!pathname) {
-    console.debug('onboardingFlow received an empty pathname', { pathname })
-    return false
-  }
-
-  return pathname.startsWith(UrlTree.settings) || pathname.startsWith(UrlTree.workspaceCreate)
-}
