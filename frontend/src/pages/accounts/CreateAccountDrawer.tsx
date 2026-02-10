@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Key } from 'react'
-import type { AuthProvider } from '@frontend/lib/routes/accountsRoutes'
+import type { AuthProvider, ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
@@ -32,12 +32,20 @@ type CreateAccountPayload = {
   gitUserEmail: string
 }
 
+type EditAccountPayload = {
+  name?: string
+  accessToken?: string
+  gitUserEmail?: string
+}
+
 type Props = {
   isOpen: boolean
   isSubmitting: boolean
   errorMessage: string | null
+  accountToEdit?: ConnectedAccount | null
   onOpenChange: (isOpen: boolean) => void
-  onSubmit: (payload: CreateAccountPayload) => Promise<void>
+  onSubmitCreate: (payload: CreateAccountPayload) => Promise<void>
+  onSubmitEdit: (accountId: string, payload: EditAccountPayload) => Promise<void>
 }
 
 const authProviderOptions = [
@@ -57,15 +65,45 @@ function getDefaultPayload(): CreateAccountPayload {
   }
 }
 
+function getEditPayload(accountToEdit: ConnectedAccount): CreateAccountPayload {
+  return {
+    provider: accountToEdit.provider,
+    name: accountToEdit.name,
+    accessToken: '',
+    gitUserName: accountToEdit.username,
+    gitUserEmail: accountToEdit.email,
+  }
+}
+
 export function CreateAccountDrawer(props: Props) {
   const [ payload, setPayload ] = useState<CreateAccountPayload>(getDefaultPayload)
   const [ localErrorMessage, setLocalErrorMessage ] = useState<string | null>(null)
 
+  const isEditMode = Boolean(props.accountToEdit)
+
+  let drawerTitle = 'Add account'
+  let drawerDescription = 'Save a GitHub token and git identity for repository actions.'
+  let submitButtonLabel = 'Save account'
+
+  if (isEditMode) {
+    drawerTitle = 'Edit account'
+    drawerDescription = 'Update the connected account details and optional token.'
+    submitButtonLabel = 'Save changes'
+  }
+
   useEffect(function syncDrawerState() {
     if (!props.isOpen) {
       setLocalErrorMessage(null)
+      return
     }
-  }, [ props.isOpen ])
+
+    if (props.accountToEdit) {
+      setPayload(getEditPayload(props.accountToEdit))
+      return
+    }
+
+    setPayload(getDefaultPayload())
+  }, [ props.accountToEdit, props.isOpen ])
 
   function handleProviderChange(keys: 'all' | Set<Key>) {
     if (keys === 'all') {
@@ -128,6 +166,28 @@ export function CreateAccountDrawer(props: Props) {
       return
     }
 
+    const trimmedGitUserEmail = payload.gitUserEmail.trim()
+    if (!trimmedGitUserEmail) {
+      console.debug('CreateAccountDrawer missing git user email')
+      setLocalErrorMessage('Git user email is required.')
+      return
+    }
+
+    if (isEditMode && props.accountToEdit) {
+      const updatePayload: EditAccountPayload = {
+        name: trimmedName,
+        gitUserEmail: trimmedGitUserEmail,
+      }
+
+      const trimmedAccessToken = payload.accessToken.trim()
+      if (trimmedAccessToken) {
+        updatePayload.accessToken = trimmedAccessToken
+      }
+
+      await props.onSubmitEdit(props.accountToEdit.id, updatePayload)
+      return
+    }
+
     const trimmedAccessToken = payload.accessToken.trim()
     if (!trimmedAccessToken) {
       console.debug('CreateAccountDrawer missing access token')
@@ -142,14 +202,7 @@ export function CreateAccountDrawer(props: Props) {
       return
     }
 
-    const trimmedGitUserEmail = payload.gitUserEmail.trim()
-    if (!trimmedGitUserEmail) {
-      console.debug('CreateAccountDrawer missing git user email')
-      setLocalErrorMessage('Git user email is required.')
-      return
-    }
-
-    await props.onSubmit({
+    await props.onSubmitCreate({
       provider: payload.provider,
       name: trimmedName,
       accessToken: trimmedAccessToken,
@@ -181,10 +234,10 @@ export function CreateAccountDrawer(props: Props) {
       <DrawerHeader>
         <div className='relaxed'>
           <div className='text-2xl'>
-            <strong>Add account</strong>
+            <strong>{drawerTitle}</strong>
           </div>
           <p className='opacity-80 text-sm font-light'>
-            Save a GitHub token and git identity for repository actions.
+            {drawerDescription}
           </p>
         </div>
       </DrawerHeader>
@@ -196,6 +249,7 @@ export function CreateAccountDrawer(props: Props) {
             label='Auth provider'
             selectedKeys={new Set([ payload.provider ])}
             onSelectionChange={handleProviderChange}
+            isDisabled={isEditMode}
           >
             {authProviderOptions.map((providerOption) =>
               <SelectItem key={providerOption.key}>
@@ -213,7 +267,11 @@ export function CreateAccountDrawer(props: Props) {
           />
           <Input
             label='GitHub token'
-            placeholder='ghp_********'
+            placeholder={
+              isEditMode
+                ? 'Leave empty to keep your existing token'
+                : 'ghp_********'
+            }
             className='compact'
             type='password'
             value={payload.accessToken}
@@ -233,6 +291,7 @@ export function CreateAccountDrawer(props: Props) {
             className='compact'
             value={payload.gitUserName}
             onValueChange={handleGitUserNameChange}
+            isDisabled={isEditMode}
           />
           <Input
             label='Git user email'
@@ -252,7 +311,7 @@ export function CreateAccountDrawer(props: Props) {
             isDisabled={props.isSubmitting}
             onPress={handleSubmit}
           >
-            <span>Save account</span>
+            <span>{submitButtonLabel}</span>
           </Button>
           <Button
             variant='light'

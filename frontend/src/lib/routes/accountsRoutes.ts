@@ -68,7 +68,7 @@ export type AddAccountRequest = {
   gitUserEmail: string
 }
 
-type AddAccountResponse = {
+export type AddAccountResponse = {
   account: ConnectedAccount
   gitUserName: string
   gitUserEmail: string
@@ -78,6 +78,17 @@ type AddAccountResponse = {
   }
   grantedScopes: string[]
   acceptedScopes: string[]
+}
+
+
+export type UpdateConnectedAccountRequest = {
+  name?: string
+  accessToken?: string
+  gitUserEmail?: string
+}
+
+export type UpdateConnectedAccountResponse = {
+  account: ConnectedAccount
 }
 
 type LogoutAccountRequest = {
@@ -141,4 +152,10 @@ export function logoutAccount(payload: LogoutAccountRequest) {
   return apiClient
     .post('v1/protected/accounts/logout', { json: payload })
     .json<LogoutAccountResponse>()
+}
+
+export function updateConnectedAccount(accountId: string, payload: UpdateConnectedAccountRequest) {
+  return apiClient
+    .patch(`v1/protected/accounts/${accountId}`, { json: payload })
+    .json<UpdateConnectedAccountResponse>()
 }

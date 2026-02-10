@@ -1,12 +1,17 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
-import type { ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
+import type {
+  AddAccountResponse,
+  ConnectedAccount,
+  UpdateConnectedAccountRequest,
+} from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useState } from 'react'
 
 // Redux
-import { useSelector } from '@frontend/framework/store'
+import { accountActions } from '@frontend/framework/redux/stores/accounts'
+import { dispatch, useSelector } from '@frontend/framework/store'
 
 // User interface
 import { Button, Card, Tooltip } from '@heroui/react'
@@ -14,10 +19,11 @@ import { addToast } from '@heroui/toast'
 import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
-import { DeleteIcon, PlusIcon } from '@frontend/common/IconNexus'
+import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
 import {
   addAccount,
   logoutAccount,
+  updateConnectedAccount,
 } from '@frontend/lib/routes/accountsRoutes'
 
 type AddAccountErrorResponse = {
@@ -98,9 +104,28 @@ async function parseAddAccountError(error: unknown): Promise<string | null> {
   return message
 }
 
+function applyCreatedAccount(response: AddAccountResponse) {
+  dispatch(
+    accountActions.upsertAccounts([ response.account ]),
+  )
+}
+
+function applyUpdatedAccount(account: ConnectedAccount) {
+  dispatch(
+    accountActions.upsertAccounts([ account ]),
+  )
+}
+
+function removeAccountFromState(accountId: string) {
+  dispatch(
+    accountActions.removeAccount(accountId),
+  )
+}
+
 export function ConnectedAccounts() {
   const [ isDrawerOpen, setIsDrawerOpen ] = useState(false)
   const [ isSubmitting, setIsSubmitting ] = useState(false)
+  const [ editingAccount, setEditingAccount ] = useState<ConnectedAccount | null>(null)
   const [ drawerErrorMessage, setDrawerErrorMessage ] = useState<string | null>(null)
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
   const accounts = useSelector((reduxState) => reduxState.accounts.items)
@@ -111,9 +136,10 @@ export function ConnectedAccounts() {
     setIsSubmitting(true)
 
     try {
-      await addAccount(payload)
+      const response = await addAccount(payload)
+      applyCreatedAccount(response)
       setIsDrawerOpen(false)
-      setStatusMessage('Account saved successfully.')
+      setStatusMessage('Connected account saved successfully.')
     }
     catch (error) {
       console.debug('ConnectedAccounts failed to save account', {
@@ -136,12 +162,48 @@ export function ConnectedAccounts() {
     }
   }
 
+  async function handleEditAccount(accountId: string, payload: UpdateConnectedAccountRequest) {
+    setStatusMessage(null)
+    setDrawerErrorMessage(null)
+    setIsSubmitting(true)
+
+    try {
+      const response = await updateConnectedAccount(accountId, payload)
+      applyUpdatedAccount(response.account)
+      setIsDrawerOpen(false)
+      setEditingAccount(null)
+      setStatusMessage('Connected account updated successfully.')
+    }
+    catch (error) {
+      console.debug('ConnectedAccounts failed to update account', {
+        error,
+        accountId,
+      })
+      const errorMessage = await parseAddAccountError(error)
+      const fallbackMessage = 'Failed to update account. Verify your values and token.'
+      const displayMessage = errorMessage ?? fallbackMessage
+
+      setDrawerErrorMessage(displayMessage)
+      setStatusMessage(displayMessage)
+      addToast({
+        title: 'Unable to update account',
+        description: displayMessage,
+        color: 'danger',
+      })
+    }
+    finally {
+      setIsSubmitting(false)
+    }
+  }
+
   async function handleDisconnectAccount(account: ConnectedAccount) {
     try {
       await logoutAccount({
         provider: account.provider,
         accountId: account.id,
       })
+      removeAccountFromState(account.id)
+      setStatusMessage('Connected account removed successfully.')
     }
     catch (error) {
       console.debug('ConnectedAccounts failed to disconnect account', {
@@ -151,9 +213,22 @@ export function ConnectedAccounts() {
     }
   }
 
+  function handleEditAccountClick(account: ConnectedAccount) {
+    setDrawerErrorMessage(null)
+    setEditingAccount(account)
+    setIsDrawerOpen(true)
+  }
+
+  function handleAddAccountClick() {
+    setDrawerErrorMessage(null)
+    setEditingAccount(null)
+    setIsDrawerOpen(true)
+  }
+
   function handleDrawerOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setDrawerErrorMessage(null)
+      setEditingAccount(null)
     }
     setIsDrawerOpen(nextOpen)
   }
@@ -182,8 +257,8 @@ export function ConnectedAccounts() {
         <div className='col-span-3'>Account</div>
         <div className='col-span-2'>GitHub user</div>
         <div className='col-span-3'>Email</div>
-        <div className='col-span-3'>Token</div>
-        <div className='col-span-1 text-right'>Remove</div>
+        <div className='col-span-2'>Token</div>
+        <div className='col-span-2 text-right'>Actions</div>
       </div>
       <div className='divide-y'>
         {accounts.map((account) =>
@@ -200,22 +275,35 @@ export function ConnectedAccounts() {
             <div className='col-span-3'>
               <div className='text-sm opacity-80'>{account.email}</div>
             </div>
-            <div className='col-span-3'>
+            <div className='col-span-2'>
               <div className='text-sm opacity-80'>{account.tokenPreview}</div>
             </div>
-            <div className='col-span-1 text-right'>
-              <Tooltip content='Remove account'>
-                <Button
-                  isIconOnly
-                  variant='light'
-                  color='danger'
-                  onPress={() => handleDisconnectAccount(account)}
-                >
-                  <span className='icon'>
-                    <DeleteIcon />
-                  </span>
-                </Button>
-              </Tooltip>
+            <div className='col-span-2 text-right'>
+              <div className='level-right gap-2'>
+                <Tooltip content='Edit account'>
+                  <Button
+                    isIconOnly
+                    variant='light'
+                    onPress={() => handleEditAccountClick(account)}
+                  >
+                    <span className='icon'>
+                      <EditBulkIcon />
+                    </span>
+                  </Button>
+                </Tooltip>
+                <Tooltip content='Remove account'>
+                  <Button
+                    isIconOnly
+                    variant='light'
+                    color='danger'
+                    onPress={() => handleDisconnectAccount(account)}
+                  >
+                    <span className='icon'>
+                      <DeleteIcon />
+                    </span>
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
           </div>,
         )}
@@ -233,7 +321,7 @@ export function ConnectedAccounts() {
       </div>
       <Button
         color='primary'
-        onPress={() => setIsDrawerOpen(true)}
+        onPress={handleAddAccountClick}
       >
         <span className='icon text-lg'>
           <PlusIcon />
@@ -249,8 +337,10 @@ export function ConnectedAccounts() {
       isOpen={isDrawerOpen}
       isSubmitting={isSubmitting}
       errorMessage={drawerErrorMessage}
+      accountToEdit={editingAccount}
       onOpenChange={handleDrawerOpenChange}
-      onSubmit={handleCreateAccount}
+      onSubmitCreate={handleCreateAccount}
+      onSubmitEdit={handleEditAccount}
     />
   </section>
 }
