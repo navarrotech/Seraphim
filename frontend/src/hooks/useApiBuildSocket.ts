@@ -29,7 +29,7 @@ export type UseApiBuildSocketState = {
 }
 
 export type UseApiBuildSocket = UseApiBuildSocketState & {
-  startBuild: (payload?: BuildDockerImageRequest) => Promise<void>
+  startBuild: (payload: BuildDockerImageRequest) => Promise<void>
   resetBuild: () => void
 }
 
@@ -49,7 +49,7 @@ export function useApiBuildSocket(): UseApiBuildSocket {
   }, [])
 
   const startBuild = useCallback(async function startBuild(
-    payload: BuildDockerImageRequest = {},
+    payload: BuildDockerImageRequest,
   ) {
     setLogs([])
     setStatus(null)

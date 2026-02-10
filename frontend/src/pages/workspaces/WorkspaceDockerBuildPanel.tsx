@@ -17,6 +17,10 @@ import { BaseDockerImageNotice } from '@frontend/common/workspaces/BaseDockerIma
 import { useApiBuildSocket } from '@frontend/hooks/useApiBuildSocket'
 
 type Props = {
+  workspaceName: string
+  sourceRepoUrl: string
+  setupScript: string
+  postScript: string
   value: string
   onChange: ControllerRenderProps<WorkspaceFormValues, 'customDockerfileCommands'>['onChange']
   isDisabled: boolean
@@ -26,6 +30,10 @@ type Props = {
 
 export function WorkspaceDockerBuildPanel(props: Props) {
   const {
+    workspaceName,
+    sourceRepoUrl,
+    setupScript,
+    postScript,
     value,
     onChange,
     isDisabled,
@@ -54,8 +62,28 @@ export function WorkspaceDockerBuildPanel(props: Props) {
   }
 
   async function handleBuildImage() {
+    const trimmedWorkspaceName = workspaceName.trim()
+    if (!trimmedWorkspaceName) {
+      console.debug('WorkspaceDockerBuildPanel cannot build image without workspace name', {
+        workspaceName,
+      })
+      return
+    }
+
+    const trimmedSourceRepoUrl = sourceRepoUrl.trim()
+    if (!trimmedSourceRepoUrl) {
+      console.debug('WorkspaceDockerBuildPanel cannot build image without source repository URL', {
+        sourceRepoUrl,
+      })
+      return
+    }
+
     await buildSocket.startBuild({
+      name: trimmedWorkspaceName,
+      sourceRepoUrl: trimmedSourceRepoUrl,
       customDockerfileCommands: value || '',
+      setupScript: setupScript || '',
+      postScript: postScript || '',
     })
   }
 

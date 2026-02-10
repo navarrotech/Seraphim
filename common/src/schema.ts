@@ -59,6 +59,14 @@ export const workspaceUpdateSchema = z.object({
   message: 'No valid fields provided for update',
 })
 
+export const workspaceBuildImageSchema = z.object({
+  name: z.string().trim().min(1),
+  sourceRepoUrl: z.string().trim().min(1),
+  customDockerfileCommands: z.string().trim().optional().default(''),
+  setupScript: z.string().trim().optional().default(''),
+  postScript: z.string().trim().optional().default(''),
+}).strict()
+
 export const taskCreateSchema = z.object({
   userId: z.string().trim().min(1),
   workspaceId: z.string().trim().min(1),
@@ -136,6 +144,7 @@ export const userSettingsUpdateSchema = userSettingsUpdateFieldsSchema.extend({
 export type WorkspaceEnvEntry = z.infer<typeof workspaceEnvEntrySchema>
 export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>
 export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
+export type WorkspaceBuildImageRequest = z.infer<typeof workspaceBuildImageSchema>
 export type TaskCreateRequest = z.infer<typeof taskCreateSchema>
 export type TaskUpdateRequest = z.infer<typeof taskUpdateSchema>
 export type LlmUpdateRequest = z.infer<typeof llmUpdateSchema>

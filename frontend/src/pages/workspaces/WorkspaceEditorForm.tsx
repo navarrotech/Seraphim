@@ -36,6 +36,11 @@ export function WorkspaceEditorForm(props: Props) {
     footer,
   } = props
 
+  const workspaceName = form.watch('name') || ''
+  const sourceRepoUrl = form.watch('sourceRepoUrl') || ''
+  const setupScript = form.watch('setupScript') || ''
+  const postScript = form.watch('postScript') || ''
+
   return <>
     <Card className='relaxed p-4 w-full'>
       <div className='level w-full items-start'>
@@ -119,6 +124,10 @@ export function WorkspaceEditorForm(props: Props) {
         name='customDockerfileCommands'
         render={({ field }) => (
           <WorkspaceDockerBuildPanel
+            workspaceName={workspaceName}
+            sourceRepoUrl={sourceRepoUrl}
+            setupScript={setupScript}
+            postScript={postScript}
             value={field.value}
             onChange={field.onChange}
             isDisabled={isFormLocked}
