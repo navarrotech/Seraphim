@@ -19,6 +19,7 @@ export type ConnectedAccount = {
   scope: string
   lastUsedAt: string | null
   createdAt: string
+  updatedAt: string
 }
 
 export type GithubRepoSummary = {

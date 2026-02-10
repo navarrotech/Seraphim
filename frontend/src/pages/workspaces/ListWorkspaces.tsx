@@ -11,9 +11,34 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
 // Misc
+import {
+  moment,
+  STANDARD_TIME_FORMAT_FULL,
+  STANDARD_TIME_FORMAT_SHORT,
+} from '@common/time'
 import { getWorkspaceEditUrl, UrlTree } from '@common/urls'
 import { DeleteIcon, EditBulkIcon } from '@frontend/common/IconNexus'
 import { deleteWorkspace } from '@frontend/lib/routes/workspaceRoutes'
+
+
+function formatTimestamp(dateIso: string | Date) {
+  const parsedDate = moment(dateIso)
+
+  if (!parsedDate.isValid()) {
+    console.debug('ListWorkspaces received invalid timestamp for formatting', {
+      dateIso,
+    })
+    return {
+      short: 'Unknown',
+      full: 'Unknown timestamp',
+    }
+  }
+
+  return {
+    short: parsedDate.format(STANDARD_TIME_FORMAT_SHORT),
+    full: parsedDate.format(STANDARD_TIME_FORMAT_FULL),
+  }
+}
 
 export function ListWorkspaces() {
   const workspaces = useSelector((state) => state.workspaces.items)
@@ -66,17 +91,23 @@ export function ListWorkspaces() {
     </div>
     <Card className='relaxed p-2'>
       <div className='grid grid-cols-12 gap-4 px-4 py-3 text-sm opacity-70'>
-        <div className='col-span-6'>Workspace</div>
-        <div className='col-span-6'>Description</div>
+        <div className='col-span-3'>Workspace</div>
+        <div className='col-span-3'>Description</div>
+        <div className='col-span-2'>Created at</div>
+        <div className='col-span-2'>Updated at</div>
+        <div className='col-span-2 text-right'>Actions</div>
       </div>
       <div className='divide-y'>
-        {workspaces.map((workspace) =>
-          <div
+        {workspaces.map((workspace) => {
+          const createdAt = formatTimestamp(workspace.createdAt)
+          const updatedAt = formatTimestamp(workspace.updatedAt)
+
+          return <div
             key={workspace.id}
             className='group relative grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-content2/30'
           >
             <Link
-              className='col-span-6'
+              className='col-span-3'
               to={getWorkspaceEditUrl(workspace.id)}
             >
               <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
@@ -85,14 +116,24 @@ export function ListWorkspaces() {
               </div>
             </Link>
             <Link
-              className='col-span-6'
+              className='col-span-3'
               to={getWorkspaceEditUrl(workspace.id)}
             >
               <div className='opacity-80 text-sm'>{
                 workspace.description || 'No description added yet.'
               }</div>
             </Link>
-            <div className='absolute right-4 top-1/2 -translate-y-1/2'>
+            <div className='col-span-2'>
+              <Tooltip content={createdAt.full}>
+                <div className='text-sm opacity-80 w-fit'>{createdAt.short}</div>
+              </Tooltip>
+            </div>
+            <div className='col-span-2'>
+              <Tooltip content={updatedAt.full}>
+                <div className='text-sm opacity-80 w-fit'>{updatedAt.short}</div>
+              </Tooltip>
+            </div>
+            <div className='col-span-2'>
               <div className='flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100'>
                 <Tooltip content='Edit workspace'>
                   <Button
@@ -121,8 +162,8 @@ export function ListWorkspaces() {
                 </Tooltip>
               </div>
             </div>
-          </div>,
-        )}
+          </div>
+        })}
       </div>
     </Card>
   </section>

@@ -19,6 +19,11 @@ import { addToast } from '@heroui/toast'
 import { CreateAccountDrawer } from './CreateAccountDrawer'
 
 // Misc
+import {
+  moment,
+  STANDARD_TIME_FORMAT_FULL,
+  STANDARD_TIME_FORMAT_SHORT,
+} from '@common/time'
 import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
 import {
   addAccount,
@@ -102,6 +107,26 @@ async function parseAddAccountError(error: unknown): Promise<string | null> {
   }
 
   return message
+}
+
+
+function formatTimestamp(dateIso: string | Date) {
+  const parsedDate = moment(dateIso)
+
+  if (!parsedDate.isValid()) {
+    console.debug('ConnectedAccounts received invalid timestamp for formatting', {
+      dateIso,
+    })
+    return {
+      short: 'Unknown',
+      full: 'Unknown timestamp',
+    }
+  }
+
+  return {
+    short: parsedDate.format(STANDARD_TIME_FORMAT_SHORT),
+    full: parsedDate.format(STANDARD_TIME_FORMAT_FULL),
+  }
 }
 
 function applyCreatedAccount(response: AddAccountResponse) {
@@ -253,20 +278,25 @@ export function ConnectedAccounts() {
   }
   else {
     content = <Card className='relaxed p-2'>
-      <div className='grid grid-cols-12 gap-4 px-4 py-3 text-sm opacity-70'>
-        <div className='col-span-3'>Account</div>
+      <div className='grid grid-cols-14 gap-4 px-4 py-3 text-sm opacity-70'>
+        <div className='col-span-2'>Account</div>
         <div className='col-span-2'>GitHub user</div>
         <div className='col-span-3'>Email</div>
         <div className='col-span-2'>Token</div>
-        <div className='col-span-2 text-right'>Actions</div>
+        <div className='col-span-2'>Created at</div>
+        <div className='col-span-2'>Updated at</div>
+        <div className='col-span-1 text-right'>Actions</div>
       </div>
       <div className='divide-y'>
-        {accounts.map((account) =>
-          <div
+        {accounts.map((account) => {
+          const createdAt = formatTimestamp(account.createdAt)
+          const updatedAt = formatTimestamp(account.updatedAt)
+
+          return <div
             key={account.id}
-            className='grid grid-cols-12 items-center gap-4 px-4 py-4'
+            className='grid grid-cols-14 items-center gap-4 px-4 py-4'
           >
-            <div className='col-span-3'>
+            <div className='col-span-2'>
               <div className='text-lg'>{account.name}</div>
             </div>
             <div className='col-span-2'>
@@ -278,7 +308,17 @@ export function ConnectedAccounts() {
             <div className='col-span-2'>
               <div className='text-sm opacity-80'>{account.tokenPreview}</div>
             </div>
-            <div className='col-span-2 text-right'>
+            <div className='col-span-2'>
+              <Tooltip content={createdAt.full}>
+                <div className='text-sm opacity-80 w-fit'>{createdAt.short}</div>
+              </Tooltip>
+            </div>
+            <div className='col-span-2'>
+              <Tooltip content={updatedAt.full}>
+                <div className='text-sm opacity-80 w-fit'>{updatedAt.short}</div>
+              </Tooltip>
+            </div>
+            <div className='col-span-1 text-right'>
               <div className='level-right gap-2'>
                 <Tooltip content='Edit account'>
                   <Button
@@ -305,8 +345,8 @@ export function ConnectedAccounts() {
                 </Tooltip>
               </div>
             </div>
-          </div>,
-        )}
+          </div>
+        })}
       </div>
     </Card>
   }
