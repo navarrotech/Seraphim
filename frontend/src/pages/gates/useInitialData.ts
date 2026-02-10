@@ -15,11 +15,14 @@ export function useInitialData<Shape>(
   const query = useSWR(cacheKey, fetcher)
 
   useEffect(() => {
-    if (!query.error) {
+    if (!query.data) {
       return
     }
 
-    console.error(`Error fetching initial data for ${cacheKey}`, query.error)
+    if (query.error) {
+      console.error(`Error fetching initial data for ${cacheKey}`, query.error)
+      return
+    }
 
     dispatchAction(dispatch, query.data)
   }, [ query.data ])

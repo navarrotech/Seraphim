@@ -35,7 +35,6 @@ const llmDisplayByType: Record<LlmType, LlmDisplay> = {
     label: 'OpenAI (Login token)',
     logoUrl: '/llms/openai.png',
   },
-
 }
 
 function getLlmDisplay(llmType: LlmType) {
