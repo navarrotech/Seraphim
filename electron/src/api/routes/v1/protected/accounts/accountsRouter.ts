@@ -10,6 +10,7 @@ import { handleAddAccountRequest } from './addAccountRoute'
 import { handleListAccountsRequest } from './listAccountsRoute'
 import { handleListReposRequest } from './listReposRoute'
 import { handleLogoutAccountRequest } from './logoutAccountRoute'
+import { handleUpdateAccountRequest } from './updateAccountRoute'
 
 export function createAccountsRouter(): Router {
   const accountsRouter = createRouter()
@@ -23,6 +24,9 @@ export function createAccountsRouter(): Router {
   // /api/v1/protected/accounts/logout
   accountsRouter.post('/logout', handleLogoutAccountRequest)
 
+  // /api/v1/protected/accounts/:accountId
+  accountsRouter.patch('/:accountId', handleUpdateAccountRequest)
+
   // /api/v1/protected/accounts/repos
   accountsRouter.get('/repos', handleListReposRequest)
 
@@ -31,4 +35,3 @@ export function createAccountsRouter(): Router {
 
   return accountsRouter
 }
-
