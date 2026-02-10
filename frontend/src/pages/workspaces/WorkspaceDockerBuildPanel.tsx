@@ -35,7 +35,7 @@ export function WorkspaceDockerBuildPanel(props: Props) {
 
   const buildSocket = useApiBuildSocket()
 
-  useEffect(function syncBuildState() {
+  useEffect(() => {
     if (!onBuildStateChange) {
       return
     }

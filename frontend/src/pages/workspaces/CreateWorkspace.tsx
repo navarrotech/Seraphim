@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Lib
@@ -23,6 +23,22 @@ import {
 type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 const zodResolved = zodResolver(createWorkspaceSchema)
 
+const defaultValues: CreateWorkspaceFormValues = {
+  authAccountId: '',
+  name: '',
+  repositoryId: 0,
+  repositoryFullName: '',
+  customDockerfileCommands: '',
+  description: '',
+  setupScript: 'yarn install',
+  postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
+  cacheFiles: [],
+  envEntries: [{
+    key: '',
+    value: '',
+  }],
+}
+
 type BuildState = {
   isBuilding: boolean
 }
@@ -35,40 +51,29 @@ export function CreateWorkspace() {
 
   const form = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolved,
-    defaultValues: {
-      authAccountId: '',
-      name: '',
-      repositoryId: 0,
-      repositoryFullName: '',
-      customDockerfileCommands: '',
-      description: '',
-      setupScript: 'yarn install',
-      postScript: 'yarn typecheck\nyarn lint\nyarn test\nyarn build',
-      cacheFiles: [],
-      envEntries: [{
-        key: '',
-        value: '',
-      }],
-    },
+    defaultValues,
   })
 
   const isFormLocked = buildState.isBuilding || form.formState.isSubmitting
 
-  function handleBuildStateChange(isBuilding: boolean) {
+  const handleBuildStateChange = useCallback((isBuilding: boolean) => {
     setBuildState({
       isBuilding,
     })
-  }
+  }, [])
 
-  const onSubmit = form.handleSubmit(async function onSubmit(data) {
-    try {
-      await createWorkspace(data)
-      navigate(UrlTree.tasksList)
-    }
-    catch (error) {
-      console.debug('CreateWorkspace failed to submit form', { error })
-    }
-  })
+  const onSubmit = useCallback(() => form.handleSubmit(
+    async (data) => {
+      try {
+        console.log(data)
+        await createWorkspace(data)
+        navigate(UrlTree.tasksList)
+      }
+      catch (error) {
+        console.debug('CreateWorkspace failed to submit form', { error })
+      }
+    },
+    ), [])
 
   return <section className='container p-6'>
     <div className='relaxed'>
