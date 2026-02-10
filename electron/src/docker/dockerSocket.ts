@@ -8,7 +8,7 @@ type DockerSocketMount = {
   target: string
 }
 
-export function resolveDockerSocketPath() {
+export function getDockerSocketPath() {
   const trimmedSocketPath = DOCKER_SOCK_PATH?.trim()
 
   if (trimmedSocketPath) {
@@ -27,7 +27,7 @@ function isNpipeSocketPath(socketPath: string) {
     || socketPath.startsWith('//./pipe/')
 }
 
-export function resolveDockerSocketMount(): DockerSocketMount | null {
+export function getDockerSocketMount(): DockerSocketMount | null {
   const trimmedSocketPath = DOCKER_SOCK_PATH?.trim()
 
   if (trimmedSocketPath) {

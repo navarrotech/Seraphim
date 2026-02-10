@@ -7,10 +7,14 @@ COPY .yarn/ ./.yarn/
 COPY common/package.json ./common/
 COPY electron/package.json ./electron/
 COPY frontend/package.json ./frontend/
-COPY prisma ./prisma/
+
+RUN yarn install
+
+COPY ./prisma.config.ts .
+COPY ./prisma/ ./prisma
 
 RUN corepack enable && yarn install --immutable
 
 EXPOSE 5555
 
-CMD [ "yarn", "prisma", "studio", "--schema", "./prisma/schema.prisma", "--port", "5555", "--hostname", "0.0.0.0" ]
+CMD [ "yarn", "prisma", "studio", "--config", "./prisma.config.ts", "--port", "5555" ]
