@@ -9,17 +9,14 @@ datasource db {
 model Workspace {
   id String @id @default(uuid())
 
-  // Git identity
-  gitUserName  String @default("") @map("git_user_name")
-  gitUserEmail String @default("") @map("git_user_email")
-
   // Import
   authAccountId String?      @map("auth_account_id")
   authAccount   AuthAccount? @relation(fields: [authAccountId], references: [id])
 
   name                     String
   description              String   @default("")
-  repository               String
+  repositoryId             Int      @map("repository_id")
+  repositoryFullName       String   @map("repository_full_name")
   customDockerfileCommands String   @default("") @map("custom_dockerfile_commands")
   setupScript              String   @default("") @map("setup_script")
   postScript               String   @default("") @map("post_script")

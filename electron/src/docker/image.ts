@@ -1,7 +1,5 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@prisma/client'
-
 import {
   ACT_VERSION,
   DEFAULT_DOCKER_BASE_IMAGE,
@@ -10,11 +8,16 @@ import {
   ACT_SCRIPT_NAME,
 } from '@common/constants'
 
+type GitIdentity = {
+  name: string | null
+  email: string | null
+}
+
 export function buildDockerfileContents(
   customCommands?: string,
   setupScriptName?: string,
   validateScriptName?: string,
-  workspace?: Workspace,
+  gitIdentity?: GitIdentity | null,
   gitUrl?: string,
 ): string {
   const lines: string[] = [ `FROM ${DEFAULT_DOCKER_BASE_IMAGE}` ]
@@ -49,12 +52,20 @@ export function buildDockerfileContents(
     )
   }
 
-  if (workspace?.gitUserEmail && workspace?.gitUserName) {
+  const gitUserName = gitIdentity?.name?.trim()
+  const gitUserEmail = gitIdentity?.email?.trim()
+  if (gitIdentity && (!gitUserName || !gitUserEmail)) {
+    console.debug('buildDockerfileContents missing git identity details', {
+      gitIdentity,
+    })
+  }
+
+  if (gitUserEmail && gitUserName) {
     lines.push(
       '',
       '# Setup git',
-      `RUN git config --global user.name  "${workspace.gitUserName}" \\`,
-      ` && git config --global user.email "${workspace.gitUserEmail}"`,
+      `RUN git config --global user.name  "${gitUserName}" \\`,
+      ` && git config --global user.email "${gitUserEmail}"`,
     )
   }
 
