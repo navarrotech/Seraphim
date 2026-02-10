@@ -4,9 +4,6 @@ import type { ControllerRenderProps } from 'react-hook-form'
 import type { ReactNode } from 'react'
 import type { WorkspaceFormValues } from './WorkspaceEditorForm'
 
-// Core
-import { useEffect } from 'react'
-
 // UI
 import { Button } from '@heroui/react'
 import { BuildLogsPanel } from '@frontend/common/BuildLogsPanel'
@@ -20,7 +17,6 @@ type Props = {
   value: string
   onChange: ControllerRenderProps<WorkspaceFormValues, 'customDockerfileCommands'>['onChange']
   isDisabled: boolean
-  onBuildStateChange?: (isBuilding: boolean) => void
   footer?: ReactNode
 }
 
@@ -29,19 +25,10 @@ export function WorkspaceDockerBuildPanel(props: Props) {
     value,
     onChange,
     isDisabled,
-    onBuildStateChange,
     footer,
   } = props
 
   const buildSocket = useApiBuildSocket()
-
-  useEffect(() => {
-    if (!onBuildStateChange) {
-      return
-    }
-
-    onBuildStateChange(buildSocket.isBuilding)
-  }, [ buildSocket.isBuilding, onBuildStateChange ])
 
   function handleDockerfileCommandsChange(valueFromEditor: string | undefined) {
     if (valueFromEditor === undefined) {

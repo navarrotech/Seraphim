@@ -58,7 +58,6 @@ export function WorkspaceRepositoryPicker(props: Props) {
   const isRepoLoading = reposQuery.isLoading
 
   const sourceRepoUrl = props.form.watch('sourceRepoUrl')
-  const authAccountId = props.form.watch('authAccountId')
 
   useEffect(() => {
     if (!repoSearchQuery && sourceRepoUrl) {
@@ -81,7 +80,7 @@ export function WorkspaceRepositoryPicker(props: Props) {
   }, [ repoOptions, selectedRepoId, sourceRepoUrl ])
 
   function clearSelection(reason: string) {
-    if (sourceRepoUrl || authAccountId) {
+    if (sourceRepoUrl) {
       console.debug('WorkspaceRepositoryPicker clearing repository selection', {
         reason,
       })
@@ -90,11 +89,6 @@ export function WorkspaceRepositoryPicker(props: Props) {
     setSelectedRepoId(null)
     setSelectedRepoOption(null)
     props.form.setValue('sourceRepoUrl', '', {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
-    props.form.setValue('authAccountId', '', {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -129,11 +123,6 @@ export function WorkspaceRepositoryPicker(props: Props) {
     setSelectedRepoId(selectionKey)
     setSelectedRepoOption(matchedOption)
     setRepoSearchQuery(matchedOption.repo.fullName)
-    props.form.setValue('authAccountId', matchedOption.accountId, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    })
     props.form.setValue('sourceRepoUrl', matchedOption.repo.fullName, {
       shouldDirty: true,
       shouldTouch: true,
@@ -142,7 +131,6 @@ export function WorkspaceRepositoryPicker(props: Props) {
   }
 
   const repositoryError = props.form.formState.errors.sourceRepoUrl?.message
-    || props.form.formState.errors.authAccountId?.message
 
   const selectedRepo = selectedRepoOption
     || repoOptions.find((option) => option.repo.fullName === sourceRepoUrl)
