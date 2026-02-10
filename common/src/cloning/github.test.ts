@@ -1,4 +1,4 @@
-// Copyright Â© 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 // Core
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
