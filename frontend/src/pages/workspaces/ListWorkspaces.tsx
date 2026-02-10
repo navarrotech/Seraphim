@@ -80,7 +80,9 @@ export function ListWorkspaces() {
               to={getWorkspaceEditUrl(workspace.id)}
             >
               <div className='text-lg'>{workspace.name || 'Untitled workspace'}</div>
-              <div className='opacity-60 text-sm'>{workspace.repository}</div>
+              <div className='opacity-60 text-sm'>
+                {workspace.repositoryFullName || 'Repository not selected'}
+              </div>
             </Link>
             <Link
               className='col-span-6'

@@ -39,6 +39,10 @@ export function resolveGithubRepoPath(repository: string) {
     return normalizeRepoPath(repoPath)
   }
 
+  if (trimmed.includes('/') && !trimmed.includes('://')) {
+    return normalizeRepoPath(trimmed)
+  }
+
   if (trimmed.startsWith('https://github.com/') || trimmed.startsWith('http://github.com/')) {
     try {
       const parsed = new URL(trimmed)
