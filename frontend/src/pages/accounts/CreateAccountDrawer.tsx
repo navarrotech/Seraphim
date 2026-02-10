@@ -8,6 +8,7 @@ import { useState } from 'react'
 
 // User interface
 import {
+  Alert,
   Button,
   Card,
   Drawer,
@@ -34,6 +35,7 @@ type CreateAccountPayload = {
 type Props = {
   isOpen: boolean
   isSubmitting: boolean
+  errorMessage: string | null
   onOpenChange: (isOpen: boolean) => void
   onSubmit: (payload: CreateAccountPayload) => Promise<void>
 }
@@ -147,6 +149,13 @@ export function CreateAccountDrawer(props: Props) {
     props.onOpenChange(false)
   }
 
+  let errorAlert = null
+  if (props.errorMessage) {
+    errorAlert = <Alert color='danger' className='compact'>
+      <p className='opacity-80'>{props.errorMessage}</p>
+    </Alert>
+  }
+
   return <Drawer
     placement='right'
     isOpen={props.isOpen}
@@ -165,6 +174,7 @@ export function CreateAccountDrawer(props: Props) {
       </DrawerHeader>
       <DrawerBody>
         <div className='relaxed'>
+          {errorAlert}
           <Select
             className='compact'
             label='Auth provider'

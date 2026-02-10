@@ -55,6 +55,62 @@ function getMissingScopes(grantedScopes: string[]): string[] {
   return missingScopes
 }
 
+function getErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined
+  }
+
+  if (!('status' in error)) {
+    return undefined
+  }
+
+  const statusValue = Reflect.get(error, 'status')
+  if (typeof statusValue === 'number') {
+    return statusValue
+  }
+
+  if (typeof statusValue === 'string' && statusValue.trim()) {
+    const parsedStatus = Number(statusValue)
+    if (!Number.isNaN(parsedStatus)) {
+      return parsedStatus
+    }
+  }
+
+  return undefined
+}
+
+async function checkFineGrainedScopes(octokit: Octokit): Promise<string[]> {
+  const missingScopes: string[] = []
+
+  try {
+    await octokit.request('GET /user/repos', {
+      per_page: 1,
+    })
+  }
+  catch (error) {
+    const status = getErrorStatus(error)
+    console.debug('Fine-grained token missing repo access', { status })
+    missingScopes.push('repo')
+  }
+
+  try {
+    await octokit.request('GET /user/emails', {
+      per_page: 1,
+    })
+  }
+  catch (error) {
+    const status = getErrorStatus(error)
+    console.debug('Fine-grained token missing email access', { status })
+    missingScopes.push('user:email')
+  }
+
+  return missingScopes
+}
+
+function isFineGrainedToken(grantedScopes: string[], acceptedScopes: string[]) {
+  return grantedScopes.length === 0 && acceptedScopes.length === 0
+}
+
 export async function validateGithubToken(accessToken: string): Promise<GithubTokenValidationResult> {
   const trimmedToken = accessToken.trim()
   if (!trimmedToken) {
@@ -81,14 +137,10 @@ export async function validateGithubToken(accessToken: string): Promise<GithubTo
   catch (error) {
     console.debug('GitHub token validation request failed', { error })
 
-    const status = typeof error === 'object' && error && 'status' in error
-      ? Number(error.status)
-      : undefined
-
     return {
       isValid: false,
       error: 'GitHub token failed validation',
-      status,
+      status: getErrorStatus(error),
       grantedScopes: [],
       acceptedScopes: [ ...GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES ],
       missingScopes: [ ...GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES ],
@@ -97,7 +149,10 @@ export async function validateGithubToken(accessToken: string): Promise<GithubTo
 
   const grantedScopes = splitScopeHeader(response.headers['x-oauth-scopes'] ?? null)
   const acceptedScopes = splitScopeHeader(response.headers['x-accepted-oauth-scopes'] ?? null)
-  const missingScopes = getMissingScopes(grantedScopes)
+  const isFineGrained = isFineGrainedToken(grantedScopes, acceptedScopes)
+  const missingScopes = isFineGrained
+    ? await checkFineGrainedScopes(octokit)
+    : getMissingScopes(grantedScopes)
 
   if (missingScopes.length > 0) {
     console.debug('GitHub token missing required scopes', {
@@ -136,7 +191,7 @@ export async function validateGithubToken(accessToken: string): Promise<GithubTo
     isValid: true,
     username,
     email,
-    scope: grantedScopes.join(','),
+    scope: grantedScopes.length > 0 ? grantedScopes.join(',') : 'fine-grained',
     grantedScopes,
     acceptedScopes,
   }
