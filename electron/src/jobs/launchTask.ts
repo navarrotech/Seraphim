@@ -36,6 +36,10 @@ export async function launchTask(
   githubTokens: string[],
   taskId: string,
   containerName?: string,
+  gitIdentity?: {
+    name: string | null
+    email: string | null
+  },
 ) {
   const dockerClient = getDockerClient()
   if (!dockerClient) {
@@ -75,7 +79,7 @@ export async function launchTask(
       workspace.customDockerfileCommands,
       setupScriptName,
       validateScriptName,
-      workspace,
+      gitIdentity,
       cloneResolution.cloneUrl,
     )
 

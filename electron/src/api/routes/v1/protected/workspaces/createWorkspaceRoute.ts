@@ -35,10 +35,9 @@ export async function handleCreateWorkspaceRequest(
 
   const {
     authAccountId,
-    gitUserName,
-    gitUserEmail,
     name,
-    repository,
+    repositoryId,
+    repositoryFullName,
     customDockerfileCommands,
     description,
     setupScript,
@@ -49,10 +48,9 @@ export async function handleCreateWorkspaceRequest(
 
   try {
     const baseWorkspaceData = {
-      gitUserName,
-      gitUserEmail,
       name,
-      repository,
+      repositoryId,
+      repositoryFullName,
       customDockerfileCommands,
       description,
       setupScript,

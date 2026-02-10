@@ -15,13 +15,13 @@ import { EnvironmentInputs } from '@frontend/common/env/EnvironmentInputs'
 // Misc
 import { createWorkspaceSchema } from '@frontend/lib/routes/workspaceRoutes'
 import { WorkspaceDockerBuildPanel } from './WorkspaceDockerBuildPanel'
+import { WorkspaceRepositoryPicker } from './WorkspaceRepositoryPicker'
 
 export type WorkspaceFormValues = z.infer<typeof createWorkspaceSchema>
 
 type Props = {
   form: UseFormReturn<WorkspaceFormValues>
   isFormLocked: boolean
-  isRepositoryLocked?: boolean
   autoFocusWorkspaceName?: boolean
   onBuildStateChange?: (isBuilding: boolean) => void
   footer?: ReactNode
@@ -31,7 +31,6 @@ export function WorkspaceEditorForm(props: Props) {
   const {
     form,
     isFormLocked,
-    isRepositoryLocked = false,
     autoFocusWorkspaceName = false,
     onBuildStateChange,
     footer,
@@ -41,48 +40,12 @@ export function WorkspaceEditorForm(props: Props) {
     <Card className='relaxed p-4 w-full'>
       <div className='level w-full items-start'>
         <div className='w-full'>
-          <div className='relaxed w-full'>
-            <Controller
-              control={form.control}
-              name='gitUserName'
-              render={({ field }) => (
-                <Input
-                  label='Git user name'
-                  placeholder='Ada Lovelace'
-                  className='w-full'
-                  isRequired
-                  isInvalid={Boolean(form.formState.errors.gitUserName)}
-                  errorMessage={form.formState.errors.gitUserName?.message}
-                  isDisabled={isFormLocked}
-                  value={field.value}
-                  name={field.name}
-                  onValueChange={field.onChange}
-                  onBlur={field.onBlur}
-                />
-              )}
-            />
-          </div>
-          <div className='relaxed w-full'>
-            <Controller
-              control={form.control}
-              name='gitUserEmail'
-              render={({ field }) => (
-                <Input
-                  label='Git email'
-                  placeholder='ada@lovelace.dev'
-                  className='w-full'
-                  isRequired
-                  isInvalid={Boolean(form.formState.errors.gitUserEmail)}
-                  errorMessage={form.formState.errors.gitUserEmail?.message}
-                  isDisabled={isFormLocked}
-                  value={field.value}
-                  name={field.name}
-                  onValueChange={field.onChange}
-                  onBlur={field.onBlur}
-                />
-              )}
-            />
-          </div>
+          <input type='hidden' {...form.register('authAccountId')} />
+          <input
+            type='hidden'
+            {...form.register('repositoryId', { valueAsNumber: true })}
+          />
+          <input type='hidden' {...form.register('repositoryFullName')} />
           <div className='relaxed w-full'>
             <Controller
               control={form.control}
@@ -106,24 +69,9 @@ export function WorkspaceEditorForm(props: Props) {
             />
           </div>
           <div className='relaxed w-full'>
-            <Controller
-              control={form.control}
-              name='repository'
-              render={({ field }) => (
-                <Input
-                  label='Repository URL'
-                  placeholder='git@github.com:navarrotech/seraphim.git'
-                  className='w-full'
-                  isRequired
-                  isInvalid={Boolean(form.formState.errors.repository)}
-                  errorMessage={form.formState.errors.repository?.message}
-                  isDisabled={isRepositoryLocked || isFormLocked}
-                  value={field.value}
-                  name={field.name}
-                  onValueChange={field.onChange}
-                  onBlur={field.onBlur}
-                />
-              )}
+            <WorkspaceRepositoryPicker
+              form={form}
+              isDisabled={isFormLocked}
             />
           </div>
           <div className='relaxed w-full'>

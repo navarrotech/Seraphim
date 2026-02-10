@@ -58,12 +58,21 @@ export async function handleCreateTaskRequest(
       return
     }
 
-    const repository = workspace.repository?.trim()
-    if (!repository) {
-      console.debug('Task creation failed, workspace missing repository', {
+    const repositoryFullName = workspace.repositoryFullName?.trim()
+    if (!repositoryFullName) {
+      console.debug('Task creation failed, workspace missing repository selection', {
         workspaceId,
       })
       response.status(400).json({ error: 'Workspace repository is required' })
+      return
+    }
+
+    const authAccountId = workspace.authAccountId?.trim()
+    if (!authAccountId) {
+      console.debug('Task creation failed, workspace missing auth account selection', {
+        workspaceId,
+      })
+      response.status(400).json({ error: 'Workspace git account is required' })
       return
     }
 
@@ -92,15 +101,32 @@ export async function handleCreateTaskRequest(
 
     const resolvedContainerName = toContainerName(codexTaskName)
 
-    const authAccounts = await databaseClient.authAccount.findMany({
+    const authAccount = await databaseClient.authAccount.findUnique({
       where: {
-        provider: 'GITHUB',
+        id: authAccountId,
       },
     })
 
-    const githubTokens = authAccounts
-      .map((account) => account.accessToken)
-      .filter((token): token is string => Boolean(token?.trim()))
+    if (!authAccount) {
+      console.debug('Task creation failed, auth account not found', {
+        authAccountId,
+        workspaceId,
+      })
+      response.status(404).json({ error: 'Git account not found' })
+      return
+    }
+
+    const githubToken = authAccount.accessToken?.trim()
+    if (!githubToken) {
+      console.debug('Task creation failed, auth account missing access token', {
+        authAccountId,
+        workspaceId,
+      })
+      response.status(403).json({ error: 'Git account access token is missing' })
+      return
+    }
+
+    const githubTokens = [ githubToken ]
 
     let containerId: string | null = null
     let containerName: string | null = resolvedContainerName
@@ -133,10 +159,14 @@ export async function handleCreateTaskRequest(
 
       const containerResult = await launchTask(
         workspace,
-        repository,
+        repositoryFullName,
         githubTokens,
         createdTask.id,
         containerName,
+        {
+          name: authAccount.name,
+          email: authAccount.email,
+        },
       )
       containerId = containerResult.containerId
       containerName = containerResult.containerName
