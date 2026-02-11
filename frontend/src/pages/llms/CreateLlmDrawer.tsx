@@ -26,6 +26,7 @@ import {
   Select,
   SelectItem,
 } from '@heroui/react'
+import { Monaco } from '@frontend/common/Monaco'
 
 // Misc
 import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
@@ -52,8 +53,8 @@ type DrawerMode = 'create' | 'edit'
 type LlmUpdatePayload = z.infer<typeof llmUpdateSchema>
 
 const llmTypeLabels: Record<LlmType, string> = {
-  OPENAI_API_KEY: 'OpenAI (API key)',
-  OPENAI_LOGIN_TOKEN: 'OpenAI (Login token)',
+  OPENAI_API_KEY: 'OpenAI with API key',
+  OPENAI_LOGIN_TOKEN: 'OpenAI with Codex auth',
 }
 
 const openAiModelSchema = z.enum(SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY)
@@ -69,6 +70,7 @@ const openAiApiKeyEditSchema = z.object({
 
 const openAiLoginTokenEditSchema = z.object({
   name: z.string().trim().min(1),
+  accessToken: z.string().trim().min(1).optional(),
   tokenLimit: tokenLimitSchema,
   isDefault: z.boolean().optional().default(false),
 }).strict()
@@ -140,6 +142,42 @@ function getTokenLimitInputValue(value?: number) {
   return value.toString()
 }
 
+function normalizeCodexAuthJson(rawValue: string, context: string): {
+  isValid: boolean
+  normalizedValue: string | null
+} {
+  const trimmedValue = rawValue.trim()
+
+  if (!trimmedValue) {
+    console.debug('CreateLlmDrawer received empty codex auth json', { context })
+    return {
+      isValid: false,
+      normalizedValue: null,
+    }
+  }
+
+  try {
+    const parsedValue: unknown = JSON.parse(trimmedValue)
+    const normalizedValue: string = JSON.stringify(parsedValue)
+
+    return {
+      isValid: true,
+      normalizedValue,
+    }
+  }
+  catch (error) {
+    console.debug('CreateLlmDrawer failed to parse codex auth json', {
+      context,
+      error,
+    })
+
+    return {
+      isValid: false,
+      normalizedValue: null,
+    }
+  }
+}
+
 function createTokenLimitChangeHandler(
   onChange: (value: number | undefined) => void,
   context: string,
@@ -177,6 +215,7 @@ function getOpenAiApiKeyDefaults(): OpenAiApiKeyFormValues {
 function getOpenAiLoginTokenDefaults(): OpenAiLoginTokenFormValues {
   return {
     name: '',
+    accessToken: '',
     tokenLimit: undefined,
     isDefault: false,
   }
@@ -195,6 +234,7 @@ function getOpenAiApiKeyEditDefaults(llm: LlmRecord): OpenAiApiKeyEditFormValues
 function getOpenAiLoginTokenEditDefaults(llm: LlmRecord): OpenAiLoginTokenEditFormValues {
   return {
     name: llm.name || '',
+    accessToken: undefined,
     tokenLimit: llm.tokenLimit ?? undefined,
     isDefault: llm.isDefault,
   }
@@ -227,6 +267,17 @@ function buildLoginTokenUpdatePayload(values: OpenAiLoginTokenEditFormValues): L
 
   if (values.tokenLimit !== undefined) {
     payload.tokenLimit = values.tokenLimit
+  }
+
+  const trimmedAccessToken = values.accessToken?.trim()
+  if (trimmedAccessToken) {
+    const normalizedCodexAuth = normalizeCodexAuthJson(trimmedAccessToken, 'login-token-update')
+    if (!normalizedCodexAuth.isValid || !normalizedCodexAuth.normalizedValue) {
+      console.debug('CreateLlmDrawer skipped accessToken update because JSON is invalid')
+    }
+    else {
+      payload.accessToken = normalizedCodexAuth.normalizedValue
+    }
   }
 
   return payload
@@ -264,6 +315,7 @@ export function CreateLlmDrawer(props: Props) {
     resolver: zodResolver(openAiLoginTokenEditSchema),
     defaultValues: {
       name: '',
+      accessToken: undefined,
       tokenLimit: undefined,
       isDefault: false,
     },
@@ -295,6 +347,7 @@ export function CreateLlmDrawer(props: Props) {
     })
     openAiLoginTokenEditForm.reset({
       name: '',
+      accessToken: undefined,
       tokenLimit: undefined,
       isDefault: false,
     })
@@ -363,8 +416,17 @@ export function CreateLlmDrawer(props: Props) {
   const onSubmitOpenAiLoginToken = openAiLoginTokenForm.handleSubmit(async function onSubmit(values) {
     setStatusMessage(null)
 
+    const normalizedCodexAuth = normalizeCodexAuthJson(values.accessToken, 'create-login-token')
+    if (!normalizedCodexAuth.isValid || !normalizedCodexAuth.normalizedValue) {
+      setStatusMessage('Codex auth.json must be valid JSON before saving.')
+      return
+    }
+
     try {
-      await createOpenAiLoginTokenLlm(values)
+      await createOpenAiLoginTokenLlm({
+        ...values,
+        accessToken: normalizedCodexAuth.normalizedValue,
+      })
       props.onOpenChange(false)
       openAiLoginTokenForm.reset(getOpenAiLoginTokenDefaults())
     }
@@ -403,6 +465,15 @@ export function CreateLlmDrawer(props: Props) {
       console.debug('CreateLlmDrawer edit submit missing llm')
       setStatusMessage('Select an LLM to edit.')
       return
+    }
+
+    const hasAccessTokenUpdate = Boolean(values.accessToken?.trim())
+    if (hasAccessTokenUpdate) {
+      const normalizedCodexAuth = normalizeCodexAuthJson(values.accessToken || '', 'edit-login-token')
+      if (!normalizedCodexAuth.isValid) {
+        setStatusMessage('Codex auth.json must be valid JSON before saving.')
+        return
+      }
     }
 
     try {
@@ -538,6 +609,10 @@ export function CreateLlmDrawer(props: Props) {
   }
 
   function renderOpenAiLoginTokenFields(isFormDisabled: boolean) {
+    const codexAuthLabel = isEditMode
+      ? 'Codex auth.json (optional when editing)'
+      : 'Codex auth.json'
+
     return <Card className='relaxed w-full'>
       <div className='relaxed w-full'>
         <Controller
@@ -547,7 +622,7 @@ export function CreateLlmDrawer(props: Props) {
             <Input
               autoFocus
               label='Name'
-              placeholder='OpenAI Login'
+              placeholder='OpenAI Codex auth'
               className='compact w-full'
               isRequired
               isInvalid={Boolean(activeOpenAiLoginTokenForm.formState.errors.name)}
@@ -560,6 +635,34 @@ export function CreateLlmDrawer(props: Props) {
             />
           )}
         />
+        <div className='compact'>
+          <div className='compact text-sm'>
+            <strong>{codexAuthLabel}</strong>
+          </div>
+          <p className='compact text-sm opacity-80'>
+            Paste the full contents of your ~/.codex/auth.json file to enable Codex authentication.
+          </p>
+          <Controller
+            control={activeOpenAiLoginTokenForm.control}
+            name='accessToken'
+            render={({ field }) => (
+              <Monaco
+                height='220px'
+                fileLanguage='json'
+                value={field.value || ''}
+                onChange={(value) => field.onChange(value || '')}
+                minimapOverride={false}
+                readOnly={isFormDisabled}
+              />
+            )}
+          />
+          <p className='text-sm opacity-80'>
+            This value is stored as your LLM accessToken in stringified form.
+          </p>
+          <p className='text-sm text-danger'>
+            {activeOpenAiLoginTokenForm.formState.errors.accessToken?.message}
+          </p>
+        </div>
         <Controller
           control={activeOpenAiLoginTokenForm.control}
           name='tokenLimit'
