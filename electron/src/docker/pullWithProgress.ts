@@ -1,5 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
+// Core
 import { getDockerClient } from './docker'
 
 type PullProgressEvent = {
@@ -9,11 +10,23 @@ type PullProgressEvent = {
   error?: string
 }
 
-export async function pullWithProgress(image: string) {
+type PullWithProgressOptions = {
+  onLog?: (message: string) => void
+}
+
+function emitPullLog(message: string, onLog?: (message: string) => void) {
+  if (onLog) {
+    onLog(message)
+  }
+}
+
+export async function pullWithProgress(image: string, options: PullWithProgressOptions = {}) {
   if (!image?.trim()) {
     console.debug('pullWithProgress missing image input', { image })
     throw new Error('pullWithProgress requires a non-empty image name')
   }
+
+  const { onLog } = options
 
   const dockerClient = getDockerClient()
   const stream = await new Promise<NodeJS.ReadableStream>(function onPullPromise(resolve, reject) {
@@ -50,7 +63,6 @@ export async function pullWithProgress(image: string) {
         resolve()
       },
       function onPullProgressEvent(event: PullProgressEvent) {
-        // {status, id, progress, progressDetail:{current,total}, ...}
         if (event.error) {
           console.debug('pullWithProgress received error event', { event })
           reject(new Error(event.error))
@@ -59,13 +71,19 @@ export async function pullWithProgress(image: string) {
 
         if (event.id && event.status) {
           const progressText = event.progress ? ` ${event.progress}` : ''
-          process.stdout.write(`\r${event.id}: ${event.status}${progressText}   `)
+          const message = `${event.id}: ${event.status}${progressText}`
+          process.stdout.write(`\r${message}   `)
+          emitPullLog(message, onLog)
           return
         }
 
         if (event.status) {
           process.stdout.write(`\r${event.status}   `)
+          emitPullLog(event.status, onLog)
+          return
         }
+
+        console.debug('pullWithProgress received unrecognized progress event', { event })
       },
     )
   })

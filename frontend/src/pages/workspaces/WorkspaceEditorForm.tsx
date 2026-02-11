@@ -34,6 +34,8 @@ export function WorkspaceEditorForm(props: Props) {
     footer,
   } = props
 
+  const workspaceBuildPayload = form.watch()
+
   return <>
     <Card className='relaxed p-4 w-full'>
       <div className='level w-full items-start'>
@@ -119,6 +121,7 @@ export function WorkspaceEditorForm(props: Props) {
             value={field.value}
             onChange={field.onChange}
             isDisabled={isFormLocked}
+            workspaceBuildPayload={workspaceBuildPayload}
           />
         )}
       />
