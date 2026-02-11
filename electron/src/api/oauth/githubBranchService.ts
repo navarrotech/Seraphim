@@ -4,6 +4,9 @@
 import { Octokit } from '@octokit/core'
 import { z } from 'zod'
 
+// Utility
+import { Cloner } from '@common/cloning/polymorphism/cloner'
+
 export type GithubBranchSummary = {
   name: string
   sha: string
@@ -19,6 +22,9 @@ export type GithubBranchListOptions = {
 type RepoDetails = {
   defaultBranch: string | null
 }
+
+const GITHUB_BRANCH_PAGE_SIZE = 100
+const MAX_GITHUB_BRANCH_PAGES = 20
 
 const githubBranchSchema = z.object({
   name: z.string(),
@@ -49,36 +55,18 @@ function normalizeSearchQuery(searchQuery: string | null): string | null {
 }
 
 function parseOwnerAndRepo(repoPath: string) {
-  const normalizedPath = repoPath
-    .trim()
-    .replace(/^https?:\/\/(www\.)?github\.com\//, '')
-    .replace(/^git@github\.com[:/]/, '')
-    .replace(/^ssh:\/\/git@github\.com\//, '')
-    .replace(/\.git$/, '')
-    .replace(/^\/+/, '')
+  const cloner = new Cloner(repoPath)
+  const parsedRepositoryDetails = cloner.getParsedRepositoryDetails()
 
-  const segments = normalizedPath
-    .split('/')
-    .filter(Boolean)
-
-  if (segments.length < 2) {
+  if (!parsedRepositoryDetails) {
     console.debug('Github branch lookup received invalid repo path', { repoPath })
     return null
   }
 
-  const owner = segments[0]
-  const repo = segments[1]
-
-  if (!owner || !repo) {
-    console.debug('Github branch lookup parsed missing owner or repo', {
-      repoPath,
-      owner,
-      repo,
-    })
-    return null
+  return {
+    owner: parsedRepositoryDetails.owner,
+    repo: parsedRepositoryDetails.repo,
   }
-
-  return { owner, repo }
 }
 
 function mapBranchPayload(payload: GithubBranchPayload): GithubBranchSummary {
@@ -211,16 +199,18 @@ async function fetchRepoDetails(
   }
 }
 
-async function fetchRepoBranches(
+async function fetchRepoBranchPage(
   octokit: Octokit,
   owner: string,
   repo: string,
+  page: number,
 ): Promise<GithubBranchSummary[] | null> {
   try {
     const response = await octokit.request('GET /repos/{owner}/{repo}/branches', {
       owner,
       repo,
-      per_page: 100,
+      page,
+      per_page: GITHUB_BRANCH_PAGE_SIZE,
     })
 
     const payloadList = Array.isArray(response.data)
@@ -240,9 +230,53 @@ async function fetchRepoBranches(
     return branches
   }
   catch (error) {
-    console.debug('Failed to fetch Github branches', { owner, repo, error })
+    console.debug('Failed to fetch Github branches', { owner, repo, page, error })
     return null
   }
+}
+
+async function fetchAllRepoBranches(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<GithubBranchSummary[] | null> {
+  const allBranches: GithubBranchSummary[] = []
+
+  for (let page = 1; page <= MAX_GITHUB_BRANCH_PAGES; page += 1) {
+    const pageBranches = await fetchRepoBranchPage(
+      octokit,
+      owner,
+      repo,
+      page,
+    )
+
+    if (!pageBranches) {
+      console.debug('Failed to fetch branch page while collecting all repository branches', {
+        owner,
+        repo,
+        page,
+      })
+      return null
+    }
+
+    if (pageBranches.length === 0) {
+      return allBranches
+    }
+
+    allBranches.push(...pageBranches)
+
+    if (pageBranches.length < GITHUB_BRANCH_PAGE_SIZE) {
+      return allBranches
+    }
+  }
+
+  console.debug('Reached maximum github branch pages while collecting repository branches', {
+    owner,
+    repo,
+    maxPages: MAX_GITHUB_BRANCH_PAGES,
+  })
+
+  return allBranches
 }
 
 export async function fetchGithubBranchesForRepo(
@@ -263,7 +297,7 @@ export async function fetchGithubBranchesForRepo(
   const octokit = new Octokit(accessToken ? { auth: accessToken } : undefined)
 
   const [ branches, repoInfo ] = await Promise.all([
-    fetchRepoBranches(octokit, parsedRepoDetails.owner, parsedRepoDetails.repo),
+    fetchAllRepoBranches(octokit, parsedRepoDetails.owner, parsedRepoDetails.repo),
     fetchRepoDetails(octokit, parsedRepoDetails.owner, parsedRepoDetails.repo),
   ])
 

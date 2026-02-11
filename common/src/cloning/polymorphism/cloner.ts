@@ -3,6 +3,12 @@
 // Core
 import { execFileAsync } from '../../node/execFileAsync'
 
+
+export type ParsedRepositoryDetails = {
+  owner: string
+  repo: string
+}
+
 // Polymorophism!
 // Github and other types can get their own extensions of this class
 export class Cloner {
@@ -101,6 +107,25 @@ export class Cloner {
 
   public getCloneUrl(): string {
     return this.sourceRepoUrl
+  }
+
+  public getParsedRepositoryDetails(): ParsedRepositoryDetails | null {
+    const owner = this.orgName?.trim()
+    const repo = this.repoName?.trim()
+
+    if (!owner || !repo) {
+      console.debug('Cloner was unable to resolve repository owner and name from source url', {
+        sourceRepoUrl: this.sourceRepoUrl,
+        owner: this.orgName ?? null,
+        repo: this.repoName ?? null,
+      })
+      return null
+    }
+
+    return {
+      owner,
+      repo,
+    }
   }
 
   public async checkIfCanClone(): Promise<boolean> {
