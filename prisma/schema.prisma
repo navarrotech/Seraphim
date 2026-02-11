@@ -6,6 +6,38 @@ datasource db {
   provider = "postgresql"
 }
 
+// ///////////////////////////// //
+//             Enums             //
+// ///////////////////////////// //
+
+enum AudioFor {
+  DONE_SOUND
+}
+
+enum LlmType {
+  OPENAI_API_KEY
+  OPENAI_LOGIN_TOKEN
+}
+
+enum AuthProvider {
+  GITHUB
+}
+
+enum TaskState {
+  Creating
+  SettingUp
+  Working
+  Validating
+  Reviewing
+  AwaitingReview
+  Halting
+  Failed
+}
+
+// ///////////////////////////// //
+//              Core             //
+// ///////////////////////////// //
+
 model Workspace {
   id String @id @default(uuid())
 
@@ -85,6 +117,70 @@ model Message {
   createdAt DateTime @default(now()) @map("created_at")
 }
 
+model Llm {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Provider
+  type LlmType
+
+  // Details
+  name           String? @map("name")
+  isDefault      Boolean @default(false) @map("is_default")
+  preferredModel String? @map("preferred_model")
+
+  // Auth
+  apiKey       String?   @map("api_key")
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  expiresAt    DateTime? @map("expires_at")
+
+  // Statistics
+  tokensUsed Int  @default(0) @map("tokens_used")
+  tokenLimit Int? @map("token_limit")
+
+  // Metadata
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@map("llms")
+}
+
+model AuthAccount {
+  id String @id @default(uuid())
+
+  // Provider
+  provider    AuthProvider
+  accessToken String       @map("access_token")
+  scope       String
+
+  // Auth identity
+  name String
+
+  // Details
+  username String
+  email    String
+
+  // Metadata
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@unique([provider, username])
+  @@map("auth_accounts")
+}
+
+// ///////////////////////////// //
+//           Framework           //
+// ///////////////////////////// //
+
 model User {
   id String @id @default(uuid())
 
@@ -144,88 +240,4 @@ model AudioFile {
 
   @@unique([userId, audioFor])
   @@map("audio_files")
-}
-
-enum AudioFor {
-  DONE_SOUND
-}
-
-enum LlmType {
-  OPENAI_API_KEY
-  OPENAI_LOGIN_TOKEN
-}
-
-enum TaskState {
-  Creating
-  SettingUp
-  Working
-  Validating
-  Reviewing
-  AwaitingReview
-  Halting
-  Failed
-}
-
-model Llm {
-  id String @id @default(uuid())
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  // Provider
-  type LlmType
-
-  // Details
-  name           String? @map("name")
-  isDefault      Boolean @default(false) @map("is_default")
-  preferredModel String? @map("preferred_model")
-
-  // Auth
-  apiKey       String?   @map("api_key")
-  accessToken  String?   @map("access_token")
-  refreshToken String?   @map("refresh_token")
-  expiresAt    DateTime? @map("expires_at")
-
-  // Statistics
-  tokensUsed Int  @default(0) @map("tokens_used")
-  tokenLimit Int? @map("token_limit")
-
-  // Metadata
-  lastUsedAt DateTime? @map("last_used_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  tasks Task[]
-
-  @@map("llms")
-}
-
-enum AuthProvider {
-  GITHUB
-}
-
-model AuthAccount {
-  id String @id @default(uuid())
-
-  // Provider
-  provider    AuthProvider
-  accessToken String       @map("access_token")
-  scope       String
-
-  // Auth identity
-  name String
-
-  // Details
-  username String
-  email    String
-
-  // Metadata
-  lastUsedAt DateTime? @map("last_used_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  tasks Task[]
-
-  @@unique([provider, username])
-  @@map("auth_accounts")
 }
