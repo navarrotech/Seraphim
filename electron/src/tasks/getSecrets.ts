@@ -1,6 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
+// Core
 import { requireDatabaseClient } from '@electron/database'
+
+// Misc
+import { STANDARD_SECRET_WORDS } from '@common/constants'
 
 export async function getSecrets(): Promise<string[]> {
   const prisma = requireDatabaseClient('getSecrets')
@@ -21,8 +25,8 @@ export async function getSecrets(): Promise<string[]> {
     }),
   ])
 
-  const secrets = [
-    'x-access-token', // GitHub Auth Provider token
+  const secrets: string[] = [
+    ...STANDARD_SECRET_WORDS,
   ]
 
   for (const authAccount of authAccounts) {

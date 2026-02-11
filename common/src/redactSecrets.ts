@@ -25,7 +25,7 @@ export function redactSecrets(
 
   for (const secretValue of uniqueNonEmptySecrets) {
     const escapedSecretForRegex = secretValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const secretMatchPattern = new RegExp(escapedSecretForRegex, 'g')
+    const secretMatchPattern = new RegExp(escapedSecretForRegex, 'gi')
 
     redactedMessage = redactedMessage.replace(secretMatchPattern, replacementMask)
   }

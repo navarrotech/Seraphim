@@ -19,14 +19,15 @@ export async function writeScriptFile(
   gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
   gitSourceBranch: string = 'main',
   customSetupContents?: string | null,
-  secrets?: string[],
+  secrets: string[] = [],
 ) {
   let customUserSetupCommands = customSetupContents?.trim()
   if (customUserSetupCommands) {
     let remappedCommands = ''
     for (const line of customUserSetupCommands.split('\n')) {
       const escaped = line.replaceAll('\'', `'\\''`) // produces: '\''
-      remappedCommands += `printf '%s\\n' '$ ${escaped}'\n${line}\n`
+      const safe = redactSecrets(escaped, secrets)
+      remappedCommands += `printf '%s\\n' '$ ${safe}'\n${line}\n`
     }
 
     customUserSetupCommands = `

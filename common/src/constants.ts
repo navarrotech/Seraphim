@@ -21,6 +21,31 @@ export const DONE_SOUND_MIME_TYPES = [
 ] as const
 export const DONE_SOUND_FILE_EXTENSIONS = [ '.mp3', '.wav' ] as const
 
+// Security
+export const STANDARD_SECRET_WORDS = [
+  'x-access-token',
+  'gh_token',
+  'github_token',
+  'gitlab_token',
+  'personal_access_token',
+  'authorization',
+  'proxy-authorization',
+  'api-key',
+  'api_key',
+  'apikey',
+  'access_token',
+  'refresh_token',
+  'private_key',
+  'privatekey',
+  'ssh_private_key',
+  'secret_key',
+  'secretkey',
+  'session',
+  'sessionid',
+  'sid',
+  'signing_secret',
+] as const satisfies readonly string[]
+
 // LLM
 export const SUPPORTED_MODELS_BY_LLM = {
   OPENAI_API_KEY: [
@@ -46,7 +71,6 @@ export const SUPPORTED_MODELS_BY_LLM = {
     'gpt-5',
   ],
 } as const satisfies Partial<Record<LlmType, readonly string[]>>
-
 
 // GitHub Auth
 export const GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES = [
