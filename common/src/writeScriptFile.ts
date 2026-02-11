@@ -23,7 +23,7 @@ echo "======== FINISHED CUSTOM SETUP SCRIPT ========"
 
   const updatedContent = `
 #!/usr/bin/env bash
-set -eu pipefail
+set -euo pipefail
 
 trap 'echo "======== CUSTOM SETUP SCRIPT FAILED (exit $?) ========"; touch /opt/seraphim/setup-failed; exit 1' ERR
 
@@ -32,9 +32,6 @@ cd ${DOCKER_WORKDIR}
 ${customUserSetupCommands}
 
 touch /opt/seraphim/setup-success
-echo "System is ready to begin generation commands"
-
-codex app-server
   `
 
   const scriptPath = resolve(contextDir, filename)
