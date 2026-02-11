@@ -12,6 +12,8 @@ export const DEFAULT_USER_LANGUAGE = 'auto' as const
 export const DEFAULT_USER_THEME = 'system' as const
 export const DEFAULT_VOICE_ENABLED = true as const
 export const DEFAULT_VOICE_HOTKEY = 'Control+Num0' as const
+export const DEFAULT_CUSTOM_AGENT_INSTRUCTIONS = '' as const
+export const DEFAULT_CUSTOM_AGENTS_FILE = '' as const
 export const DONE_SOUND_MIME_TYPES = [
   'audio/mpeg',
   'audio/wav',
@@ -62,6 +64,8 @@ export const GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES = [
 export const DEFAULT_DOCKER_BASE_IMAGE = 'mcr.microsoft.com/devcontainers/universal:5.1.4-noble' as const
 export const DOCKER_USERNAME = 'primary' as const
 export const DOCKER_WORKDIR = '/workspace' as const
+
+export const DOCKER_USE_BUILDKIT = true as const
 
 export const DOCKER_DEBIAN_PACKAGES = [
   'bash',

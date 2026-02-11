@@ -8,6 +8,7 @@ import { ConnectedAccounts } from './pages/accounts/ConnectedAccounts'
 import { DashboardGate } from './pages/gates/DashboardGate'
 import { Llms } from './pages/llms/Llms'
 import { Settings } from './pages/Settings'
+import { SettingsAdvanced } from './pages/settings/SettingsAdvanced'
 import { SettingsGeneral } from './pages/settings/SettingsGeneral'
 import { Tasks } from './pages/tasks/Tasks'
 import { CreateWorkspace } from './pages/workspaces/CreateWorkspace'
@@ -25,6 +26,7 @@ export function Router() {
         <Route path={UrlTree.settings} element={<Settings />}>
           <Route index element={<Navigate to={UrlTree.settingsGeneral} replace />} />
           <Route path={UrlTree.settingsGeneral} element={<SettingsGeneral />} />
+          <Route path={UrlTree.settingsAdvanced} element={<SettingsAdvanced />} />
           <Route path={UrlTree.settingsGitRepos} element={<ConnectedAccounts />} />
           <Route path={UrlTree.settingsLlms} element={<Llms />} />
           <Route path={UrlTree.workspacesList} element={<ListWorkspaces />} />

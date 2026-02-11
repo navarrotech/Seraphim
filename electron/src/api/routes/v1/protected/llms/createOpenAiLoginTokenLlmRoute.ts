@@ -46,8 +46,6 @@ export async function handleCreateOpenAiLoginTokenLlmRequest(
       return
     }
 
-    console.log('TODO: OPENAI_LOGIN_TOKEN llm auth is not implemented yet')
-
     const llmData = {
       user: {
         connect: {
@@ -56,6 +54,7 @@ export async function handleCreateOpenAiLoginTokenLlmRequest(
       },
       type: 'OPENAI_LOGIN_TOKEN',
       name: body.name,
+      accessToken: body.accessToken,
       tokenLimit: body.tokenLimit,
       isDefault: body.isDefault,
     } satisfies Prisma.LlmCreateInput

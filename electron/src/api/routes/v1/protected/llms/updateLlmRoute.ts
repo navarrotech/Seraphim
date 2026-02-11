@@ -28,6 +28,10 @@ const apiKeyLlmTypes = new Set<Llm['type']>([
   'OPENAI_API_KEY',
 ])
 
+const accessTokenLlmTypes = new Set<Llm['type']>([
+  'OPENAI_LOGIN_TOKEN',
+])
+
 const llmParamsSchema = z.object({
   llmId: z.string().trim().min(1),
 })
@@ -118,6 +122,21 @@ export async function handleUpdateLlmRequest(
       })
       response.status(400).json({
         error: 'API key updates are not supported for this llm type',
+      })
+      return
+    }
+
+
+    if (
+      updateData.accessToken
+      && !accessTokenLlmTypes.has(existingLlm.type)
+    ) {
+      console.debug('Llm update rejected for unsupported accessToken change', {
+        llmId,
+        type: existingLlm.type,
+      })
+      response.status(400).json({
+        error: 'Access token updates are not supported for this llm type',
       })
       return
     }

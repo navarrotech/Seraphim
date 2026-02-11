@@ -67,8 +67,11 @@ export function buildDockerfileContents(
     '# Run setup script',
     `COPY ${SETUP_SCRIPT_NAME} /opt/seraphim/${SETUP_SCRIPT_NAME}`,
     `RUN chmod +x /opt/seraphim/${SETUP_SCRIPT_NAME}`,
-    `ENTRYPOINT /opt/seraphim/${SETUP_SCRIPT_NAME}`,
-    'CMD ["bash"]',
+    `RUN bash /opt/seraphim/${SETUP_SCRIPT_NAME}`,
+    '',
+    '# Entrypoint',
+    // 'CMD ["codex", "app-server"]',
+    'CMD ["tail", "-f", "/dev/null"]',
   )
 
   return `${lines.join('\n')}\n`
