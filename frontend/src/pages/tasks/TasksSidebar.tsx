@@ -21,8 +21,9 @@ import { startCase } from 'lodash-es'
 
 // Misc
 import { getTaskViewUrl, UrlTree } from '@common/urls'
-import { deleteTask } from '@frontend/lib/routes/taskRoutes'
+import { archiveTask, deleteTask } from '@frontend/lib/routes/taskRoutes'
 import {
+  ArchiveIcon,
   DeleteIcon,
   PlusIcon,
   SettingsIcon,
@@ -48,7 +49,6 @@ function getWorkspaceNameById(workspaces: Workspace[]) {
 
   return workspaceNameById
 }
-
 
 function isTaskState(taskState: string): taskState is TaskState {
   return taskState in TASK_STATE_COLOR_BY_STATE
@@ -91,6 +91,36 @@ export function TasksSidebar() {
   const selectedTaskId = getSelectedTaskId(location.pathname)
   const confirm = useConfirm()
   const navigate = useNavigate()
+
+  function handleArchiveTask(task: Task) {
+    if (!task?.id) {
+      console.debug('TasksSidebar cannot archive task without an id', { task })
+      return
+    }
+
+    confirm({
+      title: 'Archive task?',
+      message: `Archive "${task.name || 'Untitled task'}"? You can unarchive it later via API if needed.`,
+      confirmText: 'Archive Task',
+      confirmColor: 'warning',
+      onConfirm: async function onConfirm() {
+        try {
+          await archiveTask(task.id)
+
+          dispatch(
+            taskActions.removeTasks([ task ]),
+          )
+
+          if (task.id === selectedTaskId) {
+            navigate(UrlTree.tasksList)
+          }
+        }
+        catch (error) {
+          console.debug('TasksSidebar failed to archive task', { error, taskId: task.id })
+        }
+      },
+    })
+  }
 
   function handleDeleteTask(task: Task) {
     if (!task?.id) {
@@ -170,22 +200,40 @@ export function TasksSidebar() {
                     </div>
                   </div>
                 </Link>
-                <Tooltip content='Delete Task'>
-                  <div>
-                    <Button
-                      isIconOnly
-                      variant='light'
-                      onPress={() => {
-                        handleDeleteTask(task)
-                      }}
-                      className='opacity-50 hover:opacity-100'
-                    >
-                      <span className='icon'>
-                        <DeleteIcon />
-                      </span>
-                    </Button>
-                  </div>
-                </Tooltip>
+                <div className='flex items-center'>
+                  <Tooltip content='Archive Task'>
+                    <div>
+                      <Button
+                        isIconOnly
+                        variant='light'
+                        onPress={() => {
+                          handleArchiveTask(task)
+                        }}
+                        className='opacity-50 hover:opacity-100'
+                      >
+                        <span className='icon'>
+                          <ArchiveIcon />
+                        </span>
+                      </Button>
+                    </div>
+                  </Tooltip>
+                  <Tooltip content='Delete Task'>
+                    <div>
+                      <Button
+                        isIconOnly
+                        variant='light'
+                        onPress={() => {
+                          handleDeleteTask(task)
+                        }}
+                        className='opacity-50 hover:opacity-100'
+                      >
+                        <span className='icon'>
+                          <DeleteIcon />
+                        </span>
+                      </Button>
+                    </div>
+                  </Tooltip>
+                </div>
               </div>
             </Card>
           })}

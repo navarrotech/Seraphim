@@ -13,6 +13,7 @@ export async function handleListTasksRequest(
 
   try {
     const tasks = await databaseClient.task.findMany({
+      where: { archived: false },
       orderBy: { createdAt: 'desc' },
     })
     response.status(200).json({ tasks })
