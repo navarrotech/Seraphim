@@ -23,3 +23,14 @@ export type DeleteTaskResult =
     status: 'deleted'
     taskId: string
   }
+
+export type ArchiveTaskResult =
+  | {
+    status: 'error'
+    error: string
+    httpStatus: number
+  }
+  | {
+    status: 'archived'
+    taskId: string
+  }

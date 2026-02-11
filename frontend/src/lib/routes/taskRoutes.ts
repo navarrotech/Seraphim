@@ -60,6 +60,12 @@ export function deleteTask(taskId: string) {
     .delete(`v1/protected/tasks/${taskId}`)
 }
 
+
+export function archiveTask(taskId: string) {
+  return apiClient
+    .delete(`v1/protected/tasks/${taskId}/archive`)
+}
+
 type TaskGitActionResponse = {
   message: string
 }

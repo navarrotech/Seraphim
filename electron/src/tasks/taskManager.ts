@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { TaskCreateRequest } from '@common/schema'
-import type { CreateTaskResult, DeleteTaskResult } from './types'
+import type { ArchiveTaskResult, CreateTaskResult, DeleteTaskResult } from './types'
 
 // Utility
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
@@ -27,6 +27,7 @@ class TaskManager {
   public async initializeFromDatabase(): Promise<void> {
     const databaseClient = requireDatabaseClient('TaskManager initialize')
     const tasks = await databaseClient.task.findMany({
+      where: { archived: false },
       include: {
         llm: true,
         authAccount: true,
@@ -189,6 +190,73 @@ class TaskManager {
     }
     catch (error) {
       console.error('Failed to provision task container', error)
+    }
+  }
+
+
+  public async archiveTask(taskId: string): Promise<ArchiveTaskResult> {
+    const trimmedTaskId = taskId?.trim()
+    if (!trimmedTaskId) {
+      console.debug('Task archive requested without taskId', { taskId })
+      return {
+        status: 'error',
+        error: 'Task ID is required',
+        httpStatus: 400,
+      }
+    }
+
+    const databaseClient = requireDatabaseClient('TaskManager archiveTask')
+    const existingTask = await databaseClient.task.findUnique({
+      where: { id: trimmedTaskId },
+    })
+
+    if (!existingTask) {
+      console.debug('Task archive failed, task not found', {
+        taskId: trimmedTaskId,
+      })
+      return {
+        status: 'error',
+        error: 'Task not found',
+        httpStatus: 404,
+      }
+    }
+
+    if (existingTask.archived) {
+      console.debug('Task archive requested for task that is already archived', {
+        taskId: trimmedTaskId,
+      })
+      return {
+        status: 'archived',
+        taskId: trimmedTaskId,
+      }
+    }
+
+    const archivedTask = await databaseClient.task.update({
+      where: { id: trimmedTaskId },
+      data: { archived: true },
+    })
+
+    const taskInstance = this.taskInstances.get(trimmedTaskId)
+    if (taskInstance) {
+      await taskInstance.teardown()
+      this.taskInstances.delete(trimmedTaskId)
+    }
+    else {
+      console.debug('Task archive requested without task instance', {
+        taskId: trimmedTaskId,
+      })
+      await teardownTask(existingTask.container)
+    }
+
+    broadcastSseChange({
+      type: 'update',
+      kind: 'tasks',
+      data: [ archivedTask ],
+    })
+
+    return {
+      status: 'archived',
+      taskId: trimmedTaskId,
     }
   }
 

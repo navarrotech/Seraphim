@@ -6,6 +6,7 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
+import { handleArchiveTaskRequest } from './tasks/archiveTaskRoute'
 import { handleCreateTaskRequest } from './tasks/createTaskRoute'
 import { handleDeleteTaskRequest } from './tasks/deleteTaskRoute'
 import { handleGetTaskRequest } from './tasks/getTaskRoute'
@@ -32,6 +33,8 @@ export function createTasksRouter(): Router {
   tasksRouter.patch('/:taskId', handleUpdateTaskRequest)
   // /api/v1/protected/tasks/:taskId
   tasksRouter.delete('/:taskId', handleDeleteTaskRequest)
+  // /api/v1/protected/tasks/:taskId/archive
+  tasksRouter.delete('/:taskId/archive', handleArchiveTaskRequest)
   // /api/v1/protected/tasks/:taskId/git/refresh
   tasksRouter.post('/:taskId/git/refresh', handleRefreshTaskGitRequest)
   // /api/v1/protected/tasks/:taskId/git/re-up

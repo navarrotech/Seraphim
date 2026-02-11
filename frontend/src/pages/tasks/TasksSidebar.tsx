@@ -1,9 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Task, TaskState, Workspace } from '@prisma/client'
+import type { Key } from 'react'
 import type { ChipProps } from '@heroui/react'
 
 // Core
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 // Lib
@@ -14,15 +16,16 @@ import { dispatch, useSelector } from '@frontend/framework/store'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 
 // User interface
-import { Button, Card, Chip, Tooltip } from '@heroui/react'
+import { Button, Card, Chip, Tab, Tabs, Tooltip } from '@heroui/react'
 
 // Utility
 import { startCase } from 'lodash-es'
 
 // Misc
 import { getTaskViewUrl, UrlTree } from '@common/urls'
-import { deleteTask } from '@frontend/lib/routes/taskRoutes'
+import { archiveTask, deleteTask } from '@frontend/lib/routes/taskRoutes'
 import {
+  ArchiveIcon,
   DeleteIcon,
   PlusIcon,
   SettingsIcon,
@@ -39,6 +42,13 @@ const TASK_STATE_COLOR_BY_STATE: Record<TaskState, ChipProps['color']> = {
   Failed: 'danger',
 }
 
+const TASK_VIEW_TAB = {
+  active: 'active',
+  archived: 'archived',
+} as const
+
+type TaskViewTab = typeof TASK_VIEW_TAB[keyof typeof TASK_VIEW_TAB]
+
 function getWorkspaceNameById(workspaces: Workspace[]) {
   const workspaceNameById = new Map<string, string>()
 
@@ -48,7 +58,6 @@ function getWorkspaceNameById(workspaces: Workspace[]) {
 
   return workspaceNameById
 }
-
 
 function isTaskState(taskState: string): taskState is TaskState {
   return taskState in TASK_STATE_COLOR_BY_STATE
@@ -83,14 +92,67 @@ function getSelectedTaskId(pathname: string) {
   return pathParts[2]
 }
 
+function getTasksLabel(taskViewTab: TaskViewTab) {
+  if (taskViewTab === TASK_VIEW_TAB.archived) {
+    return 'Archived Tasks'
+  }
+
+  return 'Recent Tasks'
+}
+
+function getEmptyStateLabel(taskViewTab: TaskViewTab) {
+  if (taskViewTab === TASK_VIEW_TAB.archived) {
+    return 'No archived tasks yet.'
+  }
+
+  return 'No tasks yet.'
+}
+
 export function TasksSidebar() {
   const tasks = useSelector((state) => state.tasks.items)
+  const archivedTasks = useSelector((state) => state.tasks.archivedItems)
   const workspaces = useSelector((state) => state.workspaces.items)
   const workspaceNameById = getWorkspaceNameById(workspaces)
   const location = useLocation()
   const selectedTaskId = getSelectedTaskId(location.pathname)
   const confirm = useConfirm()
   const navigate = useNavigate()
+  const [ taskViewTab, setTaskViewTab ] = useState<TaskViewTab>(TASK_VIEW_TAB.active)
+
+  function handleArchiveTask(task: Task) {
+    if (!task?.id) {
+      console.debug('TasksSidebar cannot archive task without an id', { task })
+      return
+    }
+
+    confirm({
+      title: 'Archive task?',
+      message: `Archive "${task.name || 'Untitled task'}"? You can unarchive it later via API if needed.`,
+      confirmText: 'Archive Task',
+      confirmColor: 'warning',
+      onConfirm: async function onConfirm() {
+        try {
+          await archiveTask(task.id)
+
+          dispatch(
+            taskActions.upsertTasks([
+              {
+                ...task,
+                archived: true,
+              },
+            ]),
+          )
+
+          if (task.id === selectedTaskId) {
+            navigate(UrlTree.tasksList)
+          }
+        }
+        catch (error) {
+          console.debug('TasksSidebar failed to archive task', { error, taskId: task.id })
+        }
+      },
+    })
+  }
 
   function handleDeleteTask(task: Task) {
     if (!task?.id) {
@@ -122,10 +184,31 @@ export function TasksSidebar() {
     })
   }
 
-  return <aside className={`h-[100vh] w-72 shrink-0 border-r border-black/5 bg-white/70 p-4 backdrop-blur
+  function handleTaskViewTabChange(tabKey: Key) {
+    if (tabKey !== TASK_VIEW_TAB.active && tabKey !== TASK_VIEW_TAB.archived) {
+      console.debug('TasksSidebar received unknown task tab key', { tabKey })
+      return
+    }
+
+    setTaskViewTab(tabKey)
+  }
+
+  const visibleTasks = taskViewTab === TASK_VIEW_TAB.archived
+    ? archivedTasks
+    : tasks
+
+  return <aside className={`h-[100vh] w-80 shrink-0 border-r border-black/5 bg-white/70 p-4 backdrop-blur
   dark:border-white/10 dark:bg-slate-950/70`}>
     <div className='flex h-full flex-col'>
       <div className='relaxed'>
+        <Tabs
+          className='compact w-full'
+          selectedKey={taskViewTab}
+          onSelectionChange={handleTaskViewTabChange}
+        >
+          <Tab key={TASK_VIEW_TAB.active} title='Active Tasks' />
+          <Tab key={TASK_VIEW_TAB.archived} title='Archived' />
+        </Tabs>
         <Button
           as={Link}
           to={UrlTree.tasksList}
@@ -135,15 +218,18 @@ export function TasksSidebar() {
         >
           <span>New Task</span>
         </Button>
-        <div className='compact text-xs uppercase tracking-wide opacity-50'>Recent Tasks</div>
+        <div className='compact text-xs uppercase tracking-wide opacity-50'>
+          {getTasksLabel(taskViewTab)}
+        </div>
         <div className='relaxed space-y-2'>
-          {tasks.length === 0 && (
+          {visibleTasks.length === 0 && (
             <Card className='p-3 dark:bg-slate-900/70'>
-              <div className='text-sm opacity-70'>No tasks yet.</div>
+              <div className='text-sm opacity-70'>{getEmptyStateLabel(taskViewTab)}</div>
             </Card>
           )}
-          {tasks.map((task) => {
+          {visibleTasks.map((task) => {
             const isActive = task.id === selectedTaskId
+            const shouldShowArchiveAction = !task.archived
 
             return <Card
               key={task.id}
@@ -170,22 +256,42 @@ export function TasksSidebar() {
                     </div>
                   </div>
                 </Link>
-                <Tooltip content='Delete Task'>
-                  <div>
-                    <Button
-                      isIconOnly
-                      variant='light'
-                      onPress={() => {
-                        handleDeleteTask(task)
-                      }}
-                      className='opacity-50 hover:opacity-100'
-                    >
-                      <span className='icon'>
-                        <DeleteIcon />
-                      </span>
-                    </Button>
-                  </div>
-                </Tooltip>
+                <div className='flex items-center'>
+                  {shouldShowArchiveAction && (
+                    <Tooltip content='Archive Task'>
+                      <div>
+                        <Button
+                          isIconOnly
+                          variant='light'
+                          onPress={() => {
+                            handleArchiveTask(task)
+                          }}
+                          className='opacity-50 hover:opacity-100'
+                        >
+                          <span className='icon'>
+                            <ArchiveIcon />
+                          </span>
+                        </Button>
+                      </div>
+                    </Tooltip>
+                  )}
+                  <Tooltip content='Delete Task'>
+                    <div>
+                      <Button
+                        isIconOnly
+                        variant='light'
+                        onPress={() => {
+                          handleDeleteTask(task)
+                        }}
+                        className='opacity-50 hover:opacity-100'
+                      >
+                        <span className='icon'>
+                          <DeleteIcon />
+                        </span>
+                      </Button>
+                    </div>
+                  </Tooltip>
+                </div>
               </div>
             </Card>
           })}
