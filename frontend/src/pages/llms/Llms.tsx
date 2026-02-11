@@ -33,11 +33,11 @@ type LlmDisplay = {
 
 const llmDisplayByType: Record<LlmType, LlmDisplay> = {
   OPENAI_API_KEY: {
-    label: 'OpenAI (API key)',
+    label: 'OpenAI with API key',
     logoUrl: '/llms/openai.png',
   },
   OPENAI_LOGIN_TOKEN: {
-    label: 'OpenAI (Login token)',
+    label: 'OpenAI with Codex auth',
     logoUrl: '/llms/openai.png',
   },
 }
