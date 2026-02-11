@@ -7,6 +7,7 @@ import {
   DONE_SOUND_MIME_TYPES,
   USER_LANGUAGE_OPTIONS,
   USER_THEME_OPTIONS,
+  USER_PREFERRED_CODE_EDITOR_OPTIONS,
 } from './constants'
 
 export const environmentSchema = z.object({
@@ -102,10 +103,12 @@ export const openAiLoginTokenLlmCreateSchema = z.object({
 
 export const userLanguageSchema = z.enum(USER_LANGUAGE_OPTIONS)
 export const userThemeSchema = z.enum(USER_THEME_OPTIONS)
+export const userPreferredCodeEditorSchema = z.enum(USER_PREFERRED_CODE_EDITOR_OPTIONS)
 
 export const userSettingsSchema = z.object({
   language: userLanguageSchema,
   theme: userThemeSchema,
+  preferredCodeEditor: userPreferredCodeEditorSchema,
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
   doneSoundAudioFileId: z.string().uuid().nullable().optional(),
@@ -123,6 +126,7 @@ const doneSoundFileSchema = z.object({
 const userSettingsUpdateFieldsSchema = z.object({
   language: userLanguageSchema.optional(),
   theme: userThemeSchema.optional(),
+  preferredCodeEditor: userPreferredCodeEditorSchema.optional(),
   voiceEnabled: z.boolean().optional(),
   voiceHotkey: z.string().trim().min(1).optional(),
   customAgentInstructions: z.string().optional(),

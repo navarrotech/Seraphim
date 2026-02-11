@@ -26,15 +26,18 @@ import {
   DONE_SOUND_MIME_TYPES,
   DEFAULT_USER_LANGUAGE,
   DEFAULT_USER_THEME,
+  DEFAULT_USER_PREFERRED_CODE_EDITOR,
   DEFAULT_VOICE_ENABLED,
   DEFAULT_VOICE_HOTKEY,
   USER_LANGUAGE_OPTIONS,
   USER_THEME_OPTIONS,
+  USER_PREFERRED_CODE_EDITOR_OPTIONS,
 } from '@common/constants'
 import {
   userLanguageSchema,
   userSettingsSchema,
   userThemeSchema,
+  userPreferredCodeEditorSchema,
 } from '@common/schema'
 import { updateCurrentUserSettings } from '@frontend/lib/routes/userRoutes'
 
@@ -49,6 +52,15 @@ const themeOptionLabels = {
   light: 'Light',
 } as const
 
+const preferredCodeEditorOptionLabels = {
+  vscode: 'VS Code',
+  cursor: 'Cursor',
+  windsurf: 'Windsurf',
+  zed: 'Zed',
+  neovim: 'Neovim',
+  other: 'Other',
+} as const
+
 const doneSoundAcceptList = DONE_SOUND_MIME_TYPES.join(',')
 const doneSoundExtensionSummary = DONE_SOUND_FILE_EXTENSIONS.join(', ')
 
@@ -57,6 +69,7 @@ type SettingsFormValues = z.infer<typeof userSettingsSchema>
 type SettingsPayload = {
   language: SettingsFormValues['language']
   theme: SettingsFormValues['theme']
+  preferredCodeEditor: SettingsFormValues['preferredCodeEditor']
   voiceEnabled: boolean
   voiceHotkey: string
 }
@@ -195,6 +208,7 @@ function buildSettingsPayload(values: SettingsFormValues): SettingsPayload | nul
   return {
     language: values.language,
     theme: values.theme,
+    preferredCodeEditor: values.preferredCodeEditor,
     voiceEnabled: values.voiceEnabled,
     voiceHotkey: trimmedHotkey,
   }
@@ -212,6 +226,7 @@ export function SettingsGeneral() {
     defaultValues: {
       language: DEFAULT_USER_LANGUAGE,
       theme: DEFAULT_USER_THEME,
+      preferredCodeEditor: DEFAULT_USER_PREFERRED_CODE_EDITOR,
       voiceEnabled: DEFAULT_VOICE_ENABLED,
       voiceHotkey: DEFAULT_VOICE_HOTKEY,
       doneSoundAudioFileId: null,
@@ -220,6 +235,7 @@ export function SettingsGeneral() {
 
   const languageValue = form.watch('language')
   const themeValue = form.watch('theme')
+  const preferredCodeEditorValue = form.watch('preferredCodeEditor')
   const voiceEnabledValue = form.watch('voiceEnabled')
   const voiceHotkeyValue = form.watch('voiceHotkey')
   const isDirty = form.formState.isDirty
@@ -237,6 +253,10 @@ export function SettingsGeneral() {
 
   const themeKeys = themeValue
     ? [ themeValue ]
+    : []
+
+  const preferredCodeEditorKeys = preferredCodeEditorValue
+    ? [ preferredCodeEditorValue ]
     : []
 
   useEffect(function syncUserSettings() {
@@ -264,6 +284,12 @@ export function SettingsGeneral() {
       DEFAULT_USER_THEME,
       'theme',
     )
+    const preferredCodeEditor = resolveSettingValue(
+      settingsState.value?.preferredCodeEditor,
+      userPreferredCodeEditorSchema,
+      DEFAULT_USER_PREFERRED_CODE_EDITOR,
+      'preferredCodeEditor',
+    )
     const voiceEnabled = settingsState.value?.voiceEnabled ?? DEFAULT_VOICE_ENABLED
     const voiceHotkey = settingsState.value?.voiceHotkey || DEFAULT_VOICE_HOTKEY
     const doneSoundAudioFileId = settingsState.value?.doneSoundAudioFileId ?? null
@@ -277,6 +303,7 @@ export function SettingsGeneral() {
     form.reset({
       language,
       theme,
+      preferredCodeEditor,
       voiceEnabled,
       voiceHotkey,
       doneSoundAudioFileId,
@@ -313,6 +340,24 @@ export function SettingsGeneral() {
 
     setStatusMessage(null)
     form.setValue('theme', resolvedSelection, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+  }
+
+  function handlePreferredCodeEditorSelection(selection: Selection) {
+    const resolvedSelection = resolveSelection(
+      selection,
+      userPreferredCodeEditorSchema,
+      'preferredCodeEditor',
+    )
+    if (!resolvedSelection) {
+      return
+    }
+
+    setStatusMessage(null)
+    form.setValue('preferredCodeEditor', resolvedSelection, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -406,6 +451,7 @@ export function SettingsGeneral() {
     if (settingsPayload) {
       requestPayload.language = settingsPayload.language
       requestPayload.theme = settingsPayload.theme
+      requestPayload.preferredCodeEditor = settingsPayload.preferredCodeEditor
       requestPayload.voiceEnabled = settingsPayload.voiceEnabled
       requestPayload.voiceHotkey = settingsPayload.voiceHotkey
     }
@@ -559,6 +605,33 @@ export function SettingsGeneral() {
               USER_THEME_OPTIONS.map((option) => (
                 <SelectItem key={option}>{
                   themeOptionLabels[option]
+                }</SelectItem>
+              ))
+            }</Select>
+          </div>
+        </div>
+      </Card>
+      <Card className='relaxed p-6 w-full'>
+        <div className='level w-full items-start'>
+          <div className='w-full'>
+            {/* Code editor */}
+            <div className='relaxed'>
+              <h3 className='text-xl'>Code editor</h3>
+              <p className='opacity-80'>
+                Choose your preferred editor for coding workflows in Seraphim.
+              </p>
+            </div>
+            <Select
+              label='Preferred code editor'
+              placeholder='Select code editor'
+              selectedKeys={preferredCodeEditorKeys}
+              onSelectionChange={handlePreferredCodeEditorSelection}
+              isDisabled={isFormDisabled}
+              className='w-full'
+            >{
+              USER_PREFERRED_CODE_EDITOR_OPTIONS.map((option) => (
+                <SelectItem key={option}>{
+                  preferredCodeEditorOptionLabels[option]
                 }</SelectItem>
               ))
             }</Select>
