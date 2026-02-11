@@ -1,5 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { BuildDockerImageRequest } from '@frontend/lib/routes/dockerRoutes'
 import type { ControllerRenderProps } from 'react-hook-form'
 import type { ReactNode } from 'react'
 import type { WorkspaceFormValues } from './WorkspaceEditorForm'
@@ -17,14 +18,18 @@ type Props = {
   value: string
   onChange: ControllerRenderProps<WorkspaceFormValues, 'customDockerfileCommands'>['onChange']
   isDisabled: boolean
+  workspaceBuildPayload: WorkspaceBuildPayload
   footer?: ReactNode
 }
+
+type WorkspaceBuildPayload = Partial<BuildDockerImageRequest>
 
 export function WorkspaceDockerBuildPanel(props: Props) {
   const {
     value,
     onChange,
     isDisabled,
+    workspaceBuildPayload,
     footer,
   } = props
 
@@ -41,8 +46,21 @@ export function WorkspaceDockerBuildPanel(props: Props) {
   }
 
   async function handleBuildImage() {
+    if (!workspaceBuildPayload.sourceRepoUrl?.trim()) {
+      console.debug('WorkspaceDockerBuildPanel build requested without source repository URL', {
+        workspaceBuildPayload,
+      })
+      return
+    }
+
     await buildSocket.startBuild({
+      name: workspaceBuildPayload.name || 'Workspace Build',
+      description: workspaceBuildPayload.description || '',
+      sourceRepoUrl: workspaceBuildPayload.sourceRepoUrl,
       customDockerfileCommands: value || '',
+      setupScript: workspaceBuildPayload.setupScript || '',
+      postScript: workspaceBuildPayload.postScript || '',
+      cacheFiles: workspaceBuildPayload.cacheFiles || [],
     })
   }
 

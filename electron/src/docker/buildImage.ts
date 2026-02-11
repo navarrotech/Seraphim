@@ -32,10 +32,14 @@ import {
 
 const contextFiles = [
   'Dockerfile',
-  `utils`,
+  'utils',
   SETUP_SCRIPT_NAME,
   VALIDATE_SCRIPT_NAME,
 ] as const satisfies string[]
+
+type BuildImageOptions = {
+  onLog?: (message: string) => void
+}
 
 type BuildImageResult = {
   success: boolean
@@ -43,29 +47,34 @@ type BuildImageResult = {
   errors?: string[]
 }
 
+function emitBuildImageLog(message: string, onLog?: (message: string) => void) {
+  if (onLog) {
+    onLog(message)
+  }
+}
+
 export async function buildImage(
   workspace: Workspace,
   task?: TaskWithFullContext,
   cloner?: Cloner,
+  options: BuildImageOptions = {},
 ): Promise<BuildImageResult> {
+  const { onLog } = options
+
   let contextDir: string | null = null
 
   try {
     const dockerClient = getDockerClient()
     const buildTag = `seraphim-${workspace.id}-${uuid()}`
 
-    // /////////////////////////// //
-    //          SETUP INFO         //
-    // /////////////////////////// //
-
     let cloneUrl: string | null = cloner?.getCloneUrl()
     if (!cloner && task?.authAccount) {
-      const cloner = getCloner(
+      const resolvedCloner = getCloner(
         task.authAccount.provider,
         workspace.sourceRepoUrl || '',
         task.authAccount.accessToken,
       )
-      cloneUrl = cloner.getCloneUrl()
+      cloneUrl = resolvedCloner.getCloneUrl()
     }
 
     const dockerfileContents = buildDockerfileContents(cloneUrl, {
@@ -74,19 +83,17 @@ export async function buildImage(
       gitEmail: task?.authAccount?.email,
     })
 
-    // /////////////////////////// //
-    //     PREPARE CONTEXT DIR     //
-    // /////////////////////////// //
-
     contextDir = await mkdtemp(
       resolve(tmpdir(), 'seraphim-task-'),
     )
     console.debug('Created Docker build context directory', {
       contextDir,
     })
+    emitBuildImageLog(`Created temporary Docker context: ${contextDir}`, onLog)
 
     if (!existsSync(contextDir)) {
       mkdirSync(contextDir, { recursive: true })
+      emitBuildImageLog(`Created missing Docker context directory: ${contextDir}`, onLog)
     }
 
     if (!existsSync(utilsDir)) {
@@ -100,18 +107,18 @@ export async function buildImage(
       from: utilsDir,
       to: contextDir,
     })
+    emitBuildImageLog('Copying Docker utility files into build context', onLog)
 
     const utilsTargetDir = resolve(contextDir, 'utils')
     mkdirSync(utilsTargetDir, { recursive: true })
 
-    // Copy *contents* of resourcesDir into contextDir by copying the utils folder from within resourcesDir
     cpSync(utilsDir, utilsTargetDir, {
       recursive: true,
-      force: true, // overwrite existing files
+      force: true,
       errorOnExist: false,
     })
 
-    console.debug('Writing Dockerfile, setup script, and validate script to context directory...')
+    emitBuildImageLog('Writing Dockerfile and scripts into build context', onLog)
 
     await Promise.all([
       writeScriptFile(
@@ -145,14 +152,15 @@ export async function buildImage(
       contextDirFiles,
     })
 
-    // /////////////////////////// //
-    //       BUILD THE IMAGE       //
-    // /////////////////////////// //
+    emitBuildImageLog(`Pulling base image: ${DEFAULT_DOCKER_BASE_IMAGE}`, onLog)
+    await pullWithProgress(
+      DEFAULT_DOCKER_BASE_IMAGE,
+      {
+        onLog,
+      },
+    )
 
-    console.debug('Pulling the base Docker image...')
-    await pullWithProgress(DEFAULT_DOCKER_BASE_IMAGE)
-
-    console.debug('Starting Docker image build...')
+    emitBuildImageLog('Starting Docker build', onLog)
 
     const buildStream = await dockerClient.buildImage(
       {
@@ -162,24 +170,35 @@ export async function buildImage(
       {
         t: buildTag,
         pull: true,
-        // Specify if we should use BuildKit for better performance and output
         version: DOCKER_USE_BUILDKIT
           ? '2'
           : undefined,
       },
     )
 
-    console.debug('Waiting for the Docker build to complete...')
+    emitBuildImageLog('Docker build stream started', onLog)
 
-    // Wait for the build to complete!
     if (DOCKER_USE_BUILDKIT) {
-      await waitForBuildVersion2(buildStream, dockerClient)
+      await waitForBuildVersion2(
+        buildStream,
+        dockerClient,
+        {
+          onLog,
+        },
+      )
     }
     else {
-      await waitForBuildVersion1(buildStream, dockerClient)
+      await waitForBuildVersion1(
+        buildStream,
+        dockerClient,
+        {
+          onLog,
+        },
+      )
     }
 
     console.debug('Docker build completed successfully')
+    emitBuildImageLog(`Docker build completed successfully for tag: ${buildTag}`, onLog)
 
     return {
       success: true,
@@ -190,19 +209,33 @@ export async function buildImage(
     console.debug('Error during image build', {
       error,
     })
+
+    let errorMessage = 'Unknown error during image build'
+    if (error instanceof Error && error.message) {
+      errorMessage = error.message
+    }
+
+    emitBuildImageLog(`ERROR: ${errorMessage}`, onLog)
+
     return {
       success: false,
-      errors: [ (error as Error).message || 'Unknown error during image build' ],
+      errors: [ errorMessage ],
     }
   }
   finally {
-    // Cleanup the context dir!
-    await rm(
-      contextDir,
-      {
-        recursive: true,
-        force: true,
-      },
-    )
+    if (!contextDir) {
+      console.debug('Skipping Docker context cleanup because no context directory was created')
+    }
+    else {
+      await rm(
+        contextDir,
+        {
+          recursive: true,
+          force: true,
+        },
+      )
+
+      emitBuildImageLog(`Cleaned up Docker context: ${contextDir}`, onLog)
+    }
   }
 }
