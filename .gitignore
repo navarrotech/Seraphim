@@ -25,5 +25,6 @@ $null
 *.msi
 electron/out/
 electron/public/browser/
+electron/src/vendor/codex-protocol/
 frontend/dist/
 dev.log
