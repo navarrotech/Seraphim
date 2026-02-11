@@ -63,6 +63,8 @@ export const DEFAULT_DOCKER_BASE_IMAGE = 'mcr.microsoft.com/devcontainers/univer
 export const DOCKER_USERNAME = 'primary' as const
 export const DOCKER_WORKDIR = '/workspace' as const
 
+export const DOCKER_USE_BUILDKIT = true as const
+
 export const DOCKER_DEBIAN_PACKAGES = [
   'bash',
   'build-essential',

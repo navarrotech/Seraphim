@@ -8,6 +8,7 @@ import type { Cloner } from '@common/cloning/polymorphism/cloner'
 import { getDockerClient } from '@electron/docker/docker'
 import { buildDockerfileContents } from '@electron/docker/image'
 import { pullWithProgress } from './pullWithProgress'
+import { waitForBuildVersion1, waitForBuildVersion2 } from './waitForBuild'
 
 // Node.js
 import { mkdtemp, writeFile, rm, readdir } from 'node:fs/promises'
@@ -22,7 +23,12 @@ import { writeScriptFile } from '@common/writeScriptFile'
 import { getCloner } from '@common/cloning/getCloner'
 
 // Misc
-import { DEFAULT_DOCKER_BASE_IMAGE, SETUP_SCRIPT_NAME, VALIDATE_SCRIPT_NAME } from '@common/constants'
+import {
+  DEFAULT_DOCKER_BASE_IMAGE,
+  SETUP_SCRIPT_NAME,
+  VALIDATE_SCRIPT_NAME,
+  DOCKER_USE_BUILDKIT,
+} from '@common/constants'
 
 const contextFiles = [
   'Dockerfile',
@@ -156,50 +162,24 @@ export async function buildImage(
       {
         t: buildTag,
         pull: true,
-        version: '2', // Use BuildKit for better performance and output
+        // Specify if we should use BuildKit for better performance and output
+        version: DOCKER_USE_BUILDKIT
+          ? '2'
+          : undefined,
       },
     )
 
     console.debug('Waiting for the Docker build to complete...')
 
     // Wait for the build to complete!
-    await new Promise<void>((resolve, reject) => {
-      let hasError = false
+    if (DOCKER_USE_BUILDKIT) {
+      await waitForBuildVersion2(buildStream, dockerClient)
+    }
+    else {
+      await waitForBuildVersion1(buildStream, dockerClient)
+    }
 
-      dockerClient.modem.followProgress(
-        buildStream,
-        (error: unknown) => {
-          if (error) {
-            console.debug('Error during Docker build', {
-              error,
-            })
-            reject(error)
-            return
-          }
-
-          if (hasError) {
-            reject(new Error('Docker build failed'))
-            return
-          }
-
-          resolve()
-        },
-        (event: Record<string, unknown>) => {
-          if (typeof event.error === 'string') {
-            hasError = true
-            console.debug('Docker build error', { error: event.error })
-            return
-          }
-
-          if (typeof event.stream === 'string') {
-            const message = event.stream.trim()
-            if (message) {
-              console.debug('[Docker Build]', message)
-            }
-          }
-        },
-      )
-    })
+    console.debug('Docker build completed successfully')
 
     return {
       success: true,
