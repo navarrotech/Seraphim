@@ -13,6 +13,7 @@ export type GithubBranchSummary = {
 export type GithubBranchListOptions = {
   searchQuery: string | null
   limit: number
+  page: number
 }
 
 type RepoDetails = {
@@ -39,30 +40,41 @@ function normalizeSearchQuery(searchQuery: string | null): string | null {
     return null
   }
 
-  const trimmed = searchQuery.trim()
-  if (!trimmed) {
+  const trimmedQuery = searchQuery.trim()
+  if (!trimmedQuery) {
     return null
   }
 
-  return trimmed.toLowerCase()
-}
-
-function filterBranchesByQuery(
-  branches: GithubBranchSummary[],
-  searchQuery: string | null,
-) {
-  const normalizedQuery = normalizeSearchQuery(searchQuery)
-  if (!normalizedQuery) {
-    return branches
-  }
-
-  return branches.filter((branch) => branch.name.toLowerCase().includes(normalizedQuery))
+  return trimmedQuery.toLowerCase()
 }
 
 function parseOwnerAndRepo(repoPath: string) {
-  const [ owner, repo ] = repoPath.split('/')
-  if (!owner || !repo) {
+  const normalizedPath = repoPath
+    .trim()
+    .replace(/^https?:\/\/(www\.)?github\.com\//, '')
+    .replace(/^git@github\.com[:/]/, '')
+    .replace(/^ssh:\/\/git@github\.com\//, '')
+    .replace(/\.git$/, '')
+    .replace(/^\/+/, '')
+
+  const segments = normalizedPath
+    .split('/')
+    .filter(Boolean)
+
+  if (segments.length < 2) {
     console.debug('Github branch lookup received invalid repo path', { repoPath })
+    return null
+  }
+
+  const owner = segments[0]
+  const repo = segments[1]
+
+  if (!owner || !repo) {
+    console.debug('Github branch lookup parsed missing owner or repo', {
+      repoPath,
+      owner,
+      repo,
+    })
     return null
   }
 
@@ -98,6 +110,86 @@ function parseRepoPayload(payload: unknown): RepoDetails | null {
   return {
     defaultBranch: repoPayload.default_branch ?? null,
   }
+}
+
+function getBranchPriority(branchName: string, defaultBranch: string | null) {
+  const normalizedBranchName = branchName.toLowerCase()
+
+  if (defaultBranch && normalizedBranchName === defaultBranch.toLowerCase()) {
+    return 0
+  }
+
+  if (normalizedBranchName === 'main') {
+    return 1
+  }
+
+  if (normalizedBranchName === 'master') {
+    return 2
+  }
+
+  if (normalizedBranchName === 'develop' || normalizedBranchName === 'devel') {
+    return 3
+  }
+
+  if (normalizedBranchName === 'dev') {
+    return 4
+  }
+
+  if (normalizedBranchName === 'staging') {
+    return 5
+  }
+
+  if (normalizedBranchName === 'production' || normalizedBranchName === 'prod') {
+    return 6
+  }
+
+  if (normalizedBranchName.startsWith('release/')) {
+    return 7
+  }
+
+  if (normalizedBranchName.startsWith('hotfix/')) {
+    return 8
+  }
+
+  return 100
+}
+
+function sortBranches(
+  branches: GithubBranchSummary[],
+  defaultBranch: string | null,
+  searchQuery: string | null,
+) {
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery)
+
+  const matchedBranches = branches.filter((branch) => {
+    if (!normalizedSearchQuery) {
+      return true
+    }
+
+    return branch.name.toLowerCase().includes(normalizedSearchQuery)
+  })
+
+  return matchedBranches.sort((firstBranch, secondBranch) => {
+    const firstPriority = getBranchPriority(firstBranch.name, defaultBranch)
+    const secondPriority = getBranchPriority(secondBranch.name, defaultBranch)
+
+    if (firstPriority !== secondPriority) {
+      return firstPriority - secondPriority
+    }
+
+    return firstBranch.name.localeCompare(secondBranch.name)
+  })
+}
+
+function paginateBranches(
+  branches: GithubBranchSummary[],
+  page: number,
+  limit: number,
+) {
+  const startIndex = (page - 1) * limit
+  const endIndex = startIndex + limit
+
+  return branches.slice(startIndex, endIndex)
 }
 
 async function fetchRepoDetails(
@@ -163,26 +255,34 @@ export async function fetchGithubBranchesForRepo(
     return null
   }
 
-  const repoDetails = parseOwnerAndRepo(repoPath)
-  if (!repoDetails) {
+  const parsedRepoDetails = parseOwnerAndRepo(repoPath)
+  if (!parsedRepoDetails) {
     return null
   }
 
   const octokit = new Octokit(accessToken ? { auth: accessToken } : undefined)
 
   const [ branches, repoInfo ] = await Promise.all([
-    fetchRepoBranches(octokit, repoDetails.owner, repoDetails.repo),
-    fetchRepoDetails(octokit, repoDetails.owner, repoDetails.repo),
+    fetchRepoBranches(octokit, parsedRepoDetails.owner, parsedRepoDetails.repo),
+    fetchRepoDetails(octokit, parsedRepoDetails.owner, parsedRepoDetails.repo),
   ])
 
   if (!branches) {
     return null
   }
 
-  const filteredBranches = filterBranchesByQuery(branches, options.searchQuery)
+  const sortedBranches = sortBranches(
+    branches,
+    repoInfo?.defaultBranch ?? null,
+    options.searchQuery,
+  )
+  const paginatedBranches = paginateBranches(sortedBranches, options.page, options.limit)
 
   return {
-    branches: filteredBranches.slice(0, options.limit),
+    branches: paginatedBranches,
     defaultBranch: repoInfo?.defaultBranch ?? null,
+    totalCount: sortedBranches.length,
+    page: options.page,
+    limit: options.limit,
   }
 }
