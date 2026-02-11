@@ -34,6 +34,7 @@ import {
 const TASK_STATE_COLOR_BY_STATE: Record<TaskState, ChipProps['color']> = {
   Creating: 'default',
   SettingUp: 'default',
+  ContainerBroken: 'danger',
   Working: 'primary',
   Validating: 'warning',
   Halting: 'warning',

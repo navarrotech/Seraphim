@@ -8,6 +8,7 @@ import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 import { requestTaskName, toContainerName } from '@electron/jobs/taskNaming'
 import { teardownTask } from '@electron/jobs/teardownTask'
+import { updateTaskState } from '@electron/jobs/updateTaskState'
 
 // Misc
 import { TaskInstance } from './taskInstance'
@@ -58,6 +59,27 @@ class TaskManager {
       const containerExists = await taskInstance.refreshContainerStatus()
       if (containerExists) {
         await taskInstance.attachToContainer()
+        continue
+      }
+
+      if (!task.container || task.container === 'pending') {
+        console.debug('TaskManager initialized task without a persisted container id', {
+          taskId: task.id,
+          containerId: task.container,
+        })
+        continue
+      }
+
+      console.debug('TaskManager marked task as ContainerBroken during initialization', {
+        taskId: task.id,
+        containerId: task.container,
+      })
+
+      const updatedTask = await updateTaskState(task.id, 'ContainerBroken')
+      if (!updatedTask) {
+        console.debug('TaskManager failed to persist ContainerBroken task state during initialization', {
+          taskId: task.id,
+        })
       }
     }
   }
