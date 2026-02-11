@@ -115,6 +115,9 @@ model UserSettings {
   language String? @default("auto")
   theme    String? @default("system")
 
+  customAgentInstructions String  @default("") @map("custom_agent_instructions")
+  customAgentsFile        String? @map("custom_agents_file")
+
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_settings")
