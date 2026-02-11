@@ -31,6 +31,10 @@ const settingsTabs: SettingsTab[] = [
     label: 'LLMs',
     url: UrlTree.settingsLlms,
   },
+  {
+    label: 'Advanced',
+    url: UrlTree.settingsAdvanced,
+  },
 ]
 
 function isActiveTab(currentPath: string, tabUrl: string) {

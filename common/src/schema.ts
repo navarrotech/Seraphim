@@ -76,6 +76,7 @@ export const taskUpdateSchema = z.object({
 
 export const llmUpdateSchema = z.object({
   apiKey: z.string().trim().min(1).optional(),
+  accessToken: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).optional(),
   preferredModel: z.string().trim().min(1).optional(),
   tokenLimit: z.number().int().nonnegative().optional(),
@@ -94,6 +95,7 @@ export const openAiApiKeyLlmCreateSchema = z.object({
 
 export const openAiLoginTokenLlmCreateSchema = z.object({
   name: z.string().trim().min(1),
+  accessToken: z.string().trim().min(1),
   tokenLimit: z.number().int().nonnegative().optional(),
   isDefault: z.boolean().optional().default(false),
 }).strict()
@@ -107,6 +109,8 @@ export const userSettingsSchema = z.object({
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
   doneSoundAudioFileId: z.string().uuid().nullable().optional(),
+  customAgentInstructions: z.string().optional().default(''),
+  customAgentsFile: z.string().nullable().optional(),
 }).strict()
 
 const doneSoundFileSchema = z.object({
@@ -121,6 +125,8 @@ const userSettingsUpdateFieldsSchema = z.object({
   theme: userThemeSchema.optional(),
   voiceEnabled: z.boolean().optional(),
   voiceHotkey: z.string().trim().min(1).optional(),
+  customAgentInstructions: z.string().optional(),
+  customAgentsFile: z.string().nullable().optional(),
 }).strict()
 
 export const userSettingsUpdateSchema = userSettingsUpdateFieldsSchema.extend({

@@ -5,6 +5,7 @@ export const UrlTree = {
   root: '/',
   settings: '/settings',
   settingsGeneral: '/settings/general',
+  settingsAdvanced: '/settings/advanced',
   settingsGitRepos: '/settings/git-repos',
   settingsWorkspaces: '/settings/workspaces',
   settingsLlms: '/settings/llms',
