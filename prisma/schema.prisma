@@ -26,6 +26,7 @@ enum AuthProvider {
 enum TaskState {
   Creating
   SettingUp
+  ContainerBroken
   Working
   Validating
   Reviewing
