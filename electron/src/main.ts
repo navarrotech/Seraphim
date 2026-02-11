@@ -9,6 +9,7 @@ import { gracefulShutdown } from './lib/shutdown'
 
 // IPC
 import './lib/ipc'
+import './lib/open'
 
 // Lib
 import { startDatabase } from './database'

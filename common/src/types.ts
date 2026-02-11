@@ -81,3 +81,8 @@ export type OpenDialogOptions = {
     | 'dontAddToRecent'
   >
 }
+
+export type CommandResponse = {
+  successful: boolean
+  errors?: string[]
+}
