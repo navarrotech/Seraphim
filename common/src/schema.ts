@@ -109,6 +109,8 @@ export const userSettingsSchema = z.object({
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
   doneSoundAudioFileId: z.string().uuid().nullable().optional(),
+  customAgentInstructions: z.string().optional().default(''),
+  customAgentsFile: z.string().nullable().optional(),
 }).strict()
 
 const doneSoundFileSchema = z.object({
@@ -123,6 +125,8 @@ const userSettingsUpdateFieldsSchema = z.object({
   theme: userThemeSchema.optional(),
   voiceEnabled: z.boolean().optional(),
   voiceHotkey: z.string().trim().min(1).optional(),
+  customAgentInstructions: z.string().optional(),
+  customAgentsFile: z.string().nullable().optional(),
 }).strict()
 
 export const userSettingsUpdateSchema = userSettingsUpdateFieldsSchema.extend({

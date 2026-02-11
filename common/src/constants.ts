@@ -12,6 +12,8 @@ export const DEFAULT_USER_LANGUAGE = 'auto' as const
 export const DEFAULT_USER_THEME = 'system' as const
 export const DEFAULT_VOICE_ENABLED = true as const
 export const DEFAULT_VOICE_HOTKEY = 'Control+Num0' as const
+export const DEFAULT_CUSTOM_AGENT_INSTRUCTIONS = '' as const
+export const DEFAULT_CUSTOM_AGENTS_FILE = '' as const
 export const DONE_SOUND_MIME_TYPES = [
   'audio/mpeg',
   'audio/wav',
