@@ -2,6 +2,7 @@
 
 import type { NavigateOptions } from 'react-router-dom'
 import type { ValidApplicationLink } from '@common/urls'
+import type { OpenDialogOptions, CommandResponse } from '@common/types'
 
 declare global {
   interface Window {
@@ -13,6 +14,10 @@ declare global {
     config: {
       getApiUrl: () => string
       exitApp: () => Promise<void>
+      restartGui: () => Promise<void>,
+      openDialog: (options: OpenDialogOptions) => Promise<string[] | null>,
+      openFileBrowserTo: (filePath: string) => Promise<CommandResponse>,
+      openCodeEditorTo: (filePath: string) => Promise<CommandResponse>,
     },
   }
 }

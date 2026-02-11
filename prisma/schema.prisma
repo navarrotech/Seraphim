@@ -112,8 +112,9 @@ model UserSettings {
   voiceEnabled Boolean @default(true)
   voiceHotkey  String  @default("Control+Num0")
 
-  language String? @default("auto")
-  theme    String? @default("system")
+  language   String? @default("auto")
+  theme      String? @default("system")
+  codeEditor String? @default("code") @map("preferred_code_editor")
 
   customAgentInstructions String  @default("") @map("custom_agent_instructions")
   customAgentsFile        String? @map("custom_agents_file")

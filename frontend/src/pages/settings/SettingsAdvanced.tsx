@@ -12,7 +12,8 @@ import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { dispatch, useSelector } from '@frontend/framework/store'
 
 // User interface
-import { Button, Card, Form, Input, Switch } from '@heroui/react'
+import { Button, Card, Form, Switch } from '@heroui/react'
+import { FilePathInput } from '@frontend/common/FilePathInput'
 import { Monaco } from '@frontend/common/Monaco'
 
 // Misc
@@ -147,14 +148,19 @@ export function SettingsAdvanced() {
 
   let customAgentsFilePathInput = null
   if (useCustomAgentsFilePath) {
-    customAgentsFilePathInput = <Input
+    customAgentsFilePathInput = <FilePathInput
       label='AGENTS.md path'
-      placeholder='/Users/me/project/AGENTS.md'
+      placeholder='/home/me/AGENTS.md'
       value={customAgentsFilePath}
       isDisabled={isFormDisabled}
       onValueChange={handleCustomAgentsFilePathChange}
       className='w-full'
       description='Placeholder path input (editable text only)'
+      pickType='file'
+      filters={[
+        { name: 'Markdown files', extensions: [ 'md', 'txt' ]},
+        { name: 'All files', extensions: [ '*' ]},
+      ]}
     />
   }
 

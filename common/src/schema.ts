@@ -106,6 +106,7 @@ export const userThemeSchema = z.enum(USER_THEME_OPTIONS)
 export const userSettingsSchema = z.object({
   language: userLanguageSchema,
   theme: userThemeSchema,
+  codeEditor: z.string().trim().optional(),
   voiceEnabled: z.boolean(),
   voiceHotkey: z.string().trim().min(1),
   doneSoundAudioFileId: z.string().uuid().nullable().optional(),
@@ -123,6 +124,7 @@ const doneSoundFileSchema = z.object({
 const userSettingsUpdateFieldsSchema = z.object({
   language: userLanguageSchema.optional(),
   theme: userThemeSchema.optional(),
+  codeEditor: z.string().trim().optional(),
   voiceEnabled: z.boolean().optional(),
   voiceHotkey: z.string().trim().min(1).optional(),
   customAgentInstructions: z.string().optional(),

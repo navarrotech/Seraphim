@@ -57,6 +57,7 @@ type SettingsFormValues = z.infer<typeof userSettingsSchema>
 type SettingsPayload = {
   language: SettingsFormValues['language']
   theme: SettingsFormValues['theme']
+  codeEditor: SettingsFormValues['codeEditor']
   voiceEnabled: boolean
   voiceHotkey: string
 }
@@ -195,9 +196,19 @@ function buildSettingsPayload(values: SettingsFormValues): SettingsPayload | nul
   return {
     language: values.language,
     theme: values.theme,
+    codeEditor: values.codeEditor,
     voiceEnabled: values.voiceEnabled,
     voiceHotkey: trimmedHotkey,
   }
+}
+
+const resolved = zodResolver(userSettingsSchema)
+const defaultValues: SettingsFormValues = {
+  language: DEFAULT_USER_LANGUAGE,
+  theme: DEFAULT_USER_THEME,
+  voiceEnabled: DEFAULT_VOICE_ENABLED,
+  voiceHotkey: DEFAULT_VOICE_HOTKEY,
+  doneSoundAudioFileId: null,
 }
 
 export function SettingsGeneral() {
@@ -208,14 +219,8 @@ export function SettingsGeneral() {
   const doneSoundInputRef = useRef<HTMLInputElement | null>(null)
 
   const form = useForm<SettingsFormValues>({
-    resolver: zodResolver(userSettingsSchema),
-    defaultValues: {
-      language: DEFAULT_USER_LANGUAGE,
-      theme: DEFAULT_USER_THEME,
-      voiceEnabled: DEFAULT_VOICE_ENABLED,
-      voiceHotkey: DEFAULT_VOICE_HOTKEY,
-      doneSoundAudioFileId: null,
-    },
+    resolver: resolved,
+    defaultValues,
   })
 
   const languageValue = form.watch('language')
@@ -516,7 +521,7 @@ export function SettingsGeneral() {
         loadingCard
       }
       <Card className='relaxed p-6 w-full'>
-        <div className='level w-full items-start'>
+        <div className='relaxed level w-full items-start'>
           <div className='w-full'>
             {/* Language */}
             <div className='relaxed'>
@@ -563,6 +568,28 @@ export function SettingsGeneral() {
               ))
             }</Select>
           </div>
+        </div>
+        <div className='w-[50%]'>
+          <div className='relaxed'>
+            <h3 className='text-xl'>Code editor</h3>
+            <p className='opacity-80'>
+              Specify the command to launch your preferred code editor from Seraphim.
+            </p>
+          </div>
+          <Input
+            label='Preferred code editor'
+            value={form.watch('codeEditor') || ''}
+            isDisabled={isFormDisabled}
+            onChange={(event) => {
+              const nextValue = event.target.value
+              form.setValue('codeEditor', nextValue, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+              })
+            }}
+            className='w-full'
+          />
         </div>
       </Card>
       <Card className='relaxed p-6 w-full'>
@@ -621,7 +648,7 @@ export function SettingsGeneral() {
               <Button
                 color='danger'
                 isDisabled={isClearDoneSoundDisabled}
-                onClick={handleClearDoneSound}
+                onPress={handleClearDoneSound}
               >
                 <span>Clear custom sound</span>
               </Button>

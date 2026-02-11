@@ -4,6 +4,7 @@ import type { OpenDialogOptions, CommandResponse } from '@common/types'
 
 // Core
 import { dialog, ipcMain, shell } from 'electron'
+import { requireDatabaseClient } from '@electron/database'
 
 // Lib
 import { ChildProcess } from '@common/node/ChildProcess'
@@ -86,8 +87,15 @@ ipcMain.handle(
       } satisfies CommandResponse
     }
 
+    const prismaClient = requireDatabaseClient('openCodeEditorTo user settings')
+    const userSettings = await prismaClient.userSettings.findFirst({
+      select: {
+        codeEditor: true,
+      },
+    })
+
     const resolvedPath = resolve(filePath)
-    const preferredEditor = process.env.EDITOR || process.env.VISUAL
+    const preferredEditor = userSettings?.codeEditor || process.env.EDITOR || process.env.VISUAL
     const launchModeInput = process.env.SERAPHIM_EDITOR_LAUNCH_MODE || 'auto'
     let launchMode = launchModeInput.toLowerCase()
     if (launchMode !== 'auto' && launchMode !== 'terminal' && launchMode !== 'shell') {
