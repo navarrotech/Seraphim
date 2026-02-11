@@ -56,3 +56,28 @@ export type CodexAuthJson = {
   },
   last_refresh?: string,
 }
+
+export type FileFilter = {
+  name: string
+  // This does NOT include dots
+  // e.g. ['txt', 'js'] not ['.txt', '.js']
+  extensions: string[]
+}
+
+export type OpenDialogOptions = {
+  title?: string
+  defaultPath?: string
+  buttonLabel?: string
+  filters?: FileFilter[]
+  properties?: Array<
+    'openFile'
+    | 'openDirectory'
+    | 'multiSelections'
+    | 'showHiddenFiles'
+    | 'createDirectory'
+    | 'promptToCreate'
+    | 'noResolveAliases'
+    | 'treatPackageAsDirectory'
+    | 'dontAddToRecent'
+  >
+}

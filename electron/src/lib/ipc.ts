@@ -3,6 +3,7 @@
 // Core
 import { app, ipcMain } from 'electron'
 import { IPC_SIGNALS } from '@electron/constants'
+import { gracefulShutdown } from './shutdown'
 
 // Misc
 import { API_PORT } from '@electron/env'
@@ -12,5 +13,10 @@ ipcMain.on(IPC_SIGNALS.getApiUrl, (event) => {
 })
 
 ipcMain.handle(IPC_SIGNALS.exitApp, async () => {
-  app.quit()
+  await gracefulShutdown()
+})
+
+ipcMain.handle(IPC_SIGNALS.reloadElectron, async () => {
+  app.relaunch()
+  await gracefulShutdown()
 })
