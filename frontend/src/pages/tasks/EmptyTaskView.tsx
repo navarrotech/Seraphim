@@ -19,7 +19,16 @@ type TaskDraft = {
   workspaceId: string
   authAccountId: string
   llmId: string
+  branch: string
 }
+
+const TASK_BRANCH_OPTIONS = [
+  'main',
+  'master',
+  'develop',
+  'staging',
+  'production',
+] as const
 
 type Props = {
   workspaces: Workspace[]
@@ -43,6 +52,7 @@ export function EmptyTaskView(props: Props) {
   const [ workspaceId, setWorkspaceId ] = useState<string>('')
   const [ authAccountId, setAuthAccountId ] = useState<string>('')
   const [ llmId, setLlmId ] = useState<string>('')
+  const [ branch, setBranch ] = useState<string>('')
 
   useEffect(() => {
     if (defaultWorkspaceId) {
@@ -139,6 +149,25 @@ export function EmptyTaskView(props: Props) {
     setAuthAccountId(String(selectedAuthAccountId))
   }
 
+  function handleBranchSelection(selection: Selection) {
+    if (selection === 'all') {
+      console.debug('EmptyTaskView received an unexpected branch selection', {
+        selection,
+      })
+      return
+    }
+
+    const selectedKeys = Array.from(selection)
+    const selectedBranch = selectedKeys[0]
+
+    if (!selectedBranch) {
+      console.debug('EmptyTaskView failed to select a branch', { selection })
+      return
+    }
+
+    setBranch(String(selectedBranch))
+  }
+
   async function handleSubmit() {
     const trimmedMessage = message.trim()
 
@@ -162,11 +191,17 @@ export function EmptyTaskView(props: Props) {
       return
     }
 
+    if (!branch) {
+      console.debug('EmptyTaskView cannot submit without a branch')
+      return
+    }
+
     await onSubmit({
       message: trimmedMessage,
       workspaceId,
       authAccountId,
       llmId,
+      branch,
     })
   }
 
@@ -178,6 +213,7 @@ export function EmptyTaskView(props: Props) {
     || !workspaceId
     || !authAccountId
     || !llmId
+    || !branch
     || isMessageEmpty
 
   return <div className='flex h-full items-center justify-center p-10'>
@@ -187,7 +223,7 @@ export function EmptyTaskView(props: Props) {
           <strong>Start a new task</strong>
         </h2>
         <p className='opacity-80'>
-          Share a first message, then pick a workspace, auth account, and llm.
+          Share a first message, then pick a workspace, branch, auth account, and llm.
         </p>
       </div>
       <div className='relaxed'>
@@ -212,6 +248,22 @@ export function EmptyTaskView(props: Props) {
           {workspaces.map((workspace) => (
             <SelectItem key={workspace.id}>
               {workspace.name}
+            </SelectItem>
+          ))}
+        </Select>
+      </div>
+      <div className='relaxed'>
+        <Select
+          label='Branch'
+          placeholder='Select the git branch for this task'
+          selectedKeys={branch ? [ branch ] : []}
+          onSelectionChange={handleBranchSelection}
+          isDisabled={isSubmitting}
+          isRequired
+        >
+          {TASK_BRANCH_OPTIONS.map((branchOption) => (
+            <SelectItem key={branchOption}>
+              {branchOption}
             </SelectItem>
           ))}
         </Select>

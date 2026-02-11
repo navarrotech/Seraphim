@@ -21,8 +21,6 @@ import { createTask, getTask } from '@frontend/lib/routes/taskRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 import { getTaskViewUrl } from '@common/urls'
 
-const DEFAULT_TASK_BRANCH = 'main'
-
 type TaskRouteParams = {
   taskId?: string
 }
@@ -32,6 +30,7 @@ type TaskDraft = {
   workspaceId: string
   authAccountId: string
   llmId: string
+  branch: string
 }
 
 export function Tasks() {
@@ -90,7 +89,7 @@ export function Tasks() {
         authAccountId: authAccount.id,
         llmId: draft.llmId,
         message: draft.message,
-        branch: DEFAULT_TASK_BRANCH,
+        branch: draft.branch,
         archived: false,
       })
 
