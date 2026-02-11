@@ -1,24 +1,46 @@
-﻿// Copyright © 2026 Jalapeno Labs
+// Copyright © 2026 Jalapeno Labs
 
 import type { Workspace } from '@prisma/client'
+import type { Key } from 'react'
 import type { LlmRecord } from '@common/types'
 import type { Selection } from '@react-types/shared'
-import type { ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
+import type {
+  ConnectedAccount,
+  GithubBranchSummary,
+} from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
+
+// Lib
+import useSWR from 'swr'
 
 // Redux
 import { useSelector } from '@frontend/framework/store'
 
 // User interface
-import { Button, Card, Select, SelectItem, Textarea } from '@heroui/react'
+import {
+  Autocomplete,
+  AutocompleteItem,
+  Button,
+  Card,
+  Select,
+  SelectItem,
+  Textarea,
+} from '@heroui/react'
+
+// Utility
+import { useDebouncedState } from '@frontend/hooks/useDebouncedState'
+
+// Misc
+import { listBranches } from '@frontend/lib/routes/accountsRoutes'
 
 type TaskDraft = {
   message: string
   workspaceId: string
   authAccountId: string
   llmId: string
+  branch: string
 }
 
 type Props = {
@@ -43,6 +65,43 @@ export function EmptyTaskView(props: Props) {
   const [ workspaceId, setWorkspaceId ] = useState<string>('')
   const [ authAccountId, setAuthAccountId ] = useState<string>('')
   const [ llmId, setLlmId ] = useState<string>('')
+  const [ branch, setBranch ] = useState<string>('')
+  const [ branchSearchQuery, setBranchSearchQuery ] = useState<string>('')
+
+  const debouncedBranchSearchQuery = useDebouncedState(branchSearchQuery, 250)
+
+  const selectedWorkspace = getWorkspaceById(workspaces, workspaceId)
+  const selectedWorkspaceRepoUrl = selectedWorkspace?.sourceRepoUrl?.trim() || ''
+
+  const shouldLoadBranches = Boolean(
+    workspaceId
+    && authAccountId
+    && selectedWorkspaceRepoUrl,
+  )
+
+  const branchesQuery = useSWR(
+    () => {
+      if (!shouldLoadBranches) {
+        return null
+      }
+
+      return [
+        'task-branches',
+        workspaceId,
+        authAccountId,
+        debouncedBranchSearchQuery,
+      ]
+    },
+    () => listBranches({
+      workspaceId,
+      authAccountId,
+      searchQuery: debouncedBranchSearchQuery,
+      page: 1,
+      limit: 50,
+    }),
+  )
+
+  const branchOptions = branchesQuery.data?.branches || []
 
   useEffect(() => {
     if (defaultWorkspaceId) {
@@ -81,6 +140,11 @@ export function EmptyTaskView(props: Props) {
 
     console.debug('EmptyTaskView has no llms to select from')
   }, [ llms ])
+
+  useEffect(() => {
+    setBranch('')
+    setBranchSearchQuery('')
+  }, [ workspaceId, authAccountId ])
 
   function handleWorkspaceSelection(selection: Selection) {
     if (selection === 'all') {
@@ -139,6 +203,41 @@ export function EmptyTaskView(props: Props) {
     setAuthAccountId(String(selectedAuthAccountId))
   }
 
+  function handleBranchSearchChange(value: string) {
+    setBranchSearchQuery(value)
+
+    if (!branch) {
+      return
+    }
+
+    console.debug('EmptyTaskView clearing selected branch after branch query changed', {
+      previousBranch: branch,
+      value,
+    })
+    setBranch('')
+  }
+
+  function handleBranchSelection(selection: Key | null) {
+    if (!selection) {
+      console.debug('EmptyTaskView cleared branch selection')
+      setBranch('')
+      return
+    }
+
+    const selectedBranchName = selection.toString().trim()
+
+    if (!selectedBranchName) {
+      console.debug('EmptyTaskView received an empty branch selection', {
+        selection,
+      })
+      setBranch('')
+      return
+    }
+
+    setBranch(selectedBranchName)
+    setBranchSearchQuery(selectedBranchName)
+  }
+
   async function handleSubmit() {
     const trimmedMessage = message.trim()
 
@@ -162,11 +261,17 @@ export function EmptyTaskView(props: Props) {
       return
     }
 
+    if (!branch) {
+      console.debug('EmptyTaskView cannot submit without a branch')
+      return
+    }
+
     await onSubmit({
       message: trimmedMessage,
       workspaceId,
       authAccountId,
       llmId,
+      branch,
     })
   }
 
@@ -174,11 +279,40 @@ export function EmptyTaskView(props: Props) {
   const hasAuthAccounts = authAccounts.length > 0
   const hasLlms = llms.length > 0
   const isMessageEmpty = message.trim().length === 0
+  const isBranchLoading = branchesQuery.isLoading
+  const isBranchSelectionDisabled = isSubmitting || !shouldLoadBranches
   const isSubmitDisabled = isSubmitting
     || !workspaceId
     || !authAccountId
     || !llmId
+    || !branch
     || isMessageEmpty
+
+  let branchHelp = null
+  if (!workspaceId) {
+    branchHelp = <Card className='p-4'>
+      <p className='opacity-80'>Select a workspace first to load its branches.</p>
+    </Card>
+  }
+  else if (!selectedWorkspaceRepoUrl) {
+    branchHelp = <Card className='p-4'>
+      <p className='opacity-80'>
+        The selected workspace has no repository. Add a repository to load branches.
+      </p>
+    </Card>
+  }
+  else if (branchesQuery.error) {
+    branchHelp = <Card className='p-4'>
+      <p className='opacity-80'>Unable to load branches right now. Please try again.</p>
+    </Card>
+  }
+  else if (!isBranchLoading && shouldLoadBranches && branchOptions.length === 0) {
+    branchHelp = <Card className='p-4'>
+      <p className='opacity-80'>
+        No branches found for this repository.
+      </p>
+    </Card>
+  }
 
   return <div className='flex h-full items-center justify-center p-10'>
     <Card className='w-full max-w-3xl p-8'>
@@ -187,7 +321,7 @@ export function EmptyTaskView(props: Props) {
           <strong>Start a new task</strong>
         </h2>
         <p className='opacity-80'>
-          Share a first message, then pick a workspace, auth account, and llm.
+          Share a first message, then pick a workspace, branch, auth account, and llm.
         </p>
       </div>
       <div className='relaxed'>
@@ -232,6 +366,29 @@ export function EmptyTaskView(props: Props) {
         </Select>
       </div>
       <div className='relaxed'>
+        <Autocomplete
+          label='Branch'
+          placeholder='Type to search branches...'
+          inputValue={branchSearchQuery}
+          onInputChange={handleBranchSearchChange}
+          selectedKey={branch || undefined}
+          onSelectionChange={handleBranchSelection}
+          isLoading={isBranchLoading}
+          isDisabled={isBranchSelectionDisabled}
+          items={branchOptions}
+          isRequired
+        >
+          {(branchOption) =>
+            <AutocompleteItem key={branchOption.name} textValue={branchOption.name}>
+              {getBranchLabel(branchOption, branchesQuery.data?.defaultBranch || null)}
+            </AutocompleteItem>
+          }
+        </Autocomplete>
+      </div>
+      <div className='relaxed'>
+        {branchHelp}
+      </div>
+      <div className='relaxed'>
         <Select
           label='Llm'
           placeholder='Select a llm'
@@ -258,6 +415,26 @@ export function EmptyTaskView(props: Props) {
       </div>
     </Card>
   </div>
+}
+
+function getWorkspaceById(workspaces: Workspace[], workspaceId: string): Workspace | null {
+  const workspace = workspaces.find((entry) => entry.id === workspaceId)
+
+  if (!workspace && workspaceId) {
+    console.debug('EmptyTaskView could not resolve selected workspace from list', {
+      workspaceId,
+    })
+  }
+
+  return workspace || null
+}
+
+function getBranchLabel(branchOption: GithubBranchSummary, defaultBranch: string | null) {
+  if (defaultBranch && branchOption.name === defaultBranch) {
+    return `${branchOption.name} (default)`
+  }
+
+  return branchOption.name
 }
 
 function getAuthAccountLabel(authAccount: ConnectedAccount) {
@@ -288,7 +465,6 @@ function getLlmLabel(llm: LlmRecord) {
   if (llm.type === 'OPENAI_LOGIN_TOKEN') {
     return 'OpenAI (Login token)'
   }
-
 
   console.debug('EmptyTaskView received an unsupported llm type', {
     llmType: llm.type,

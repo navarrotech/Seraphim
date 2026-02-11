@@ -101,6 +101,32 @@ describe('Cloner', () => {
     })
   })
 
+
+  describe('getParsedRepositoryDetails', () => {
+    it('returns owner and repo when parsing succeeded', () => {
+      const cloner = new TestCloner('git@github.com:navarrotech/Seraphim.git')
+
+      expect(cloner.getParsedRepositoryDetails()).toEqual({
+        owner: 'navarrotech',
+        repo: 'Seraphim',
+      })
+    })
+
+    it('returns null and logs when parsing failed', () => {
+      const cloner = new TestCloner('local-path')
+
+      expect(cloner.getParsedRepositoryDetails()).toBeNull()
+      expect(debugSpy).toHaveBeenCalledWith(
+        'Cloner was unable to resolve repository owner and name from source url',
+        {
+          sourceRepoUrl: 'local-path',
+          owner: null,
+          repo: null,
+        },
+      )
+    })
+  })
+
   describe('getCloneUrl', () => {
     it('returns the trimmed source URL', () => {
       const cloner = new TestCloner('  git@github.com:navarrotech/Seraphim.git  ')

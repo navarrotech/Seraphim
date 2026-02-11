@@ -8,6 +8,7 @@ import { Router as createRouter } from 'express'
 // Misc
 import { handleAddAccountRequest } from './addAccountRoute'
 import { handleListAccountsRequest } from './listAccountsRoute'
+import { handleListBranchesRequest } from './listBranchesRoute'
 import { handleListReposRequest } from './listReposRoute'
 import { handleLogoutAccountRequest } from './logoutAccountRoute'
 import { handleUpdateAccountRequest } from './updateAccountRoute'
@@ -26,6 +27,9 @@ export function createAccountsRouter(): Router {
 
   // /api/v1/protected/accounts/:accountId
   accountsRouter.patch('/:accountId', handleUpdateAccountRequest)
+
+  // /api/v1/protected/accounts/branches
+  accountsRouter.get('/branches', handleListBranchesRequest)
 
   // /api/v1/protected/accounts/repos
   accountsRouter.get('/repos', handleListReposRequest)

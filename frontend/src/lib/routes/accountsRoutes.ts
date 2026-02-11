@@ -61,6 +61,23 @@ export type ListReposResponse = {
   failures: RepoAccountFailure[]
 }
 
+export type GithubBranchSummary = {
+  name: string
+  sha: string
+  isProtected: boolean
+}
+
+export type ListBranchesResponse = {
+  workspaceId: string
+  authAccountId: string
+  repoPath: string
+  defaultBranch: string | null
+  branches: GithubBranchSummary[]
+  totalCount: number
+  page: number
+  limit: number
+}
+
 export type AddAccountRequest = {
   provider: AuthProvider
   name: string
@@ -141,6 +158,46 @@ export function listRepos(searchQuery?: string) {
       searchParams: buildRepoSearchParams(searchQuery),
     })
     .json<ListReposResponse>()
+}
+
+type ListBranchesRequest = {
+  workspaceId: string
+  authAccountId: string
+  searchQuery?: string
+  page?: number
+  limit?: number
+}
+
+function buildBranchSearchParams(request: ListBranchesRequest) {
+  const params: Record<string, string> = {
+    workspaceId: request.workspaceId,
+    authAccountId: request.authAccountId,
+  }
+
+  if (request.searchQuery) {
+    const trimmedQuery = request.searchQuery.trim()
+    if (trimmedQuery) {
+      params.q = trimmedQuery
+    }
+  }
+
+  if (request.page) {
+    params.page = request.page.toString()
+  }
+
+  if (request.limit) {
+    params.limit = request.limit.toString()
+  }
+
+  return params
+}
+
+export function listBranches(request: ListBranchesRequest) {
+  return apiClient
+    .get('v1/protected/accounts/branches', {
+      searchParams: buildBranchSearchParams(request),
+    })
+    .json<ListBranchesResponse>()
 }
 
 export function addAccount(payload: AddAccountRequest) {
