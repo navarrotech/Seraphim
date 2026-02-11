@@ -5,6 +5,7 @@ import type { TaskWithFullContext } from '@common/types'
 import type { Cloner } from '@common/cloning/polymorphism/cloner'
 
 // Docker
+import { requireDatabaseClient } from '@electron/database'
 import { getDockerClient } from '@electron/docker/docker'
 import { buildDockerfileContents } from '@electron/docker/image'
 import { pullWithProgress } from './pullWithProgress'
@@ -12,10 +13,10 @@ import { waitForBuildVersion1, waitForBuildVersion2 } from './waitForBuild'
 import { createCodexConfig, createCodexAuthFile } from '@common/codexConfig'
 
 // Node.js
-import { mkdtemp, writeFile, rm, readdir } from 'node:fs/promises'
+import { mkdtemp, writeFile, rm, readdir, readFile, mkdir } from 'node:fs/promises'
 import { cpSync, mkdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { utilsDir } from '@electron/lib/internalFiles'
 
 // Utility
@@ -34,6 +35,8 @@ import { getSecrets } from '@electron/tasks/getSecrets'
 
 const contextFiles = [
   'Dockerfile',
+  'AGENTS.md',
+  'docs',
   `utils`,
   SETUP_SCRIPT_NAME,
   VALIDATE_SCRIPT_NAME,
@@ -55,6 +58,8 @@ export async function buildImage(
   let contextDir: string | null = null
 
   try {
+    const prisma = requireDatabaseClient('buildImage')
+
     const dockerClient = getDockerClient()
     const buildTag = `seraphim-${workspace.id}-${uuid()}`
 
@@ -116,7 +121,61 @@ export async function buildImage(
     })
 
     console.debug('Initializing security for stdout redaction')
-    const secrets = await getSecrets()
+    const [ secrets, userSettings ] = await Promise.all([
+      getSecrets(),
+      prisma.userSettings.findFirst({
+        select: {
+          id: true,
+          customAgentInstructions: true,
+          customAgentsFile: true,
+        },
+      }),
+      mkdir(
+        resolve(contextDir, 'docs'),
+      ),
+    ])
+
+    let customAgentInstructionsContent: string = userSettings.customAgentInstructions || ''
+    if (userSettings.customAgentsFile) {
+      try {
+        const AGENTSmd = await readFile(userSettings.customAgentsFile, 'utf-8')
+        customAgentInstructionsContent = AGENTSmd
+      }
+      catch (error) {
+        console.error('Failed to read custom agents file', {
+          error,
+          file: userSettings.customAgentsFile,
+        })
+      }
+      try {
+        const AGENTSDocsDir = resolve(
+          dirname(userSettings.customAgentsFile),
+          'docs',
+        )
+        if (existsSync(AGENTSDocsDir)) {
+          // Copy the docs directory if it exists into the context dir as <contextDir>/docs
+          cpSync(
+            AGENTSDocsDir,
+            resolve(contextDir, 'docs'),
+            {
+              recursive: true,
+              force: true,
+              errorOnExist: false,
+            },
+          )
+          console.debug('Copied custom agents docs directory into Docker build context', {
+            from: AGENTSDocsDir,
+            to: resolve(contextDir, 'docs'),
+          })
+        }
+      }
+      catch (error) {
+        console.error('Failed to read custom agents docs directory', {
+          error,
+          dir: userSettings.customAgentsFile,
+        })
+      }
+    }
 
     console.debug('Writing Dockerfile, setup script, and validate script to context directory...')
 
@@ -148,6 +207,11 @@ export async function buildImage(
       writeFile(
         resolve(contextDir, 'codex_auth.json'),
         createCodexAuthFile(task!),
+        'utf-8',
+      ),
+      writeFile(
+        resolve(contextDir, 'AGENTS.md'),
+        customAgentInstructionsContent,
         'utf-8',
       ),
     ])
