@@ -4,11 +4,12 @@ import type { Workspace } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
 import type { Cloner } from '@common/cloning/polymorphism/cloner'
 
-// Core
+// Docker
 import { getDockerClient } from '@electron/docker/docker'
 import { buildDockerfileContents } from '@electron/docker/image'
 import { pullWithProgress } from './pullWithProgress'
 import { waitForBuildVersion1, waitForBuildVersion2 } from './waitForBuild'
+import { createCodexConfig, createCodexAuthFile } from '@common/codexConfig'
 
 // Node.js
 import { mkdtemp, writeFile, rm, readdir } from 'node:fs/promises'
@@ -29,12 +30,15 @@ import {
   VALIDATE_SCRIPT_NAME,
   DOCKER_USE_BUILDKIT,
 } from '@common/constants'
+import { getSecrets } from '@electron/tasks/getSecrets'
 
 const contextFiles = [
   'Dockerfile',
   `utils`,
   SETUP_SCRIPT_NAME,
   VALIDATE_SCRIPT_NAME,
+  'codex_config.toml',
+  'codex_auth.json',
 ] as const satisfies string[]
 
 type BuildImageResult = {
@@ -68,7 +72,7 @@ export async function buildImage(
       cloneUrl = cloner.getCloneUrl()
     }
 
-    const dockerfileContents = buildDockerfileContents(cloneUrl, {
+    const dockerfileContents = buildDockerfileContents({
       customCommands: workspace.customDockerfileCommands,
       gitName: task?.authAccount?.name,
       gitEmail: task?.authAccount?.email,
@@ -111,13 +115,18 @@ export async function buildImage(
       errorOnExist: false,
     })
 
+    console.debug('Initializing security for stdout redaction')
+    const secrets = await getSecrets()
+
     console.debug('Writing Dockerfile, setup script, and validate script to context directory...')
 
     await Promise.all([
       writeScriptFile(
         contextDir,
-        SETUP_SCRIPT_NAME,
+        cloneUrl,
+        task.sourceGitBranch,
         workspace.setupScript,
+        secrets,
       ),
       writeFile(
         resolve(
@@ -129,7 +138,17 @@ export async function buildImage(
       writeFile(
         resolve(contextDir, 'Dockerfile'),
         dockerfileContents,
-        'utf8',
+        'utf-8',
+      ),
+      writeFile(
+        resolve(contextDir, 'codex_config.toml'),
+        createCodexConfig(task!),
+        'utf-8',
+      ),
+      writeFile(
+        resolve(contextDir, 'codex_auth.json'),
+        createCodexAuthFile(task!),
+        'utf-8',
       ),
     ])
 

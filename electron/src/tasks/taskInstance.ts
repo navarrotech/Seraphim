@@ -4,6 +4,7 @@ import type { TaskWithFullContext } from '@common/types'
 
 // Core
 import { requireDatabaseClient } from '@electron/database'
+import packageJson from '../../package.json'
 
 // Docker
 import { getDockerClient } from '@electron/docker/docker'
@@ -22,6 +23,7 @@ import { convertEnvironmentToStringArray } from '@common/envKit'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { safeParseJson } from '@common/json'
 import { updateTaskState } from '@electron/jobs/updateTaskState'
+import { CODEX_WORKDIR } from '@common/constants'
 
 type TaskInstanceOptions = {
   task: TaskWithFullContext
@@ -170,6 +172,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
       const Image = buildImageResult.imageTag
       const Env = convertEnvironmentToStringArray(workspace.envEntries)
 
+      Env.push(`CODEX_HOME=${CODEX_WORKDIR}`)
+
       const socketMount = getDockerSocketMount()
       const volumes = []
       if (socketMount) {
@@ -184,7 +188,15 @@ export class TaskInstance extends EventEmitter<EventMap> {
         Env,
         HostConfig: {
           Binds: volumes,
+          NetworkMode: 'host',
         },
+        // The following are necessary for codex app-server to work properly
+        Tty: false,
+        OpenStdin: true,
+        AttachStdin: true,
+        StdinOnce: false,
+        AttachStderr: true,
+        AttachStdout: true,
       })
 
       console.debug('Docker container created for task', {
@@ -216,6 +228,13 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       await container.start()
       await this.attachToContainer()
+
+      this.sendMessage({
+        method: 'initialize',
+        id: 0,
+        params: { clientInfo: { name: 'seraphim', version: packageJson.version }},
+      })
+      this.sendMessage({ method: 'initialized', params: {}})
 
       console.debug('Beginning task codex work...')
 
@@ -300,6 +319,12 @@ export class TaskInstance extends EventEmitter<EventMap> {
       const parsedMessage = safeParseJson(line)
       if (parsedMessage) {
         this.emit('message', parsedMessage)
+      }
+      else {
+        console.debug('Failed to parse task container stdout line as JSON', {
+          taskId: this.task.id,
+          line,
+        })
       }
     }
 
@@ -400,16 +425,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
     dockerClient.modem.demuxStream(executionStream, stdoutStream, stderrStream)
 
     await new Promise<void>((resolve, reject) => {
-      function handleEnd() {
-        resolve()
-      }
-
-      function handleError(error: Error) {
-        reject(error)
-      }
-
-      executionStream.once('end', handleEnd)
-      executionStream.once('error', handleError)
+      const done = () => resolve()
+      executionStream.once('end', done)
+      executionStream.once('close', done)
+      executionStream.once('error', reject)
     })
 
     const inspectionResult = await execInstance.inspect()

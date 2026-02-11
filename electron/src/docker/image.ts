@@ -8,7 +8,7 @@ import {
   ACT_SCRIPT_NAME,
   SETUP_SCRIPT_NAME,
   VALIDATE_SCRIPT_NAME,
-  BACKUP_GITHUB_CLONE_SAMPLE_URL,
+  CODEX_WORKDIR,
 } from '@common/constants'
 
 type Options = {
@@ -18,7 +18,6 @@ type Options = {
 }
 
 export function buildDockerfileContents(
-  gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
   options: Options = {},
 ): string {
   const {
@@ -41,6 +40,10 @@ export function buildDockerfileContents(
     '# Install act for GitHub Actions execution',
     `COPY utils/${ACT_SCRIPT_NAME} /opt/seraphim/${ACT_SCRIPT_NAME}`,
     `RUN bash /opt/seraphim/${ACT_SCRIPT_NAME} ${ACT_VERSION}`,
+    '',
+    '# Setup Codex config',
+    `COPY codex_config.toml ${CODEX_WORKDIR}/config.toml`,
+    `COPY codex_auth.json ${CODEX_WORKDIR}/auth.json`,
   ]
 
   if (customCommands) {
@@ -57,21 +60,15 @@ export function buildDockerfileContents(
     `RUN git config --global user.name  "${gitName}" \\`,
     ` && git config --global user.email "${gitEmail}"`,
     '',
-    '# Clone initial repository',
-    `RUN git clone --recurse-submodules ${gitCloneUrl} .`,
-    '',
     '# Copy the validation script',
     `COPY ${VALIDATE_SCRIPT_NAME} /opt/seraphim/${VALIDATE_SCRIPT_NAME}`,
     `RUN chmod +x /opt/seraphim/${VALIDATE_SCRIPT_NAME}`,
     '',
-    '# Run setup script',
+    '# Copy the setup script',
     `COPY ${SETUP_SCRIPT_NAME} /opt/seraphim/${SETUP_SCRIPT_NAME}`,
     `RUN chmod +x /opt/seraphim/${SETUP_SCRIPT_NAME}`,
-    `RUN bash /opt/seraphim/${SETUP_SCRIPT_NAME}`,
     '',
-    '# Entrypoint',
-    // 'CMD ["codex", "app-server"]',
-    'CMD ["tail", "-f", "/dev/null"]',
+    `CMD ["bash", "/opt/seraphim/${SETUP_SCRIPT_NAME}"]`,
   )
 
   return `${lines.join('\n')}\n`

@@ -141,7 +141,9 @@ export function waitForBuildVersion2(
         }
 
         if (id === 'moby.image.id') {
-          const aux = event.aux
+          // @ts-ignore
+          const aux = event.aux?.ID
+
           if (typeof aux === 'string') {
             console.debug('[Docker Build] Built image with ID', aux)
             return
