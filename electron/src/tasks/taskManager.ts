@@ -173,6 +173,16 @@ class TaskManager {
       },
     })
 
+    const initialMessage = await databaseClient.message.create({
+      data: {
+        role: 'user',
+        content: request.message,
+        taskId: createdTask.id,
+      },
+    })
+
+    createdTask.messages = [ initialMessage ]
+
     const taskInstance = new TaskInstance({
       task: createdTask,
       containerExists: false,

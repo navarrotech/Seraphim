@@ -52,6 +52,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
   private stdoutStream: PassThrough | null = null
   private stderrStream: PassThrough | null = null
   private isAttached = false
+  private codexThreadId: string | null = null
 
   constructor(options: TaskInstanceOptions) {
     super()
@@ -122,12 +123,20 @@ export class TaskInstance extends EventEmitter<EventMap> {
       }
 
       const {
-        // llm,
+        llm,
         workspace,
         authAccount,
-        // messages,
-        // user,
+        messages,
       } = this.task
+
+      const initialMessage = messages?.[0]
+      if (!initialMessage) {
+        console.debug('TaskInstance missing initial message', {
+          taskId: this.task.id,
+          messages,
+        })
+        throw new Error('Initial message is required to create task container')
+      }
 
       const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
       if (!sourceRepoUrl) {
@@ -229,16 +238,53 @@ export class TaskInstance extends EventEmitter<EventMap> {
       await container.start()
       await this.attachToContainer()
 
+      console.debug(`'initialize' 0 -> Codex`)
       this.sendMessage({
         method: 'initialize',
         id: 0,
         params: { clientInfo: { name: 'seraphim', version: packageJson.version }},
       })
+      console.debug(`'initialized' _ -> Codex`)
       this.sendMessage({ method: 'initialized', params: {}})
 
       console.debug('Beginning task codex work...')
 
       await updateTaskState(this.task.id, 'Working')
+
+      console.debug(`'thread/start' 1 -> Codex`)
+      this.sendMessage({
+        method: 'thread/start',
+        id: 1, // Thread Start ID
+        params: {
+          // You can omit model if config.toml sets it.
+          // We can override per task, include it here.
+          model: llm.preferredModel,
+        },
+      })
+
+      type ThreadResponse = {
+        id: string
+      }
+
+      const threadResult = await this.waitForResponse<ThreadResponse>(1)
+      console.debug('Received thread/start response from Codex', {
+        threadId: threadResult.id,
+      })
+
+      this.codexThreadId = threadResult.id
+
+      console.debug(`'turn/start' 2 -> Codex`)
+      this.sendMessage({
+        method: 'turn/start',
+        id: 2, // Turn Start ID
+        params: {
+          threadId: this.codexThreadId,
+          input: {
+            role: initialMessage.role,
+            content: initialMessage.content,
+          },
+        },
+      })
     }
     catch (error) {
       console.log('TaskInstance createContainer failed', {
@@ -350,6 +396,38 @@ export class TaskInstance extends EventEmitter<EventMap> {
     stdoutStream.on('data', handleStdoutData.bind(this))
     stderrStream.on('data', handleStderrData.bind(this))
     stream.on('error', handleStreamError.bind(this))
+  }
+
+  private async waitForResponse<T = any>(id: number, timeoutMs = 30_000): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeout: ReturnType<typeof setTimeout> | undefined = timeoutMs > 0
+        ? setTimeout(() => {
+          this.off('message', onMessage)
+          reject(new Error(`Timeout waiting for response id=${id}`))
+        }, timeoutMs)
+        : undefined
+
+      const onMessage = (message: any) => {
+        if (!message || typeof message !== 'object') {
+          return
+        }
+        if (message.id !== id) {
+          return
+        }
+
+        clearTimeout(timeout)
+        this.off('message', onMessage)
+
+        if (message.error) {
+          reject(message.error)
+        }
+        else {
+          resolve(message.result)
+        }
+      }
+
+      this.on('message', onMessage)
+    })
   }
 
   public sendMessage(message: unknown): void {

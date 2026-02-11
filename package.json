@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@jalapenolabs/cli": "https://github.com/jalapenolabs/cli.git#7372df994ace977ca9130160b47d1fb032f6f1a4",
+    "@openai/codex": "0.98.0",
     "@types/argparse": "^2.0.17",
     "@types/express": "^5.0.3",
     "@types/hjson": "^2.4.6",
