@@ -156,6 +156,7 @@ export async function buildImage(
       {
         t: buildTag,
         pull: true,
+        version: '2', // Use BuildKit for better performance and output
       },
     )
 
