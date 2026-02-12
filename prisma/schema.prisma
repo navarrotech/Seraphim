@@ -46,6 +46,7 @@ model Workspace {
   name                     String
   description              String   @default("")
   sourceRepoUrl            String?  @map("source_repo_url")
+  gitBranchTemplate        String   @default("") @map("git_branch_template")
   customDockerfileCommands String   @default("") @map("custom_dockerfile_commands")
   setupScript              String   @default("") @map("setup_script")
   postScript               String   @default("") @map("post_script")

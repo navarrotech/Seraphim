@@ -90,6 +90,24 @@ export function WorkspaceEditorForm(props: Props) {
               )}
             />
           </div>
+          <div className='relaxed w-full'>
+            <Controller
+              control={form.control}
+              name='gitBranchTemplate'
+              render={({ field }) => (
+                <Input
+                  label='Git branch template'
+                  placeholder='anakin.skywalker-fix-#{issue-number}-3-to-5-word-task-description'
+                  className='w-full'
+                  isDisabled={isFormLocked}
+                  value={field.value}
+                  name={field.name}
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+          </div>
         </div>
         <div className='w-full'>
           <div>

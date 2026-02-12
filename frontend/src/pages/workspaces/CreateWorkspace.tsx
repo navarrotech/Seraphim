@@ -26,6 +26,7 @@ const zodResolved = zodResolver(createWorkspaceSchema)
 const defaultValues: CreateWorkspaceFormValues = {
   name: '',
   sourceRepoUrl: '',
+  gitBranchTemplate: '',
   customDockerfileCommands: '',
   description: '',
   setupScript: 'yarn install',
