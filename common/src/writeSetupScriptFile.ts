@@ -20,6 +20,7 @@ export async function writeSetupScriptFile(
   contextDir: string,
   gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
   gitSourceBranch: string = 'main',
+  gitWorkBranchName: string = 'seraphim-work',
   customSetupContents?: string,
   secrets: string[] = [],
 ) {
@@ -69,6 +70,9 @@ GRAY='\\033[90m'
   echo "git clone --recurse-submodules --branch \\"${gitSourceBranch}\\" \\"${redactSecrets(gitCloneUrl, secrets)}\\" ."
   git clone --recurse-submodules --branch "${gitSourceBranch}" "${gitCloneUrl}" .
   echo "Git clone complete."
+
+  echo "git switch -C "${gitWorkBranchName}" "origin/${gitSourceBranch}""
+  git switch -C "${gitWorkBranchName}" "origin/${gitSourceBranch}"
 
   #ls -1AF --group-directories-first
   echo "Cloned workspace files:"

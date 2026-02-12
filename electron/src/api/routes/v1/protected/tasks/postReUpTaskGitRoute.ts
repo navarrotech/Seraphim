@@ -4,6 +4,7 @@ import type { Request, Response } from 'express'
 
 // Lib
 import { z } from 'zod'
+import { getTaskManager } from '@electron/tasks/taskManager'
 
 // Utility
 import { parseRequestParams } from '../../validation'
@@ -37,7 +38,18 @@ export async function handleReUpTaskGitRequest(
     taskId: params.taskId,
   })
 
+  const taskManager = getTaskManager()
+  const task = taskManager.getTask(params.taskId)
+
+  if (!task) {
+    response.status(404).json({ error: 'Task not found' })
+    return
+  }
+
+  // TODO: put this in a better route!
+  await task.executeCmd('git add . && git commit -m "Updates" && git push -u origin HEAD')
+
   response.status(200).json({
-    message: 'Not implemented yet',
+    message: 'Completed',
   })
 }

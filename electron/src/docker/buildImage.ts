@@ -185,6 +185,7 @@ export async function buildImage(
         contextDir,
         cloneUrl,
         task.sourceGitBranch,
+        task.workGitBranch,
         workspace.setupScript,
         secrets,
       ),

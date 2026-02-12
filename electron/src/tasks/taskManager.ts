@@ -1,14 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Llm, Workspace } from '@prisma/client'
 import type { TaskCreateRequest } from '@common/schema'
 import type { ArchiveTaskResult, CreateTaskResult, DeleteTaskResult } from './types'
 
 // Utility
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { requestTaskName, toContainerName } from '@electron/jobs/taskNaming'
+import { toContainerName } from '@electron/jobs/taskNaming'
 import { teardownTask } from '@electron/jobs/teardownTask'
 import { updateTaskState } from '@electron/jobs/updateTaskState'
+import { callLLM } from '@common/llms/call'
+
 
 // Misc
 import { TaskInstance } from './taskInstance'
@@ -136,17 +139,17 @@ class TaskManager {
       }
     }
 
-    const codexTaskName = await requestTaskName(llm, request.message)
+    const { taskName, gitWorkBranchName } = await this.requestTaskName(llm, workspace, request.message)
 
-    if (!codexTaskName) {
+    if (!taskName || !gitWorkBranchName) {
       return {
         status: 'error',
-        error: 'Codex authentication is not configured correctly',
+        error: 'Failed to generate task name or git branch name',
         httpStatus: 400,
       }
     }
 
-    const resolvedContainerName = toContainerName(codexTaskName)
+    const resolvedContainerName = toContainerName(taskName)
 
     const createdTask = await databaseClient.task.create({
       data: {
@@ -154,8 +157,9 @@ class TaskManager {
         workspaceId: request.workspaceId,
         llmId: request.llmId,
         authAccountId: request.authAccountId,
-        name: codexTaskName,
+        name: taskName,
         sourceGitBranch: request.branch,
+        workGitBranch: gitWorkBranchName,
         container: 'pending',
         containerName: resolvedContainerName,
         archived: request.archived,
@@ -224,7 +228,6 @@ class TaskManager {
       console.error('Failed to provision task container', error)
     }
   }
-
 
   public async archiveTask(taskId: string): Promise<ArchiveTaskResult> {
     const trimmedTaskId = taskId?.trim()
@@ -355,6 +358,47 @@ class TaskManager {
     return {
       status: 'deleted',
       taskId: trimmedTaskId,
+    }
+  }
+
+  private async requestTaskName(llm: Llm, workspace: Workspace, userMessage: string) {
+    try {
+      const [ taskName, gitWorkBranchName ] = await Promise.all([
+        callLLM(
+          llm,
+          userMessage,
+          (`Below the user will provide an initial request for a given agentic task.`
+          + ` Your job is to give it a clean and short & friendly PR name for when the task is completed.`
+          + ` Use 3-6 words when possible, and no more than 10 words.`
+          + ` Return the task name only, no punctuation or quotes.`),
+        ),
+        callLLM(
+          llm,
+          (`Git branch template: '${workspace.gitBranchTemplate}'`
+          + `\n\nTask:\n\`\`\`${userMessage}\n\`\`\``),
+          (`You're an assistant helping to prepare an automated git job,`
+            + ` and you're responsible for naming the git branch for this automated task.`
+            + ` Below the user will provide an initial task request AND a give preferred git work branch template.`
+          + ` Your job is transform the user's task request into their preferred git work branch name.`
+          + ` This will be used to name the git branch that the task will be created with.`
+          + ` Never start a git branch name with a dash.`
+          + ` Return the formed git branch name only, no punctuation or quotes.`),
+        ),
+      ])
+
+    const shortHash = `${Math.floor(Date.now() / 1000).toString(36)}`
+
+      return {
+        taskName,
+        gitWorkBranchName: `${gitWorkBranchName}--${shortHash}`,
+      } as const
+    }
+    catch (error) {
+      console.error('Failed to generate task name or git branch name from LLM', error)
+      return {
+        taskName: null,
+        gitWorkBranchName: null,
+      }
     }
   }
 }
