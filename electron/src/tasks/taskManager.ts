@@ -319,6 +319,8 @@ class TaskManager {
       }
     }
 
+    await updateTaskState(trimmedTaskId, 'Deleting')
+
     const taskInstance = this.taskInstances.get(trimmedTaskId)
     if (taskInstance) {
       await taskInstance.teardown()
@@ -328,8 +330,17 @@ class TaskManager {
         taskId: trimmedTaskId,
       })
       await teardownTask(existingTask.container)
-      await databaseClient.task.delete({
-        where: { id: trimmedTaskId },
+
+      // Atomic deletion to avoid race conditions
+      console.debug('Deleting task and its messages')
+      await databaseClient.$transaction(async (transaction) => {
+        await transaction.message.deleteMany({
+          where: { taskId: trimmedTaskId },
+        })
+
+        await transaction.task.delete({
+          where: { id: trimmedTaskId },
+        })
       })
     }
 

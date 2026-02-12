@@ -12,9 +12,11 @@ import {
   DOCKER_WORKDIR,
   SETUP_SCRIPT_NAME,
   BACKUP_GITHUB_CLONE_SAMPLE_URL,
+  SETUP_SUCCESS_LINE,
+  SETUP_FAILURE_LINE,
 } from './constants'
 
-export async function writeScriptFile(
+export async function writeSetupScriptFile(
   contextDir: string,
   gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
   gitSourceBranch: string = 'main',
@@ -54,7 +56,7 @@ GRAY='\\033[90m'
 # This is to enforce logging in the setup stuff is intrepeted in the same order for logging without TTY attached
 # Without this, logs get "mixed up" and stderr might be logged on the container out of order.
 {
-  trap 'printf "$\{BOLD}$\{RED}======== CUSTOM SETUP SCRIPT FAILED (exit $?) ========$\{RESET}\n"; echo; touch /opt/seraphim/setup-failed; exit 1' ERR
+  trap 'printf "$\{BOLD}$\{RED}${SETUP_FAILURE_LINE} (exit $?)$\{RESET}\n"; echo; touch /opt/seraphim/setup-failed; exit 1' ERR
 
   cd ${DOCKER_WORKDIR}
 
@@ -66,6 +68,11 @@ GRAY='\\033[90m'
 
   echo "git clone --recurse-submodules --branch \\"${gitSourceBranch}\\" \\"${redactSecrets(gitCloneUrl, secrets)}\\" ."
   git clone --recurse-submodules --branch "${gitSourceBranch}" "${gitCloneUrl}" .
+  echo "Git clone complete."
+
+  #ls -1AF --group-directories-first
+  echo "Cloned workspace files:"
+  (cd / && tree -aF -L 1 ${DOCKER_WORKDIR})
 
   printf "%b\n" "$\{BOLD}$\{GREEN}======== FINISHED CLONING ========$\{RESET}"
 
@@ -75,10 +82,14 @@ GRAY='\\033[90m'
   cd ${DOCKER_WORKDIR}
 
   touch /opt/seraphim/setup-success
+  printf "%b\n" "$\{BOLD}$\{GREEN}${SETUP_SUCCESS_LINE}$\{RESET}"
 } 2>&1
 
+echo "Codex version: $(codex --version)"
+echo "Codex bin: $(which codex || true)"
+
 echo "Starting up codex..."
-codex app-server
+exec codex app-server
   `
 
   const scriptPath = resolve(contextDir, SETUP_SCRIPT_NAME)

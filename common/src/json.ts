@@ -1,11 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
-export function safeParseJson<Type = Record<string, any>>(jsonString: string, ...opts: any[]): Type | null {
+export function safeParseJson<Type = Record<string, any>>(
+  jsonString: string,
+  reviver?: (this: any, key: string, value: any) => any,
+  silent: boolean = false,
+): Type | null {
   try {
-    return JSON.parse(jsonString, ...opts) as Type
+    return JSON.parse(jsonString, reviver) as Type
   }
   catch (error) {
-    console.error('Failed to parse JSON:', error)
+    if (!silent) {
+      console.error('Failed to parse JSON:', error)
+    }
     return null
   }
 }

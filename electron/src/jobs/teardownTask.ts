@@ -4,7 +4,7 @@
 import { getDockerClient } from '../docker/docker'
 
 export async function teardownTask(containerId: string | null) {
-  if (!containerId) {
+  if (!containerId || containerId === 'pending') {
     console.debug('Task container removal requested without container id')
     return
   }
@@ -17,21 +17,16 @@ export async function teardownTask(containerId: string | null) {
     return
   }
 
-  let container
   try {
-    container = await dockerClient.getContainer(containerId)
-  }
-  catch {
-    console.warn('Task container removal requested but container wasn\'t found', {
-      containerId,
-    })
-    return
-  }
-
-  try {
-    await container.remove({ force: true })
+    const container = await dockerClient.getContainer(containerId)
+    if (container) {
+      await container.remove({ force: true })
+    }
   }
   catch (error) {
-    console.debug('Failed to remove task container', { containerId, error })
+    console.warn('Task container removal requested but container wasn\'t found', {
+      containerId,
+      error,
+    })
   }
 }

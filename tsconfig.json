@@ -39,7 +39,7 @@
       ],
       "@electron/*": [
         "./electron/src/*"
-      ],
+      ]
     }
   },
   "include": [

@@ -118,3 +118,6 @@ export const BACKUP_GITHUB_CLONE_SAMPLE_URL = 'https://github.com/github-samples
 export const SETUP_SCRIPT_NAME = 'setup.sh' as const
 export const VALIDATE_SCRIPT_NAME = 'validate.sh' as const
 export const CODEX_WORKDIR = '/opt/.codex' as const
+
+export const SETUP_SUCCESS_LINE = '======== SETUP SUCCESS ========' as const
+export const SETUP_FAILURE_LINE = '======== SETUP FAILED  ========' as const

@@ -38,17 +38,15 @@ export async function handleDeleteTaskRequest(
 
   try {
     const taskManager = getTaskManager()
-    const result = await taskManager.deleteTask(params.taskId)
 
-    if (result.status === 'error') {
-      response.status(result.httpStatus).json({ error: result.error })
-      return
-    }
+    response.status(200).json({ deleted: true })
 
-    response.status(200).json({ deleted: true, taskId: result.taskId })
+    await taskManager.deleteTask(params.taskId)
   }
   catch (error) {
     console.error('Failed to delete task', error)
-    response.status(500).json({ error: 'Failed to delete task' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to delete task' })
+    }
   }
 }

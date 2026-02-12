@@ -37,7 +37,7 @@ RUN apt-get install -y --no-install-recommends ${DOCKER_DEBIAN_PACKAGES.join(' '
 
 # Setup the workspace
 WORKDIR ${DOCKER_WORKDIR}
-RUN npm --global install @openai/codex@0.92.0 tsx corepack
+RUN npm --global install @openai/codex@0.98.0 tsx corepack
 
 # Install act for GitHub Actions execution
 COPY utils/${ACT_SCRIPT_NAME} /opt/seraphim/${ACT_SCRIPT_NAME}

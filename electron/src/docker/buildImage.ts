@@ -21,7 +21,7 @@ import { utilsDir } from '@electron/lib/internalFiles'
 
 // Utility
 import { v7 as uuid } from 'uuid'
-import { writeScriptFile } from '@common/writeScriptFile'
+import { writeSetupScriptFile } from '@common/writeSetupScriptFile'
 import { getCloner } from '@common/cloning/getCloner'
 
 // Misc
@@ -123,6 +123,7 @@ export async function buildImage(
     console.debug('Initializing security for stdout redaction')
     const [ secrets, userSettings ] = await Promise.all([
       getSecrets(),
+      // TODO: Include user settings in task with full context!
       prisma.userSettings.findFirst({
         select: {
           id: true,
@@ -180,7 +181,7 @@ export async function buildImage(
     console.debug('Writing Dockerfile, setup script, and validate script to context directory...')
 
     await Promise.all([
-      writeScriptFile(
+      writeSetupScriptFile(
         contextDir,
         cloneUrl,
         task.sourceGitBranch,

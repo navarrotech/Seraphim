@@ -32,6 +32,7 @@ enum TaskState {
   Reviewing
   AwaitingReview
   Halting
+  Deleting
   Failed
 }
 

@@ -1,6 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Prisma } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
+import type { ClientRequest, ClientNotification } from '@electron/vendor/codex-protocol'
 
 // Core
 import { requireDatabaseClient } from '@electron/database'
@@ -23,7 +25,7 @@ import { convertEnvironmentToStringArray } from '@common/envKit'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { safeParseJson } from '@common/json'
 import { updateTaskState } from '@electron/jobs/updateTaskState'
-import { CODEX_WORKDIR } from '@common/constants'
+import { CODEX_WORKDIR, SETUP_FAILURE_LINE, SETUP_SUCCESS_LINE } from '@common/constants'
 
 type TaskInstanceOptions = {
   task: TaskWithFullContext
@@ -45,6 +47,10 @@ type ExecuteCommandResult = {
   exitCode: number
 }
 
+type ThreadResponse = {
+  id: string
+}
+
 export class TaskInstance extends EventEmitter<EventMap> {
   private task: TaskWithFullContext
   private containerExists: boolean
@@ -53,6 +59,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
   private stderrStream: PassThrough | null = null
   private isAttached = false
   private codexThreadId: string | null = null
+  private nextRequestId: number = 1
 
   constructor(options: TaskInstanceOptions) {
     super()
@@ -191,6 +198,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       console.debug('Creating Docker container for task')
 
+      // const abortController = new AbortController()
+      // const buildCompleteScriptPromise = this.waitForStdout(SETUP_SUCCESS_LINE, -1, abortController.signal)
+      // const buildFailureScriptPromise = this.waitForStdout(SETUP_FAILURE_LINE, -1, abortController.signal)
+
       const container = await dockerClient.createContainer({
         name: this.task.containerName,
         Image,
@@ -199,6 +210,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
           Binds: volumes,
           NetworkMode: 'host',
         },
+        Cmd: [ 'codex', 'app-server' ],
         // The following are necessary for codex app-server to work properly
         Tty: false,
         OpenStdin: true,
@@ -214,21 +226,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
         taskId: this.task.id,
       })
 
-      const databaseClient = requireDatabaseClient('TaskInstance create container')
-      const updatedTask = await databaseClient.task.update({
-        where: { id: this.task.id },
-        data: {
-          container: container.id,
-          state: 'SettingUp',
-        },
-      })
-
-      this.task.container = container.id
-
-      broadcastSseChange({
-        kind: 'tasks',
-        type: 'update',
-        data: [ updatedTask ],
+      await this.updateSelf({
+        container: container.id,
+        state: 'SettingUp',
       })
 
       this.containerExists = true
@@ -238,51 +238,79 @@ export class TaskInstance extends EventEmitter<EventMap> {
       await container.start()
       await this.attachToContainer()
 
-      console.debug(`'initialize' 0 -> Codex`)
+      // // This only guarantees that the setup script has completed
+      // // This does *NOT* guarantee that the `codex app-server` process has fully started.
+      // // Typically it's started immediately AFTER this gets logged
+      // const completed = await Promise.race([
+      //   buildCompleteScriptPromise
+      //     .then(() => ({ type: 'success' as const }))
+      //     .catch((error) => ({ type: 'success-error' as const, error })),
+      //   buildFailureScriptPromise
+      //     .then(() => ({ type: 'failure' as const }))
+      //     .catch((error) => ({ type: 'failure-error' as const, error })),
+      // ])
+
+      // if (completed.type !== 'success') {
+      //   throw new Error(`Setup script did not complete successfully: ${completed.type}`)
+      // }
+
+      // TODO: A better way to await the `codex app-server` startup completion?
+      // await new Promise((resolve) => setTimeout(resolve, 5_000))
+
+      const initId = await this.getRequestId()
+      const initPromise = this.waitForResponse(initId)
       this.sendMessage({
         method: 'initialize',
-        id: 0,
-        params: { clientInfo: { name: 'seraphim', version: packageJson.version }},
+        id: initId,
+        params: {
+          clientInfo: {
+            name: 'seraphim',
+            title: 'Seraphim',
+            version: packageJson.version,
+          },
+          capabilities: {
+            experimentalApi: false,
+          },
+        },
       })
-      console.debug(`'initialized' _ -> Codex`)
-      this.sendMessage({ method: 'initialized', params: {}})
+      await initPromise
+
+      this.sendMessage({ method: 'initialized' })
 
       console.debug('Beginning task codex work...')
 
-      await updateTaskState(this.task.id, 'Working')
-
-      console.debug(`'thread/start' 1 -> Codex`)
+      const threadStartId = await this.getRequestId()
       this.sendMessage({
         method: 'thread/start',
-        id: 1, // Thread Start ID
+        id: threadStartId,
         params: {
-          // You can omit model if config.toml sets it.
-          // We can override per task, include it here.
+          experimentalRawEvents: false,
           model: llm.preferredModel,
         },
       })
 
-      type ThreadResponse = {
-        id: string
-      }
+      const threadResult = await this.waitForResponse<ThreadResponse>(threadStartId)
 
-      const threadResult = await this.waitForResponse<ThreadResponse>(1)
       console.debug('Received thread/start response from Codex', {
         threadId: threadResult.id,
       })
 
+      // TODO: persist this to db! So it persists in between session restarts
       this.codexThreadId = threadResult.id
 
-      console.debug(`'turn/start' 2 -> Codex`)
+      await updateTaskState(this.task.id, 'Working')
+
+      const turnStartId = await this.getRequestId()
       this.sendMessage({
         method: 'turn/start',
-        id: 2, // Turn Start ID
+        id: turnStartId,
         params: {
           threadId: this.codexThreadId,
-          input: {
-            role: initialMessage.role,
-            content: initialMessage.content,
-          },
+          input: [{
+            type: 'text',
+            text: initialMessage.content,
+            text_elements: [],
+          }],
         },
       })
     }
@@ -306,8 +334,14 @@ export class TaskInstance extends EventEmitter<EventMap> {
     }
     finally {
       const databaseClient = requireDatabaseClient('TaskInstance delete')
-      await databaseClient.task.delete({
-        where: { id: this.task.id },
+      await databaseClient.$transaction(async (transaction) => {
+        await transaction.message.deleteMany({
+          where: { taskId: this.task.id },
+        })
+
+        await transaction.task.delete({
+          where: { id: this.task.id },
+        })
       })
     }
   }
@@ -362,15 +396,19 @@ export class TaskInstance extends EventEmitter<EventMap> {
     function handleStdoutLine(this: TaskInstance, line: string) {
       this.emit('line', line)
 
-      const parsedMessage = safeParseJson(line)
+      const parsedMessage = safeParseJson(line, undefined, true)
       if (parsedMessage) {
         this.emit('message', parsedMessage)
+        console.log(parsedMessage)
       }
-      else {
+      else if (line.startsWith('{')) {
         console.debug('Failed to parse task container stdout line as JSON', {
           taskId: this.task.id,
           line,
         })
+      }
+      else {
+        console.info(line)
       }
     }
 
@@ -382,6 +420,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     function handleStderrData(this: TaskInstance, chunk: Buffer) {
       this.emit('stderr', chunk)
       this.emit('data', chunk)
+      console.debug('Container STDERR', chunk?.toString('utf-8'))
     }
 
     function handleStreamError(this: TaskInstance, error: Error) {
@@ -398,14 +437,34 @@ export class TaskInstance extends EventEmitter<EventMap> {
     stream.on('error', handleStreamError.bind(this))
   }
 
-  private async waitForResponse<T = any>(id: number, timeoutMs = 30_000): Promise<T> {
+  public sendMessage(message: ClientRequest | ClientNotification): void {
+    if (!this.ioStream) {
+      console.debug('TaskInstance sendMessage requested without stream', {
+        taskId: this.task.id,
+      })
+      return
+    }
+
+    let id: string = ''
+    if ('id' in message) {
+      id = ` (#${String(message.id)}) `
+    }
+
+    console.debug(`CODEX -> ${message.method}${id}`, message)
+    const payload = `${JSON.stringify(message)}\n`
+    this.ioStream.write(payload)
+  }
+
+  private async waitForResponse<Type = any>(id: number, timeoutMs = 180_000): Promise<Type> {
     return new Promise((resolve, reject) => {
-      const timeout: ReturnType<typeof setTimeout> | undefined = timeoutMs > 0
-        ? setTimeout(() => {
+      let timeout: ReturnType<typeof setTimeout> | undefined
+
+      if (timeoutMs > 0) {
+        timeout = setTimeout(() => {
           this.off('message', onMessage)
           reject(new Error(`Timeout waiting for response id=${id}`))
         }, timeoutMs)
-        : undefined
+      }
 
       const onMessage = (message: any) => {
         if (!message || typeof message !== 'object') {
@@ -430,16 +489,89 @@ export class TaskInstance extends EventEmitter<EventMap> {
     })
   }
 
-  public sendMessage(message: unknown): void {
-    if (!this.ioStream) {
-      console.debug('TaskInstance sendMessage requested without stream', {
-        taskId: this.task.id,
-      })
-      return
-    }
+  private async waitForStdout<Type = any>(
+    line: string,
+    timeoutMs = 30_000,
+    signal?: AbortSignal,
+  ): Promise<Type> {
+    return new Promise((resolve, reject) => {
+      let timeout: ReturnType<typeof setTimeout> | undefined
 
-    const payload = `${JSON.stringify(message)}\n`
-    this.ioStream.write(payload)
+      if (timeoutMs > 0) {
+        timeout = setTimeout(() => {
+          this.off('line', onMessage)
+          reject(new Error(`Timeout waiting for stdout line=${line}`))
+        }, timeoutMs)
+      }
+
+      const normalizedLine = line.trim().toLowerCase()
+
+      const onMessage = (message: any) => {
+        if (!message || !message?.toLowerCase()?.includes(normalizedLine)) {
+          return
+        }
+
+        clearTimeout(timeout)
+        this.off('line', onMessage)
+
+        if (message.error) {
+          reject(message.error)
+        }
+        else {
+          resolve(message.result)
+        }
+      }
+
+      const onAbort = () => {
+        clearTimeout(timeout)
+        this.off('line', onMessage)
+        resolve(undefined as any)
+      }
+
+      // If already aborted, finish immediately
+      if (signal?.aborted) {
+        onAbort()
+        return
+      }
+
+      this.on('line', onMessage)
+      signal?.addEventListener('abort', onAbort, { once: true })
+    })
+  }
+
+  private async updateSelf(data: Prisma.TaskUpdateArgs['data']): Promise<TaskWithFullContext> {
+    const databaseClient = requireDatabaseClient('TaskInstance updateSelf')
+
+    const updatedTask: TaskWithFullContext = await databaseClient.task.update({
+      where: { id: this.task.id },
+      data,
+      include: {
+        llm: true,
+        authAccount: true,
+        messages: true,
+        user: true,
+        workspace: {
+          include: {
+            envEntries: true,
+          },
+        },
+      },
+    })
+
+    broadcastSseChange({
+      kind: 'tasks',
+      type: 'update',
+      data: [ updatedTask ],
+    })
+
+    this.task = updatedTask
+
+    return updatedTask
+  }
+
+  private async getRequestId(): Promise<number> {
+    // TODO: persist this to db! So it persists in between session restarts
+    return this.nextRequestId++
   }
 
   public async executeCmd(command: string): Promise<ExecuteCommandResult> {

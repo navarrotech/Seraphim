@@ -59,8 +59,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Prisma generate
-        run: yarn prisma generate
+      - name: Generate repo artifacts
+        run: yarn generate
 
       - name: Ensure clean
         id: clean

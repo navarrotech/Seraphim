@@ -9,6 +9,7 @@ export default defineConfig([{
   globalIgnores([
     '.yarn/**',
     '**/vite-env.d.ts',
+    'electron/src/vendor/**',
   ]),
   {
   rules: {
