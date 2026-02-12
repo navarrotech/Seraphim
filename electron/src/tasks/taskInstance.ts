@@ -198,9 +198,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       console.debug('Creating Docker container for task')
 
-      // const abortController = new AbortController()
-      // const buildCompleteScriptPromise = this.waitForStdout(SETUP_SUCCESS_LINE, -1, abortController.signal)
-      // const buildFailureScriptPromise = this.waitForStdout(SETUP_FAILURE_LINE, -1, abortController.signal)
+      const abortController = new AbortController()
+      const buildCompleteScriptPromise = this.waitForStdout(SETUP_SUCCESS_LINE, -1, abortController.signal)
+      const buildFailureScriptPromise = this.waitForStdout(SETUP_FAILURE_LINE, -1, abortController.signal)
 
       const container = await dockerClient.createContainer({
         name: this.task.containerName,
@@ -210,7 +210,6 @@ export class TaskInstance extends EventEmitter<EventMap> {
           Binds: volumes,
           NetworkMode: 'host',
         },
-        Cmd: [ 'codex', 'app-server' ],
         // The following are necessary for codex app-server to work properly
         Tty: false,
         OpenStdin: true,
@@ -238,24 +237,24 @@ export class TaskInstance extends EventEmitter<EventMap> {
       await container.start()
       await this.attachToContainer()
 
-      // // This only guarantees that the setup script has completed
-      // // This does *NOT* guarantee that the `codex app-server` process has fully started.
-      // // Typically it's started immediately AFTER this gets logged
-      // const completed = await Promise.race([
-      //   buildCompleteScriptPromise
-      //     .then(() => ({ type: 'success' as const }))
-      //     .catch((error) => ({ type: 'success-error' as const, error })),
-      //   buildFailureScriptPromise
-      //     .then(() => ({ type: 'failure' as const }))
-      //     .catch((error) => ({ type: 'failure-error' as const, error })),
-      // ])
+      // This only guarantees that the setup script has completed
+      // This does *NOT* guarantee that the `codex app-server` process has fully started.
+      // Typically it's started immediately AFTER this gets logged
+      const completed = await Promise.race([
+        buildCompleteScriptPromise
+          .then(() => ({ type: 'success' as const }))
+          .catch((error) => ({ type: 'success-error' as const, error })),
+        buildFailureScriptPromise
+          .then(() => ({ type: 'failure' as const }))
+          .catch((error) => ({ type: 'failure-error' as const, error })),
+      ])
 
-      // if (completed.type !== 'success') {
-      //   throw new Error(`Setup script did not complete successfully: ${completed.type}`)
-      // }
+      if (completed.type !== 'success') {
+        throw new Error(`Setup script did not complete successfully: ${completed.type}`)
+      }
 
       // TODO: A better way to await the `codex app-server` startup completion?
-      // await new Promise((resolve) => setTimeout(resolve, 5_000))
+      await new Promise((resolve) => setTimeout(resolve, 5_000))
 
       const initId = await this.getRequestId()
       const initPromise = this.waitForResponse(initId)
