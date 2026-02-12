@@ -3317,15 +3317,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openai/codex@npm:0.92.0":
-  version: 0.92.0
-  resolution: "@openai/codex@npm:0.92.0"
-  bin:
-    codex: bin/codex.js
-  checksum: 10c0/7ec63bedab66390771d02ae3e978210722aea1f3bb22724791a8a2f51d4d18e4645b0364743c5f6a7cff7117ef43af9cdd8481e0a3ae30a2ce35cff4d967f9d5
-  languageName: node
-  linkType: hard
-
 "@openai/codex@npm:0.98.0":
   version: 0.98.0
   resolution: "@openai/codex@npm:0.98.0"
@@ -8006,7 +7997,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "common@workspace:common"
   dependencies:
-    "@openai/codex": "npm:0.92.0"
     "@openai/codex-sdk": "npm:^0.98.0"
     glob: "npm:^13.0.0"
     openai: "npm:^6.21.0"
