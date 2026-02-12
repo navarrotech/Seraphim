@@ -2,7 +2,16 @@
 
 import type { Prisma } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
-import type { ClientRequest, ClientNotification } from '@electron/vendor/codex-protocol'
+import type {
+  ClientRequest,
+  ClientNotification,
+  ServerNotification,
+} from '@electron/vendor/codex-protocol'
+import type {
+  RateLimitSnapshot,
+  ThreadTokenUsage,
+  ThreadStartResponse,
+} from '@electron/vendor/codex-protocol/v2'
 
 // Core
 import { requireDatabaseClient } from '@electron/database'
@@ -32,12 +41,13 @@ type TaskInstanceOptions = {
   containerExists: boolean
 }
 
+type InboundCodexEvent = ServerNotification
+
 type EventMap = {
   'stdout': [ Buffer ]
   'stderr': [ Buffer ]
-  'data': [ Buffer ]
-  'line': [ string ]
-  'message': [ unknown ]
+  'line': [ string | Buffer ]
+  'message': [ InboundCodexEvent ]
 }
 
 type ExecuteCommandResult = {
@@ -47,10 +57,6 @@ type ExecuteCommandResult = {
   exitCode: number
 }
 
-type ThreadResponse = {
-  id: string
-}
-
 export class TaskInstance extends EventEmitter<EventMap> {
   private task: TaskWithFullContext
   private containerExists: boolean
@@ -58,8 +64,13 @@ export class TaskInstance extends EventEmitter<EventMap> {
   private stdoutStream: PassThrough | null = null
   private stderrStream: PassThrough | null = null
   private isAttached = false
+
   private codexThreadId: string | null = null
   private nextRequestId: number = 1
+  private codexStream: NodeJS.ReadWriteStream | null = null
+
+  private rateLimits: RateLimitSnapshot | null = null
+  private usage: ThreadTokenUsage | null = null
 
   constructor(options: TaskInstanceOptions) {
     super()
@@ -90,6 +101,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
   get hasContainer() {
     return this.containerExists
+  }
+
+  private getRequestId(): number {
+    return this.nextRequestId++
   }
 
   public async refreshContainerStatus(): Promise<boolean> {
@@ -253,10 +268,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
         throw new Error(`Setup script did not complete successfully: ${completed.type}`)
       }
 
-      // TODO: A better way to await the `codex app-server` startup completion?
-      await new Promise((resolve) => setTimeout(resolve, 5_000))
+      await this.startCodexAppServer(container)
 
-      const initId = await this.getRequestId()
+      const initId = this.getRequestId()
       const initPromise = this.waitForResponse(initId)
       this.sendMessage({
         method: 'initialize',
@@ -278,7 +292,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       console.debug('Beginning task codex work...')
 
-      const threadStartId = await this.getRequestId()
+      const threadStartId = this.getRequestId()
       this.sendMessage({
         method: 'thread/start',
         id: threadStartId,
@@ -288,18 +302,20 @@ export class TaskInstance extends EventEmitter<EventMap> {
         },
       })
 
-      const threadResult = await this.waitForResponse<ThreadResponse>(threadStartId)
+      const threadResult = await this.waitForResponse<ThreadStartResponse>(threadStartId)
 
       console.debug('Received thread/start response from Codex', {
-        threadId: threadResult.id,
+        threadId: threadResult.thread.id,
       })
 
+      this.attachCodexSubscriptions()
+
       // TODO: persist this to db! So it persists in between session restarts
-      this.codexThreadId = threadResult.id
+      this.codexThreadId = threadResult.thread.id
 
       await updateTaskState(this.task.id, 'Working')
 
-      const turnStartId = await this.getRequestId()
+      const turnStartId = this.getRequestId()
       this.sendMessage({
         method: 'turn/start',
         id: turnStartId,
@@ -395,10 +411,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
     function handleStdoutLine(this: TaskInstance, line: string) {
       this.emit('line', line)
 
-      const parsedMessage = safeParseJson(line, undefined, true)
+      const parsedMessage = safeParseJson<InboundCodexEvent>(line, undefined, true)
       if (parsedMessage) {
         this.emit('message', parsedMessage)
-        console.log(parsedMessage)
       }
       else if (line.startsWith('{')) {
         console.debug('Failed to parse task container stdout line as JSON', {
@@ -413,12 +428,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     function handleStdoutData(this: TaskInstance, chunk: Buffer) {
       this.emit('stdout', chunk)
-      this.emit('data', chunk)
     }
 
     function handleStderrData(this: TaskInstance, chunk: Buffer) {
       this.emit('stderr', chunk)
-      this.emit('data', chunk)
       console.debug('Container STDERR', chunk?.toString('utf-8'))
     }
 
@@ -437,7 +450,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
   }
 
   public sendMessage(message: ClientRequest | ClientNotification): void {
-    if (!this.ioStream) {
+    if (!this.codexStream) {
       console.debug('TaskInstance sendMessage requested without stream', {
         taskId: this.task.id,
       })
@@ -451,7 +464,215 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     console.debug(`CODEX -> ${message.method}${id}`, message)
     const payload = `${JSON.stringify(message)}\n`
-    this.ioStream.write(payload)
+    this.codexStream.write(payload)
+  }
+
+  public async executeCmd(command: string): Promise<ExecuteCommandResult> {
+    const containerId = this.containerId
+    if (!containerId) {
+      console.debug('TaskInstance executeCmd requested without container id', {
+        taskId: this.task.id,
+        command,
+      })
+      throw new Error('Cannot execute command without a container id')
+    }
+
+    const dockerClient = getDockerClient()
+    if (!dockerClient) {
+      console.debug('TaskInstance executeCmd requested without docker client', {
+        taskId: this.task.id,
+        containerId,
+        command,
+      })
+      throw new Error('Docker client is not available')
+    }
+
+    const container = dockerClient.getContainer(containerId)
+    const execInstance = await container.exec({
+      AttachStdout: true,
+      AttachStderr: true,
+      Cmd: [ 'bash', '-lc', command ],
+    })
+
+    const stdoutStream = new PassThrough()
+    const stderrStream = new PassThrough()
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+
+    function handleStdoutData(chunk: Buffer) {
+      stdoutChunks.push(chunk)
+    }
+
+    function handleStderrData(chunk: Buffer) {
+      stderrChunks.push(chunk)
+    }
+
+    function handleStreamError(this: TaskInstance, error: Error) {
+      console.debug('TaskInstance executeCmd stream error', {
+        taskId: this.task.id,
+        containerId,
+        command,
+        error,
+      })
+    }
+
+    stdoutStream.on('data', handleStdoutData)
+    stderrStream.on('data', handleStderrData)
+
+    const executionStream = await execInstance.start({
+      hijack: true,
+      stdin: false,
+    })
+
+    executionStream.on('error', handleStreamError.bind(this))
+    dockerClient.modem.demuxStream(executionStream, stdoutStream, stderrStream)
+
+    await new Promise<void>((resolve, reject) => {
+      const done = () => resolve()
+      executionStream.once('end', done)
+      executionStream.once('close', done)
+      executionStream.once('error', reject)
+    })
+
+    const inspectionResult = await execInstance.inspect()
+    const exitCode = inspectionResult.ExitCode ?? -1
+    const stdout = Buffer.concat(stdoutChunks).toString('utf8')
+    const stderr = Buffer.concat(stderrChunks).toString('utf8')
+
+    return {
+      command,
+      stdout,
+      stderr,
+      exitCode,
+    }
+  }
+
+  private subscription: ((message: InboundCodexEvent) => void) | null = null
+  protected attachCodexSubscriptions() {
+    if (this.subscription) {
+      this.removeListener('message', this.subscription)
+    }
+
+    const handleMessage = async (message: InboundCodexEvent) => {
+      const { method, params } = message
+
+      if (!method) {
+        if ('result' in message && !params) {
+          // Return silently, this is okay
+          // This is typically just a turn/start response
+          return
+        }
+
+        console.debug('Received Codex message without method', {
+          taskId: this.task.id,
+          message,
+        })
+        return
+      }
+
+      if (method.startsWith('codex/event/')) {
+        // These are legacy events that codex app-server still emits
+        // but we don't need to do anything with them in seraphim
+        return
+      }
+
+      // Notes:
+      // "item" = one atomic thing the agent produced
+      // "turn" = the whole “job” kicked off by one user input
+      switch (method) {
+        case 'turn/started':
+          await this.updateSelf({
+            state: 'AwaitingReview',
+          })
+          break
+        case 'turn/completed':
+          console.log('Task completed!!')
+          console.log('Rate limits:', this.rateLimits)
+          console.log('Usage:', this.usage)
+          await this.updateSelf({
+            state: 'AwaitingReview',
+          })
+          break
+        case 'turn/diff/updated':
+          console.log('Handling turn/diff/updated')
+          break
+        case 'item/started':
+          console.log('Handling item/started')
+          break
+        case 'item/fileChange/outputDelta':
+          console.log('Handling item/fileChange/outputDelta')
+          break
+        case 'item/reasoning/summaryTextDelta':
+          // console.log('Handling item/reasoning/summaryTextDelta')
+          break
+        case 'item/completed':
+          console.log('Handling item/completed')
+          break
+        case 'item/agentMessage/delta':
+          // For partial eager streaming of agent messages
+          // console.log('Handling item/agentMessage/delta', params)
+          break
+        case 'account/rateLimits/updated':
+          this.rateLimits = params.rateLimits
+          break
+        case 'thread/tokenUsage/updated':
+          this.usage = params.tokenUsage
+          break
+        case 'item/reasoning/summaryPartAdded':
+        case 'thread/started':
+        case 'thread/compacted':
+          // Not much do to here yet! Added here so they're muted from console.
+          break
+        default:
+          console.debug('Unhandled Codex message response:', message)
+      }
+    }
+
+    this.addListener('message', handleMessage)
+    this.subscription = handleMessage
+  }
+
+  private async startCodexAppServer(container: any) {
+    const execInstance = await container.exec({
+    Cmd: [ 'bash', '-lc', 'codex app-server 2> >(tee /proc/1/fd/2 >&2) | tee /proc/1/fd/1' ],
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Tty: false,
+    })
+
+    const stream = await execInstance.start({
+      hijack: true,
+      stdin: true,
+    })
+
+    // stream is multiplexed stdout/stderr when Tty=false
+    const stdoutStream = new PassThrough()
+    const stderrStream = new PassThrough()
+    getDockerClient().modem.demuxStream(stream, stdoutStream, stderrStream)
+
+    // IMPORTANT: write requests to `stream` (the hijacked duplex)
+    this.codexStream = stream
+
+    // // Read responses from stdoutStream line-by-line
+    // const stdoutReader = createInterface({ input: stdoutStream })
+    // stdoutReader.on('line', (line) => {
+    //   const parsed = safeParseJson(line, undefined, true)
+    //   console.log('>>> ' + line)
+    //   if (parsed) {
+    //     this.emit('message', parsed)
+    //   }
+    //   else {
+    //     this.emit('line', line)
+    //   }
+    // })
+
+    // // stderr is useful for debugging
+    // const stderrReader = createInterface({ input: stderrStream })
+    // stderrReader.on('line', (line) => {
+    //   this.emit('line', `[codex:stderr] ${line}`)
+    //   console.error(`[codex:stderr] ${line}`)
+    // })
   }
 
   private async waitForResponse<Type = any>(id: number, timeoutMs = 180_000): Promise<Type> {
@@ -566,90 +787,5 @@ export class TaskInstance extends EventEmitter<EventMap> {
     this.task = updatedTask
 
     return updatedTask
-  }
-
-  private async getRequestId(): Promise<number> {
-    // TODO: persist this to db! So it persists in between session restarts
-    return this.nextRequestId++
-  }
-
-  public async executeCmd(command: string): Promise<ExecuteCommandResult> {
-    const containerId = this.containerId
-    if (!containerId) {
-      console.debug('TaskInstance executeCmd requested without container id', {
-        taskId: this.task.id,
-        command,
-      })
-      throw new Error('Cannot execute command without a container id')
-    }
-
-    const dockerClient = getDockerClient()
-    if (!dockerClient) {
-      console.debug('TaskInstance executeCmd requested without docker client', {
-        taskId: this.task.id,
-        containerId,
-        command,
-      })
-      throw new Error('Docker client is not available')
-    }
-
-    const container = dockerClient.getContainer(containerId)
-    const execInstance = await container.exec({
-      AttachStdout: true,
-      AttachStderr: true,
-      Cmd: [ 'bash', '-lc', command ],
-    })
-
-    const stdoutStream = new PassThrough()
-    const stderrStream = new PassThrough()
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
-
-    function handleStdoutData(chunk: Buffer) {
-      stdoutChunks.push(chunk)
-    }
-
-    function handleStderrData(chunk: Buffer) {
-      stderrChunks.push(chunk)
-    }
-
-    function handleStreamError(this: TaskInstance, error: Error) {
-      console.debug('TaskInstance executeCmd stream error', {
-        taskId: this.task.id,
-        containerId,
-        command,
-        error,
-      })
-    }
-
-    stdoutStream.on('data', handleStdoutData)
-    stderrStream.on('data', handleStderrData)
-
-    const executionStream = await execInstance.start({
-      hijack: true,
-      stdin: false,
-    })
-
-    executionStream.on('error', handleStreamError.bind(this))
-    dockerClient.modem.demuxStream(executionStream, stdoutStream, stderrStream)
-
-    await new Promise<void>((resolve, reject) => {
-      const done = () => resolve()
-      executionStream.once('end', done)
-      executionStream.once('close', done)
-      executionStream.once('error', reject)
-    })
-
-    const inspectionResult = await execInstance.inspect()
-    const exitCode = inspectionResult.ExitCode ?? -1
-    const stdout = Buffer.concat(stdoutChunks).toString('utf8')
-    const stderr = Buffer.concat(stderrChunks).toString('utf8')
-
-    return {
-      command,
-      stdout,
-      stderr,
-      exitCode,
-    }
   }
 }

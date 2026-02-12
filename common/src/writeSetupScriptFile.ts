@@ -88,8 +88,8 @@ GRAY='\\033[90m'
 echo "Codex version: $(codex --version)"
 echo "Codex bin: $(which codex || true)"
 
-echo "Starting up codex..."
-exec codex app-server
+# Idle indefinitely on the main process
+tail -f /dev/null
   `
 
   const scriptPath = resolve(contextDir, SETUP_SCRIPT_NAME)

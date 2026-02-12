@@ -41,6 +41,7 @@ const TASK_STATE_COLOR_BY_STATE: Record<TaskState, ChipProps['color']> = {
   Reviewing: 'secondary',
   AwaitingReview: 'secondary',
   Failed: 'danger',
+  Deleting: 'danger',
 }
 
 const TASK_VIEW_TAB = {
@@ -169,10 +170,6 @@ export function TasksSidebar() {
       onConfirm: async function onConfirm() {
         try {
           await deleteTask(task.id)
-
-          dispatch(
-            taskActions.removeTasks([ task ]),
-          )
 
           if (task.id === selectedTaskId) {
             navigate(UrlTree.tasksList)
