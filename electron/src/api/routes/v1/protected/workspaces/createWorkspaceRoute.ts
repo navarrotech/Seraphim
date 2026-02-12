@@ -37,6 +37,7 @@ export async function handleCreateWorkspaceRequest(
   const {
     name,
     sourceRepoUrl,
+    gitBranchTemplate,
     customDockerfileCommands,
     description,
     setupScript,
@@ -49,6 +50,7 @@ export async function handleCreateWorkspaceRequest(
     const baseWorkspaceData = {
       name,
       sourceRepoUrl,
+      gitBranchTemplate,
       customDockerfileCommands,
       description,
       setupScript,

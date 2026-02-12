@@ -34,6 +34,7 @@ export const workspaceEnvEntrySchema = z.object({
 export const workspaceCreateSchema = z.object({
   name: z.string().trim().min(1),
   sourceRepoUrl: z.string().trim().min(1),
+  gitBranchTemplate: z.string().trim().optional().default(''),
   customDockerfileCommands: z.string().trim().optional().default(''),
   description: z.string().trim().optional().default(''),
   setupScript: z.string().trim().optional().default(''),
@@ -45,6 +46,7 @@ export const workspaceCreateSchema = z.object({
 export const workspaceUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   sourceRepoUrl: z.string().trim().min(1).optional(),
+  gitBranchTemplate: z.string().trim().optional(),
   customDockerfileCommands: z.string().trim().optional(),
   description: z.string().trim().optional(),
   setupScript: z.string().trim().optional(),

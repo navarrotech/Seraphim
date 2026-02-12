@@ -33,6 +33,7 @@ const zodResolved = zodResolver(createWorkspaceSchema)
 const defaultValues: EditWorkspaceFormValues = {
   name: '',
   sourceRepoUrl: '',
+  gitBranchTemplate: '',
   customDockerfileCommands: '',
   description: '',
   setupScript: '',
@@ -89,6 +90,7 @@ export function EditWorkspace() {
     form.reset({
       name: workspace.name,
       sourceRepoUrl: workspace.sourceRepoUrl || '',
+      gitBranchTemplate: workspace.gitBranchTemplate || '',
       customDockerfileCommands: workspace.customDockerfileCommands || '',
       description: workspace.description || '',
       setupScript: workspace.setupScript || '',
