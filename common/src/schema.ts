@@ -64,6 +64,7 @@ export const taskCreateSchema = z.object({
   llmId: z.string().trim().min(1),
   message: z.string().trim().min(1),
   branch: z.string().trim().min(1),
+  issueLink: z.string().optional(),
   archived: z.boolean().optional().default(false),
 }).strict()
 
