@@ -31,6 +31,7 @@ type TaskDraft = {
   authAccountId: string
   llmId: string
   branch: string
+  issueLink: string
 }
 
 export function Tasks() {
@@ -90,6 +91,7 @@ export function Tasks() {
         llmId: draft.llmId,
         message: draft.message,
         branch: draft.branch,
+        issueLink: draft.issueLink || undefined,
         archived: false,
       })
 

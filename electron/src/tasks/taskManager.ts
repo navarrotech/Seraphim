@@ -160,6 +160,7 @@ class TaskManager {
         name: taskName,
         sourceGitBranch: request.branch,
         workGitBranch: gitWorkBranchName,
+        issueLink: request.issueLink?.trim() || null,
         container: 'pending',
         containerName: resolvedContainerName,
         archived: request.archived,

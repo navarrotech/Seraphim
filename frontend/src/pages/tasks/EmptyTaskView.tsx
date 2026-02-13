@@ -26,6 +26,7 @@ import {
   Card,
   Select,
   SelectItem,
+  Input,
   Textarea,
 } from '@heroui/react'
 
@@ -41,6 +42,7 @@ type TaskDraft = {
   authAccountId: string
   llmId: string
   branch: string
+  issueLink: string
 }
 
 type Props = {
@@ -66,6 +68,7 @@ export function EmptyTaskView(props: Props) {
   const [ authAccountId, setAuthAccountId ] = useState<string>('')
   const [ llmId, setLlmId ] = useState<string>('')
   const [ branch, setBranch ] = useState<string>('')
+  const [ issueLink, setIssueLink ] = useState<string>('')
   const [ branchSearchQuery, setBranchSearchQuery ] = useState<string>('')
 
   const debouncedBranchSearchQuery = useDebouncedState(branchSearchQuery, 250)
@@ -272,6 +275,7 @@ export function EmptyTaskView(props: Props) {
       authAccountId,
       llmId,
       branch,
+      issueLink: issueLink.trim(),
     })
   }
 
@@ -332,6 +336,15 @@ export function EmptyTaskView(props: Props) {
           autoFocus
           value={message}
           onValueChange={setMessage}
+          isDisabled={isSubmitting}
+        />
+      </div>
+      <div className='relaxed'>
+        <Input
+          label='Issue link (optional)'
+          placeholder='https://github.com/org/repo/issues/123'
+          value={issueLink}
+          onValueChange={setIssueLink}
           isDisabled={isSubmitting}
         />
       </div>
