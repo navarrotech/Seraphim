@@ -43,18 +43,18 @@ const taskTabs: TaskTab[] = [
 ]
 
 function isUserMessage(message: Message) {
-  return message.role === 'user'
+  return message.role === 'User'
 }
 function getMessageLabel(message: Message) {
-  if (message.role === 'user') {
+  if (message.role === 'User') {
     return 'You'
   }
 
-  if (message.role === 'assistant') {
-    return 'Seraphim'
+  if (message.role === 'Docker') {
+    return 'Docker'
   }
 
-  if (message.role === 'system') {
+  if (message.role === 'System') {
     return 'System'
   }
 

@@ -23,6 +23,13 @@ enum AuthProvider {
   GITHUB
 }
 
+enum Role {
+  System
+  Docker
+  Codex
+  User
+}
+
 enum TaskState {
   Creating
   SettingUp
@@ -101,6 +108,7 @@ model Task {
 
   container     String    @map("container")
   containerName String?   @map("container_name")
+  threadId      String?   @map("thread_id")
   archived      Boolean   @default(false)
   state         TaskState @default(SettingUp)
 
@@ -111,10 +119,12 @@ model Task {
 model Message {
   id String @id @default(uuid())
 
-  taskId String @map("task_id")
+  taskId String @map("turn_id")
   task   Task   @relation(fields: [taskId], references: [id])
 
-  role    String
+  role    Role
+  type    String  @default("text")
+  media   Bytes[] @default([])
   content String
 
   createdAt DateTime @default(now()) @map("created_at")

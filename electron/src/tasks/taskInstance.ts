@@ -2,6 +2,7 @@
 
 import type { Prisma } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
+import type { Container } from 'dockerode'
 import type {
   ClientRequest,
   ClientNotification,
@@ -33,7 +34,6 @@ import { PassThrough } from 'node:stream'
 import { convertEnvironmentToStringArray } from '@common/envKit'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { safeParseJson } from '@common/json'
-import { updateTaskState } from '@electron/jobs/updateTaskState'
 import { CODEX_WORKDIR, SETUP_FAILURE_LINE, SETUP_SUCCESS_LINE } from '@common/constants'
 
 type TaskInstanceOptions = {
@@ -60,14 +60,12 @@ type ExecuteCommandResult = {
 export class TaskInstance extends EventEmitter<EventMap> {
   private task: TaskWithFullContext
   private containerExists: boolean
-  private ioStream: NodeJS.ReadWriteStream | null = null
-  private stdoutStream: PassThrough | null = null
-  private stderrStream: PassThrough | null = null
+  private container: Container | null = null
   private isAttached = false
 
   private codexThreadId: string | null = null
-  private nextRequestId: number = 1
   private codexStream: NodeJS.ReadWriteStream | null = null
+  private nextRequestId: number = 1
 
   private rateLimits: RateLimitSnapshot | null = null
   private usage: ThreadTokenUsage | null = null
@@ -76,6 +74,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     super()
     this.task = options.task
     this.containerExists = options.containerExists
+    this.codexThreadId = options.task.threadId
   }
 
   get id() {
@@ -120,8 +119,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     try {
       const dockerClient = getDockerClient()
-      const container = dockerClient.getContainer(containerId)
-      await container.inspect()
+      this.container ||= dockerClient.getContainer(containerId)
+      await this.container.inspect()
 
       this.containerExists = true
       return true
@@ -145,7 +144,6 @@ export class TaskInstance extends EventEmitter<EventMap> {
       }
 
       const {
-        llm,
         workspace,
         authAccount,
         messages,
@@ -169,7 +167,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
         throw new Error('Workspace source repository is required')
       }
 
-      await updateTaskState(this.task.id, 'Creating')
+      await this.updateTask({
+        state: 'Creating',
+      })
 
       const cloner = getCloner(
         authAccount.provider,
@@ -217,7 +217,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
       const buildCompleteScriptPromise = this.waitForStdout(SETUP_SUCCESS_LINE, -1, abortController.signal)
       const buildFailureScriptPromise = this.waitForStdout(SETUP_FAILURE_LINE, -1, abortController.signal)
 
-      const container = await dockerClient.createContainer({
+      this.container = await dockerClient.createContainer({
         name: this.task.containerName,
         Image,
         Env,
@@ -235,13 +235,13 @@ export class TaskInstance extends EventEmitter<EventMap> {
       })
 
       console.debug('Docker container created for task', {
-        containerId: container.id,
+        containerId: this.container.id,
         containerName: this.task.containerName,
         taskId: this.task.id,
       })
 
-      await this.updateSelf({
-        container: container.id,
+      await this.updateTask({
+        container: this.container.id,
         state: 'SettingUp',
       })
 
@@ -249,7 +249,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       console.debug('Starting Docker container for task')
 
-      await container.start()
+      await this.container.start()
       await this.attachToContainer()
 
       // This only guarantees that the setup script has completed
@@ -268,73 +268,17 @@ export class TaskInstance extends EventEmitter<EventMap> {
         throw new Error(`Setup script did not complete successfully: ${completed.type}`)
       }
 
-      await this.startCodexAppServer(container)
-
-      const initId = this.getRequestId()
-      const initPromise = this.waitForResponse(initId)
-      this.sendMessage({
-        method: 'initialize',
-        id: initId,
-        params: {
-          clientInfo: {
-            name: 'seraphim',
-            title: 'Seraphim',
-            version: packageJson.version,
-          },
-          capabilities: {
-            experimentalApi: false,
-          },
-        },
-      })
-      await initPromise
-
-      this.sendMessage({ method: 'initialized' })
-
-      console.debug('Beginning task codex work...')
-
-      const threadStartId = this.getRequestId()
-      this.sendMessage({
-        method: 'thread/start',
-        id: threadStartId,
-        params: {
-          experimentalRawEvents: false,
-          model: llm.preferredModel,
-        },
-      })
-
-      const threadResult = await this.waitForResponse<ThreadStartResponse>(threadStartId)
-
-      console.debug('Received thread/start response from Codex', {
-        threadId: threadResult.thread.id,
-      })
-
-      this.attachCodexSubscriptions()
-
-      // TODO: persist this to db! So it persists in between session restarts
-      this.codexThreadId = threadResult.thread.id
-
-      await updateTaskState(this.task.id, 'Working')
-
-      const turnStartId = this.getRequestId()
-      this.sendMessage({
-        method: 'turn/start',
-        id: turnStartId,
-        params: {
-          threadId: this.codexThreadId,
-          input: [{
-            type: 'text',
-            text: initialMessage.content,
-            text_elements: [],
-          }],
-        },
-      })
+      await this.startCodexAppServer()
+      await this.startTurn(initialMessage.content)
     }
     catch (error) {
       console.log('TaskInstance createContainer failed', {
         taskId: this.task.id,
         error,
       })
-      await updateTaskState(this.task.id, 'Failed')
+      await this.updateTask({
+        state: 'Failed',
+      })
     }
 
     return this
@@ -386,8 +330,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
       return
     }
 
-    const container = dockerClient.getContainer(containerId)
-    const stream = await container.attach({
+    this.container ||= dockerClient.getContainer(containerId)
+    const stream = await this.container.attach({
       stream: true,
       stdin: true,
       stdout: true,
@@ -399,9 +343,6 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
     dockerClient.modem.demuxStream(stream, stdoutStream, stderrStream)
 
-    this.ioStream = stream
-    this.stdoutStream = stdoutStream
-    this.stderrStream = stderrStream
     this.isAttached = true
 
     const stdoutReader = createInterface({
@@ -449,7 +390,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     stream.on('error', handleStreamError.bind(this))
   }
 
-  public sendMessage(message: ClientRequest | ClientNotification): void {
+  public sendRequest(message: ClientRequest | ClientNotification): void {
     if (!this.codexStream) {
       console.debug('TaskInstance sendMessage requested without stream', {
         taskId: this.task.id,
@@ -466,6 +407,46 @@ export class TaskInstance extends EventEmitter<EventMap> {
     const payload = `${JSON.stringify(message)}\n`
     this.codexStream.write(payload)
   }
+
+  public async startTurn(text: string): Promise<void> {
+    await this.updateTask({
+      state: 'Working',
+    })
+
+    const turnStartId = this.getRequestId()
+    this.sendRequest({
+      method: 'turn/start',
+      id: turnStartId,
+      params: {
+        threadId: this.codexThreadId,
+        input: [{
+          type: 'text',
+          text,
+          text_elements: [],
+        }],
+      },
+    })
+  }
+
+  // TODO
+  // public async halt(): Promise<void> {
+
+  // }
+
+  // // TODO
+  // public async resume(): Promise<void> {
+
+  // }
+
+  // // TODO
+  // public queueUserMessage(message: Message): void {
+
+  // }
+
+  // // TODO
+  // private saveCodexMessage(message: InboundCodexEvent): void {
+
+  // }
 
   public async executeCmd(command: string): Promise<ExecuteCommandResult> {
     const containerId = this.containerId
@@ -487,8 +468,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
       throw new Error('Docker client is not available')
     }
 
-    const container = dockerClient.getContainer(containerId)
-    const execInstance = await container.exec({
+    this.container ||= dockerClient.getContainer(containerId)
+    const execInstance = await this.container.exec({
       AttachStdout: true,
       AttachStderr: true,
       Cmd: [ 'bash', '-lc', command ],
@@ -581,7 +562,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
       // "turn" = the whole “job” kicked off by one user input
       switch (method) {
         case 'turn/started':
-          await this.updateSelf({
+          await this.updateTask({
             state: 'AwaitingReview',
           })
           break
@@ -589,7 +570,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
           console.log('Task completed!!')
           console.log('Rate limits:', this.rateLimits)
           console.log('Usage:', this.usage)
-          await this.updateSelf({
+          await this.updateTask({
             state: 'AwaitingReview',
           })
           break
@@ -632,8 +613,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
     this.subscription = handleMessage
   }
 
-  private async startCodexAppServer(container: any) {
-    const execInstance = await container.exec({
+  public async startCodexAppServer(): Promise<void> {
+    const execInstance = await this.container.exec({
     Cmd: [ 'bash', '-lc', 'codex app-server 2> >(tee /proc/1/fd/2 >&2) | tee /proc/1/fd/1' ],
       AttachStdin: true,
       AttachStdout: true,
@@ -647,9 +628,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
     })
 
     // stream is multiplexed stdout/stderr when Tty=false
-    const stdoutStream = new PassThrough()
-    const stderrStream = new PassThrough()
-    getDockerClient().modem.demuxStream(stream, stdoutStream, stderrStream)
+    // const stdoutStream = new PassThrough()
+    // const stderrStream = new PassThrough()
+    // getDockerClient().modem.demuxStream(stream, stdoutStream, stderrStream)
 
     // IMPORTANT: write requests to `stream` (the hijacked duplex)
     this.codexStream = stream
@@ -673,6 +654,51 @@ export class TaskInstance extends EventEmitter<EventMap> {
     //   this.emit('line', `[codex:stderr] ${line}`)
     //   console.error(`[codex:stderr] ${line}`)
     // })
+
+    const initId = this.getRequestId()
+    const initPromise = this.waitForResponse(initId)
+    this.sendRequest({
+      method: 'initialize',
+      id: initId,
+      params: {
+        clientInfo: {
+          name: 'seraphim',
+          title: 'Seraphim',
+          version: packageJson.version,
+        },
+        capabilities: {
+          experimentalApi: false,
+        },
+      },
+    })
+    await initPromise
+
+    this.sendRequest({ method: 'initialized' })
+
+    console.debug('Beginning task codex work...')
+
+    const threadStartId = this.getRequestId()
+    this.sendRequest({
+      method: 'thread/start',
+      id: threadStartId,
+      params: {
+        experimentalRawEvents: false,
+        model: this.task.llm.preferredModel,
+      },
+    })
+
+    const threadResult = await this.waitForResponse<ThreadStartResponse>(threadStartId)
+
+    console.debug('Received thread/start response from Codex', {
+      threadId: threadResult.thread.id,
+    })
+
+    this.codexThreadId = threadResult.thread.id
+    await this.updateTask({
+      threadId: threadResult.thread.id,
+    })
+
+    this.attachCodexSubscriptions()
   }
 
   private async waitForResponse<Type = any>(id: number, timeoutMs = 180_000): Promise<Type> {
@@ -759,7 +785,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     })
   }
 
-  private async updateSelf(data: Prisma.TaskUpdateArgs['data']): Promise<TaskWithFullContext> {
+  public async updateTask(data: Prisma.TaskUpdateArgs['data']): Promise<TaskWithFullContext> {
     const databaseClient = requireDatabaseClient('TaskInstance updateSelf')
 
     const updatedTask: TaskWithFullContext = await databaseClient.task.update({
