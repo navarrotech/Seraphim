@@ -43,7 +43,11 @@ export async function handleGetTaskRequest(
   try {
     const task = await databaseClient.task.findUnique({
       where: { id: taskId },
-      include: { messages: true },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     })
 
     if (!task) {

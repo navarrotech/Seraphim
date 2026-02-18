@@ -108,6 +108,13 @@ export const DOCKER_DEBIAN_PACKAGES = [
   'util-linux',
   'procps',
   'tzdata',
+  'pkg-config',
+  'libxi-dev',
+  'libx11-dev',
+  'libxext-dev',
+  'libgl1-mesa-dev',
+  'libglvnd-dev',
+  'mesa-common-dev',
 ] as const
 
 export const ACT_VERSION = '0.2.80' as const

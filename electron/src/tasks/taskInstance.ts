@@ -673,11 +673,11 @@ export class TaskInstance extends EventEmitter<EventMap> {
           })
           break
         case 'item/started':
-          console.debug(`CODEX -> US: Started ${params.item.type}`)
           if (params.item.type === 'agentMessage') {
             if (!params.item.text) {
               break
             }
+            console.debug(`CODEX: ${params.item.text}`)
             await this.saveCodexMessage({
               start: true,
               role: 'Codex',
@@ -686,10 +686,24 @@ export class TaskInstance extends EventEmitter<EventMap> {
               meta: params,
             })
           }
+          else if (params.item.type === 'commandExecution') {
+            if (!params.item.command) {
+              break
+            }
+            console.debug(`CODEX: Started ${params.item.command}`)
+            await this.saveCodexMessage({
+              start: true,
+              role: 'Codex',
+              type: 'reasoning',
+              content: params.item.command,
+              meta: params,
+            })
+          }
           else if (params.item.type === 'reasoning') {
             if (!params.item.summary?.length) {
               break
             }
+            console.debug(`CODEX: Started ${params.item.summary.join('\n')}`)
             await this.saveCodexMessage({
               start: true,
               role: 'Codex',
@@ -699,6 +713,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
             })
           }
           else if (params.item.type !== 'userMessage') {
+            console.debug(`CODEX: Started ${params.item.type}`)
             await this.saveCodexMessage({
               start: true,
               role: 'Codex',
@@ -709,11 +724,11 @@ export class TaskInstance extends EventEmitter<EventMap> {
           }
           break
         case 'item/completed':
-          console.debug(`CODEX -> US: Completed ${params.item.type}`)
           if (params.item.type === 'agentMessage') {
             if (!params.item.text) {
               break
             }
+            console.debug(`CODEX: ${params.item.text}`)
             await this.saveCodexMessage({
               role: 'Codex',
               type: 'agentMessage',
@@ -721,12 +736,24 @@ export class TaskInstance extends EventEmitter<EventMap> {
               meta: params,
             })
           }
+          else if (params.item.type === 'commandExecution') {
+            if (!params.item.command) {
+              break
+            }
+            console.debug(`CODEX: Completed ${params.item.command}`)
+            await this.saveCodexMessage({
+              role: 'Codex',
+              type: 'reasoning',
+              content: params.item.command,
+              meta: params,
+            })
+          }
           else if (params.item.type === 'reasoning') {
             if (!params.item.summary?.length) {
               break
             }
+            console.debug(`CODEX: Completed ${params.item.summary.join('\n')}`)
             await this.saveCodexMessage({
-              start: true,
               role: 'Codex',
               type: 'reasoning',
               content: params.item.summary.join('\n'),
@@ -734,6 +761,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
             })
           }
           else if (params.item.type !== 'userMessage') {
+            console.debug(`CODEX: Completed ${params.item.type}`)
             await this.saveCodexMessage({
               role: 'Codex',
               type: params.item.type,

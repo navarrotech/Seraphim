@@ -2,7 +2,9 @@
 
 import type { getDockerClient } from './docker'
 
-// For use WITH buildkit (docker build v2+)
+// Core
+import { StatusResponse } from '@electron/vendor/buildkit/gen/github.com/moby/buildkit/api/services/control/control'
+
 export function waitForBuildVersion2(
   buildStream: NodeJS.ReadableStream,
   dockerClient: ReturnType<typeof getDockerClient>,
@@ -29,28 +31,6 @@ export function waitForBuildVersion2(
         return value
       }
       return null
-    }
-
-    function decodeBase64MaybePrintable(input: string): string | null {
-      try {
-        const buf = Buffer.from(input, 'base64')
-        // Convert to latin1 so we don't throw away bytes; then strip non-printables
-        const raw = buf.toString('latin1')
-
-        // Keep a readable subset. This is intentionally simple.
-        const printable = raw
-          .replace(/[^\x09\x0A\x0D\x20-\x7E]+/g, ' ') // collapse binary
-          .replace(/Gsha256:[0-9A-Fa-f]{64}\s*/g, '') // Remove buildkit's content digest logs
-          .replace(/sha256:[0-9A-Fa-f]{64}\s*/g, '') // Remove buildkit's content digest logs
-          .replace(/(\[\s*\d+\s*\/\s*\d+\s*\])/g, '\n$1') // Add a new line after each [Number/Number] progress step
-          .replace(/\s+/g, ' ')
-          .trim()
-
-        return printable.length ? printable : null
-      }
-      catch {
-        return null
-      }
     }
 
     function getProgressDetail(
@@ -89,13 +69,75 @@ export function waitForBuildVersion2(
       return `${progressDetail.current}/${progressDetail.total}`
     }
 
+    function decodeBuildkitTrace(auxBase64: string): StatusResponse | null {
+      try {
+        const bytes = Buffer.from(auxBase64, 'base64')
+        return StatusResponse.decode(bytes)
+      }
+      catch (error) {
+        console.debug('[Docker Build][trace] Failed to decode protobuf', { error })
+        return null
+      }
+    }
+
+    function handleBuildkitStatus(status: StatusResponse) {
+      // 1) Logs = the “real” output you probably care about
+      if (status.logs?.length) {
+        for (const l of status.logs) {
+          // In BuildKit, log.msg is bytes (Uint8Array)
+          if (!l.msg || l.msg.length === 0) {
+            continue
+          }
+
+          const text = Buffer.from(l.msg).toString('utf8')
+          if (!text) {
+            continue
+          }
+
+          // Optional: prefix by vertex id for debugging
+          // const prefix = l.vertex ? `[${l.vertex}] ` : ''
+          // console.debug('[Docker Build][trace]', prefix + text.trimEnd())
+
+          appendOutput(text)
+        }
+      }
+
+      // 2) Optional: structured progress. Usually too noisy for outputParts,
+      // but handy for debug logs / a progress UI.
+      if (status.statuses?.length) {
+        for (const s of status.statuses) {
+          const id = s.ID ?? ''
+          const name = s.name ?? ''
+          const current = s.current ?? 0
+          const total = s.total ?? 0
+
+          if (name) {
+            const suffix = total > 0 ? ` ${current}/${total}` : ''
+            console.debug(`[Docker Build][progress] ${id} ${name}${suffix}`)
+          }
+        }
+      }
+
+      // 3) Surface vertex errors (if any) as output + mark build as failed
+      if (status.vertexes?.length) {
+        for (const v of status.vertexes) {
+          if (v.error) {
+            hasError = true
+            appendOutput(v.error)
+            console.debug('[Docker Build][vertex error]', {
+              name: v.name,
+              error: v.error,
+            })
+          }
+        }
+      }
+    }
+
     dockerClient.modem.followProgress(
       buildStream,
       function handleBuildFinished(error: unknown) {
         if (error) {
-          console.debug('Error during Docker build', {
-            error,
-          })
+          console.debug('Error during Docker build', { error })
           reject(error)
           return
         }
@@ -122,9 +164,7 @@ export function waitForBuildVersion2(
           const progressLabel = getProgressLabel(event)
           const prefix = id ? ` ${id}` : ''
           const progressSuffix = progressLabel ? ` ${progressLabel}` : ''
-          console.debug(
-            `[Docker Build]${prefix} ${status}${progressSuffix}`,
-          )
+          console.debug(`[Docker Build]${prefix} ${status}${progressSuffix}`)
           return
         }
 
@@ -142,29 +182,25 @@ export function waitForBuildVersion2(
         if (id === 'moby.buildkit.trace') {
           const aux = event.aux
           if (typeof aux === 'string') {
-            const decoded = decodeBase64MaybePrintable(aux)
-            if (decoded) {
-              console.debug('[Docker Build][trace]', decoded)
-              return
+            const statusResp = decodeBuildkitTrace(aux)
+            if (statusResp) {
+              handleBuildkitStatus(statusResp)
             }
           }
-          // If it isn't decodable/printable, just ignore it
           return
         }
 
         if (id === 'moby.image.id') {
+          // dockerode types are loose here
           // @ts-ignore
           const aux = event.aux?.ID
-
           if (typeof aux === 'string') {
             console.debug('[Docker Build] Built image with ID', aux)
             return
           }
         }
 
-        console.debug('[Docker Build] Unrecognized progress event', {
-          event,
-        })
+        console.debug('[Docker Build] Unrecognized progress event', { event })
       },
     )
   })

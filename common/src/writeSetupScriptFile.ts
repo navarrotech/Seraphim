@@ -70,10 +70,10 @@ export HOME=/root
 export XDG_CONFIG_HOME=/root/.config
 export GIT_CONFIG_GLOBAL=/root/.gitconfig
 
-export CI=1
 export FORCE_COLOR=1
 
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+export YARN_ENABLE_PROGRESS_BARS=0
 export YARN_ENABLE_TELEMETRY=0
 
 unset GIT_CONFIG GIT_CONFIG_COUNT || true
