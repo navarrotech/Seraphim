@@ -47,6 +47,7 @@
     "node-global-key-listener": "^0.3.0",
     "openai": "^6.21.0",
     "prisma": "7",
+    "strip-ansi": "^7.1.2",
     "ts-morph": "^26.0.0",
     "uuid": "^11.1.0",
     "yup": "^1.6.1"

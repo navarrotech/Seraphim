@@ -1,23 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Message, Prisma } from '@prisma/client'
+import type { Message, Prisma, Turn } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
 import type { Container } from 'dockerode'
 import type { SetOptional } from 'type-fest'
-import type {
-  ClientRequest,
-  ClientNotification,
-  ServerNotification,
-} from '@electron/vendor/codex-protocol'
-import type {
-  RateLimitSnapshot,
-  ThreadTokenUsage,
-  ThreadStartResponse,
-} from '@electron/vendor/codex-protocol/v2'
+import type { ClientRequest, ClientNotification, ServerNotification } from '@electron/vendor/codex-protocol'
+import type { RateLimitSnapshot, ThreadTokenUsage, ThreadStartResponse } from '@electron/vendor/codex-protocol/v2'
 
 // Core
 import { requireDatabaseClient } from '@electron/database'
 import packageJson from '../../package.json'
+import chalk from 'chalk'
+import stripAnsi from 'strip-ansi'
 
 // Docker
 import { getDockerClient } from '@electron/docker/docker'
@@ -147,6 +141,8 @@ export class TaskInstance extends EventEmitter<EventMap> {
         throw new Error('Docker client is not available')
       }
 
+      const prisma = requireDatabaseClient('TaskInstance createContainer')
+
       const {
         workspace,
         authAccount,
@@ -161,9 +157,21 @@ export class TaskInstance extends EventEmitter<EventMap> {
         throw new Error('Workspace source repository is required')
       }
 
-      await this.updateTask({
-        state: 'Creating',
-      })
+      const [ initialTurn ] = await Promise.all([
+        prisma.turn.create({
+          data: {
+            taskId: this.task.id,
+          },
+          include: {
+            messages: true,
+          },
+        }),
+        this.updateTask({
+          state: 'Creating',
+        }),
+      ])
+
+      this.task.turns.push(initialTurn)
 
       const cloner = getCloner(
         authAccount.provider,
@@ -250,7 +258,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       let setupScriptOutput: string = ''
       function onStdout(line: string) {
-        setupScriptOutput += line + '\n'
+        setupScriptOutput += stripAnsi(line) + '\n'
       }
 
       this.on('line', onStdout)
@@ -270,11 +278,18 @@ export class TaskInstance extends EventEmitter<EventMap> {
           .catch((error) => ({ type: 'failure-error' as const, error })),
       ])
 
-      await this.saveCodexMessage({
-        role: 'Docker',
-        type: 'text',
-        content: setupScriptOutput,
-      })
+      const now = Date.now()
+      await Promise.all([
+        this.saveCodexMessage({
+          role: 'Docker',
+          type: 'text',
+          content: setupScriptOutput,
+        }),
+        this.updateTurn(initialTurn.id, {
+          timeTaken: now - initialTurn.createdAt.getTime(),
+          finishedAt: new Date(now),
+        }),
+      ])
 
       this.off('line', onStdout)
 
@@ -416,7 +431,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
       id = ` (#${String(message.id)}) `
     }
 
-    console.debug(`CODEX -> ${message.method}${id}`, message)
+    console.debug(`US-> CODEX ${message.method}${id}`, message)
     const payload = `${JSON.stringify(message)}\n`
     this.codexStream.write(payload)
   }
@@ -628,16 +643,28 @@ export class TaskInstance extends EventEmitter<EventMap> {
           })
           break
         case 'turn/completed':
-          console.log('Task completed!!')
+          console.log(
+            chalk.green('Task completed!!'),
+          )
           console.log('Rate limits:', this.rateLimits)
           console.log('Usage:', this.usage)
-          await this.updateTask({
-            state: 'AwaitingReview',
-          })
+          const now = Date.now()
+          const previous = this.task.turns[this.task.turns.length - 1]
+          await Promise.all([
+            this.updateTask({
+              state: 'AwaitingReview',
+            }),
+            this.updateTurn(
+              this.task.turns[this.task.turns.length - 1].id,
+              {
+                timeTaken: now - previous.createdAt.getTime(),
+                finishedAt: new Date(now),
+              },
+            ),
+          ])
           await this.doNextQueue()
           break
         case 'turn/diff/updated':
-          console.log('Handling turn/diff/updated')
           await this.saveCodexMessage({
             role: 'Codex',
             type: 'diff',
@@ -646,17 +673,34 @@ export class TaskInstance extends EventEmitter<EventMap> {
           })
           break
         case 'item/started':
-          console.log('Handling item/started')
+          console.debug(`CODEX -> US: Started ${params.item.type}`)
           if (params.item.type === 'agentMessage') {
+            if (!params.item.text) {
+              break
+            }
             await this.saveCodexMessage({
+              start: true,
               role: 'Codex',
               type: 'agentMessage',
               content: params.item.text,
               meta: params,
             })
           }
-          else {
+          else if (params.item.type === 'reasoning') {
+            if (!params.item.summary?.length) {
+              break
+            }
             await this.saveCodexMessage({
+              start: true,
+              role: 'Codex',
+              type: 'reasoning',
+              content: params.item.summary.join('\n'),
+              meta: params,
+            })
+          }
+          else if (params.item.type !== 'userMessage') {
+            await this.saveCodexMessage({
+              start: true,
               role: 'Codex',
               type: params.item.type,
               content: params.item.id,
@@ -665,8 +709,11 @@ export class TaskInstance extends EventEmitter<EventMap> {
           }
           break
         case 'item/completed':
-          console.log('Handling item/completed')
+          console.debug(`CODEX -> US: Completed ${params.item.type}`)
           if (params.item.type === 'agentMessage') {
+            if (!params.item.text) {
+              break
+            }
             await this.saveCodexMessage({
               role: 'Codex',
               type: 'agentMessage',
@@ -674,7 +721,19 @@ export class TaskInstance extends EventEmitter<EventMap> {
               meta: params,
             })
           }
-          else {
+          else if (params.item.type === 'reasoning') {
+            if (!params.item.summary?.length) {
+              break
+            }
+            await this.saveCodexMessage({
+              start: true,
+              role: 'Codex',
+              type: 'reasoning',
+              content: params.item.summary.join('\n'),
+              meta: params,
+            })
+          }
+          else if (params.item.type !== 'userMessage') {
             await this.saveCodexMessage({
               role: 'Codex',
               type: params.item.type,
@@ -890,6 +949,14 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       this.on('line', onMessage)
       signal?.addEventListener('abort', onAbort, { once: true })
+    })
+  }
+
+  private async updateTurn(id: string, data: Prisma.TurnUpdateArgs['data']): Promise<Turn> {
+    const prisma = requireDatabaseClient('TaskInstance updateTurn')
+    return await prisma.turn.update({
+      where: { id: id },
+      data,
     })
   }
 
