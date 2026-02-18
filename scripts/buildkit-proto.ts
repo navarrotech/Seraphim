@@ -26,6 +26,11 @@ const TS_PROTO_PLUGIN = path.resolve(
     ? 'node_modules/.bin/protoc-gen-ts_proto.cmd'
     : 'node_modules/.bin/protoc-gen-ts_proto',
 )
+const PROTOC_BIN = path.resolve(
+  process.platform === 'win32'
+    ? 'node_modules/.bin/protoc.cmd'
+    : 'node_modules/.bin/protoc',
+)
 
 const TS_PROTO_OPTS
   = 'esModuleInterop=true,'
@@ -55,11 +60,15 @@ async function mkdirp(p: string) {
   await fsp.mkdir(p, { recursive: true })
 }
 
-function run(cmd: string, args: string[], opts: { cwd?: string } = {}) {
+function run(
+  cmd: string,
+  args: string[],
+  opts: { cwd?: string; shell?: boolean } = {},
+) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(cmd, args, {
       stdio: 'inherit',
-      shell: false,
+      shell: opts.shell ?? false,
       ...opts,
     })
     child.on('error', reject)
@@ -139,6 +148,12 @@ async function main() {
     throw new Error(
       `ts-proto plugin not found at:\n  ${TS_PROTO_PLUGIN}\n`
         + `Install deps:\n  yarn add -D tsx ts-proto protobufjs google-proto-files tar`,
+    )
+  }
+  if (!exists(PROTOC_BIN)) {
+    throw new Error(
+      `protoc binary not found at:\n  ${PROTOC_BIN}\n`
+        + 'Install deps:\n  yarn add -D protoc',
     )
   }
   if (!exists(path.join(GOOGLE_PROTO_ROOT, 'google/protobuf'))) {
@@ -228,7 +243,7 @@ async function main() {
     // - github.com/moby/buildkit/... via -I PROTO_DIR
     // - gogoproto/gogo.proto via -I PROTO_DIR
     // - google/protobuf/*.proto via -I GOOGLE_PROTO_ROOT
-    await run('protoc', [
+    await run(PROTOC_BIN, [
       '-I',
       PROTO_DIR,
       '-I',
@@ -237,7 +252,9 @@ async function main() {
       `--ts_proto_out=${GEN_DIR}`,
       `--ts_proto_opt=${TS_PROTO_OPTS}`,
       controlProto,
-    ])
+    ], {
+      shell: process.platform === 'win32',
+    })
 
     console.log('Done.')
   }

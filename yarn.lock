@@ -13382,6 +13382,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"protoc@npm:^33.5.0":
+  version: 33.5.0
+  resolution: "protoc@npm:33.5.0"
+  bin:
+    protoc: protoc.cjs
+  checksum: 10c0/56133536aa7d5af02abaa1c5cf0afd4badd537574326ed1d4eb7f0096561c871c6edd6c9d4fd4622051f436a0f3501313fe084d584d77b789c901347bfedf6de
+  languageName: node
+  linkType: hard
+
 "proxy-addr@npm:^2.0.7":
   version: 2.0.7
   resolution: "proxy-addr@npm:2.0.7"
@@ -14282,6 +14291,7 @@ __metadata:
     openai: "npm:^6.21.0"
     prisma: "npm:7"
     protobufjs: "npm:^8.0.0"
+    protoc: "npm:^33.5.0"
     rimraf: "npm:^6.0.1"
     strip-ansi: "npm:^7.1.2"
     tar: "npm:^7.5.9"
