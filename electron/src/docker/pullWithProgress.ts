@@ -9,11 +9,13 @@ type PullProgressEvent = {
   error?: string
 }
 
-export async function pullWithProgress(image: string) {
+export async function pullWithProgress(image: string): Promise<string> {
   if (!image?.trim()) {
     console.debug('pullWithProgress missing image input', { image })
     throw new Error('pullWithProgress requires a non-empty image name')
   }
+
+  let output = ''
 
   const dockerClient = getDockerClient()
   const stream = await new Promise<NodeJS.ReadableStream>(function onPullPromise(resolve, reject) {
@@ -60,15 +62,19 @@ export async function pullWithProgress(image: string) {
         if (event.id && event.status) {
           const progressText = event.progress ? ` ${event.progress}` : ''
           process.stdout.write(`\r${event.id}: ${event.status}${progressText}   `)
+          output += `${event.id}: ${event.status}${progressText}\n`
           return
         }
 
         if (event.status) {
           process.stdout.write(`\r${event.status}   `)
+          output += `${event.status}\n`
         }
       },
     )
   })
 
   process.stdout.write('\n')
+
+  return output
 }

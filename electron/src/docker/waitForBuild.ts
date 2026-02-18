@@ -7,8 +7,18 @@ export function waitForBuildVersion2(
   buildStream: NodeJS.ReadableStream,
   dockerClient: ReturnType<typeof getDockerClient>,
 ) {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     let hasError = false
+    const outputParts: string[] = []
+
+    function appendOutput(message: string) {
+      if (!message) {
+        return
+      }
+
+      const suffix = message.endsWith('\n') ? '' : '\n'
+      outputParts.push(`${message}${suffix}`)
+    }
 
     function getEventString(
       event: Record<string, unknown>,
@@ -95,12 +105,13 @@ export function waitForBuildVersion2(
           return
         }
 
-        resolve()
+        resolve(outputParts.join(''))
       },
       function handleBuildProgress(event: Record<string, unknown>) {
         const errorMessage = getEventString(event, 'error')
         if (errorMessage) {
           hasError = true
+          appendOutput(errorMessage)
           console.debug('Docker build error', { error: errorMessage })
           return
         }
@@ -123,6 +134,7 @@ export function waitForBuildVersion2(
           if (message) {
             console.debug('[Docker Build]', message)
           }
+          appendOutput(stream)
           return
         }
 
@@ -163,41 +175,57 @@ export function waitForBuildVersion1(
   buildStream: NodeJS.ReadableStream,
   dockerClient: ReturnType<typeof getDockerClient>,
 ) {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     let hasError = false
+    const outputParts: string[] = []
+
+    function appendOutput(message: string) {
+      if (!message) {
+        return
+      }
+
+      const suffix = message.endsWith('\n') ? '' : '\n'
+      outputParts.push(`${message}${suffix}`)
+    }
+
+    function handleBuildFinished(error: unknown) {
+      if (error) {
+        console.debug('Error during Docker build', {
+          error,
+        })
+        reject(error)
+        return
+      }
+
+      if (hasError) {
+        reject(new Error('Docker build failed'))
+        return
+      }
+
+      resolve(outputParts.join(''))
+    }
+
+    function handleBuildProgress(event: Record<string, unknown>) {
+      if (typeof event.error === 'string') {
+        hasError = true
+        appendOutput(event.error)
+        console.debug('Docker build error', { error: event.error })
+        return
+      }
+
+      if (typeof event.stream === 'string') {
+        const message = event.stream.trim()
+        if (message) {
+          console.debug('[Docker Build]', message)
+        }
+        appendOutput(event.stream)
+      }
+    }
 
     dockerClient.modem.followProgress(
       buildStream,
-      (error: unknown) => {
-        if (error) {
-          console.debug('Error during Docker build', {
-            error,
-          })
-          reject(error)
-          return
-        }
-
-        if (hasError) {
-          reject(new Error('Docker build failed'))
-          return
-        }
-
-        resolve()
-      },
-      (event: Record<string, unknown>) => {
-        if (typeof event.error === 'string') {
-          hasError = true
-          console.debug('Docker build error', { error: event.error })
-          return
-        }
-
-        if (typeof event.stream === 'string') {
-          const message = event.stream.trim()
-          if (message) {
-            console.debug('[Docker Build]', message)
-          }
-        }
-      },
+      handleBuildFinished,
+      handleBuildProgress,
     )
   })
 }

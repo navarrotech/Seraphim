@@ -4,6 +4,7 @@ import type {
   AuthAccount,
   Llm,
   Message,
+  Turn,
   Task,
   User,
   Workspace,
@@ -30,10 +31,14 @@ export type WorkspaceWithEnv = Workspace & {
   envEntries: WorkspaceEnv[]
 }
 
+export type TurnWithMessages = Turn & {
+  messages: Message[]
+}
+
 export type TaskWithFullContext = Task & {
   llm: Llm
   authAccount: AuthAccount
-  messages: Message[]
+  turns: TurnWithMessages[]
   user: User
   workspace: WorkspaceWithEnv
 }

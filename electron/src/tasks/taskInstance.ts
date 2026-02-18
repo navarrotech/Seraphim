@@ -1,8 +1,9 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Prisma } from '@prisma/client'
+import type { Message, Prisma } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
 import type { Container } from 'dockerode'
+import type { SetOptional } from 'type-fest'
 import type {
   ClientRequest,
   ClientNotification,
@@ -46,7 +47,7 @@ type InboundCodexEvent = ServerNotification
 type EventMap = {
   'stdout': [ Buffer ]
   'stderr': [ Buffer ]
-  'line': [ string | Buffer ]
+  'line': [ string ]
   'message': [ InboundCodexEvent ]
 }
 
@@ -56,6 +57,8 @@ type ExecuteCommandResult = {
   stderr: string
   exitCode: number
 }
+
+type CreateMessage = SetOptional<Omit<Message, 'id' | 'createdAt' | 'taskId' | 'turnId'>, 'media' | 'meta' | 'start'>
 
 export class TaskInstance extends EventEmitter<EventMap> {
   private task: TaskWithFullContext
@@ -69,6 +72,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
   private rateLimits: RateLimitSnapshot | null = null
   private usage: ThreadTokenUsage | null = null
+  private userMessageQueue: CreateMessage[] = []
 
   constructor(options: TaskInstanceOptions) {
     super()
@@ -146,17 +150,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
       const {
         workspace,
         authAccount,
-        messages,
       } = this.task
-
-      const initialMessage = messages?.[0]
-      if (!initialMessage) {
-        console.debug('TaskInstance missing initial message', {
-          taskId: this.task.id,
-          messages,
-        })
-        throw new Error('Initial message is required to create task container')
-      }
 
       const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
       if (!sourceRepoUrl) {
@@ -191,6 +185,11 @@ export class TaskInstance extends EventEmitter<EventMap> {
         workspace,
         this.task,
         cloner,
+        (stdout: string) => this.saveCodexMessage({
+          role: 'Docker',
+          type: 'text',
+          content: stdout,
+        }),
       )
 
       if (!buildImageResult.success) {
@@ -249,6 +248,13 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       console.debug('Starting Docker container for task')
 
+      let setupScriptOutput: string = ''
+      function onStdout(line: string) {
+        setupScriptOutput += line + '\n'
+      }
+
+      this.on('line', onStdout)
+
       await this.container.start()
       await this.attachToContainer()
 
@@ -264,12 +270,19 @@ export class TaskInstance extends EventEmitter<EventMap> {
           .catch((error) => ({ type: 'failure-error' as const, error })),
       ])
 
+      await this.saveCodexMessage({
+        role: 'Docker',
+        type: 'text',
+        content: setupScriptOutput,
+      })
+
+      this.off('line', onStdout)
+
       if (completed.type !== 'success') {
         throw new Error(`Setup script did not complete successfully: ${completed.type}`)
       }
 
       await this.startCodexAppServer()
-      await this.startTurn(initialMessage.content)
     }
     catch (error) {
       console.log('TaskInstance createContainer failed', {
@@ -350,7 +363,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     })
 
     function handleStdoutLine(this: TaskInstance, line: string) {
-      this.emit('line', line)
+      this.emit('line', line.toString())
 
       const parsedMessage = safeParseJson<InboundCodexEvent>(line, undefined, true)
       if (parsedMessage) {
@@ -408,26 +421,6 @@ export class TaskInstance extends EventEmitter<EventMap> {
     this.codexStream.write(payload)
   }
 
-  public async startTurn(text: string): Promise<void> {
-    await this.updateTask({
-      state: 'Working',
-    })
-
-    const turnStartId = this.getRequestId()
-    this.sendRequest({
-      method: 'turn/start',
-      id: turnStartId,
-      params: {
-        threadId: this.codexThreadId,
-        input: [{
-          type: 'text',
-          text,
-          text_elements: [],
-        }],
-      },
-    })
-  }
-
   // TODO
   // public async halt(): Promise<void> {
 
@@ -438,15 +431,89 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
   // }
 
-  // // TODO
-  // public queueUserMessage(message: Message): void {
+  public async queueUserMessage(message: CreateMessage): Promise<void> {
+    const isQueueEmpty = this.userMessageQueue.length === 0
+    this.userMessageQueue.push(message)
 
-  // }
+    if (isQueueEmpty) {
+      this.doNextQueue()
+    }
+  }
 
-  // // TODO
-  // private saveCodexMessage(message: InboundCodexEvent): void {
+  private async doNextQueue() {
+    if (this.task.state !== 'AwaitingReview') {
+      return
+    }
 
-  // }
+    const prisma = requireDatabaseClient('TaskInstance queueUserMessage')
+
+    const nextQueueItem = this.userMessageQueue.shift()
+    if (!nextQueueItem) {
+      return
+    }
+
+    const newTurn = await prisma.turn.create({
+      data: {
+        taskId: this.task.id,
+      },
+      include: {
+        messages: true,
+      },
+    })
+
+    const newMessage = await prisma.message.create({
+      data: {
+        role: nextQueueItem.role,
+        type: nextQueueItem.type,
+        content: nextQueueItem.content,
+        media: nextQueueItem.media || [],
+        taskId: this.task.id,
+        turnId: newTurn.id,
+      },
+    })
+
+    newTurn.messages = [ newMessage ]
+    this.task.turns.push(newTurn)
+
+    await this.updateTask({
+      state: 'Working',
+    })
+
+
+    const turnStartId = this.getRequestId()
+    this.sendRequest({
+      method: 'turn/start',
+      id: turnStartId,
+      params: {
+        threadId: this.codexThreadId,
+        input: [{
+          type: 'text',
+          text: nextQueueItem.content,
+          text_elements: [],
+        }],
+      },
+    })
+  }
+
+  private async saveCodexMessage(message: CreateMessage): Promise<Message> {
+    const prisma = requireDatabaseClient('TaskInstance saveCodexMessage')
+    const currentTurn = this.task.turns[this.task.turns.length - 1]
+
+    const newMessage = await prisma.message.create({
+      data: {
+        turnId: currentTurn.id,
+        taskId: this.task.id,
+        media: message?.media || [],
+        meta: message?.meta || {},
+        start: message?.start ?? false,
+        ...message,
+      },
+    })
+
+    this.task.turns[this.task.turns.length - 1].messages.push(newMessage)
+
+    return newMessage
+  }
 
   public async executeCmd(command: string): Promise<ExecuteCommandResult> {
     const containerId = this.containerId
@@ -551,19 +618,13 @@ export class TaskInstance extends EventEmitter<EventMap> {
         return
       }
 
-      if (method.startsWith('codex/event/')) {
-        // These are legacy events that codex app-server still emits
-        // but we don't need to do anything with them in seraphim
-        return
-      }
-
       // Notes:
       // "item" = one atomic thing the agent produced
       // "turn" = the whole “job” kicked off by one user input
       switch (method) {
         case 'turn/started':
           await this.updateTask({
-            state: 'AwaitingReview',
+            state: 'Working',
           })
           break
         case 'turn/completed':
@@ -573,25 +634,59 @@ export class TaskInstance extends EventEmitter<EventMap> {
           await this.updateTask({
             state: 'AwaitingReview',
           })
+          await this.doNextQueue()
           break
         case 'turn/diff/updated':
           console.log('Handling turn/diff/updated')
+          await this.saveCodexMessage({
+            role: 'Codex',
+            type: 'diff',
+            content: params.diff,
+            meta: params,
+          })
           break
         case 'item/started':
           console.log('Handling item/started')
-          break
-        case 'item/fileChange/outputDelta':
-          console.log('Handling item/fileChange/outputDelta')
-          break
-        case 'item/reasoning/summaryTextDelta':
-          // console.log('Handling item/reasoning/summaryTextDelta')
+          if (params.item.type === 'agentMessage') {
+            await this.saveCodexMessage({
+              role: 'Codex',
+              type: 'agentMessage',
+              content: params.item.text,
+              meta: params,
+            })
+          }
+          else {
+            await this.saveCodexMessage({
+              role: 'Codex',
+              type: params.item.type,
+              content: params.item.id,
+              meta: params,
+            })
+          }
           break
         case 'item/completed':
           console.log('Handling item/completed')
+          if (params.item.type === 'agentMessage') {
+            await this.saveCodexMessage({
+              role: 'Codex',
+              type: 'agentMessage',
+              content: params.item.text,
+              meta: params,
+            })
+          }
+          else {
+            await this.saveCodexMessage({
+              role: 'Codex',
+              type: params.item.type,
+              content: params.item.id,
+              meta: params,
+            })
+          }
           break
+        case 'item/fileChange/outputDelta':
+        case 'item/reasoning/summaryTextDelta':
         case 'item/agentMessage/delta':
           // For partial eager streaming of agent messages
-          // console.log('Handling item/agentMessage/delta', params)
           break
         case 'account/rateLimits/updated':
           this.rateLimits = params.rateLimits
@@ -599,12 +694,24 @@ export class TaskInstance extends EventEmitter<EventMap> {
         case 'thread/tokenUsage/updated':
           this.usage = params.tokenUsage
           break
+        case 'thread/compacted':
+          await this.saveCodexMessage({
+            role: 'Codex',
+            type: 'threadCompacted',
+            content: 'Thread context has been compacted',
+            meta: params,
+          })
         case 'item/reasoning/summaryPartAdded':
         case 'thread/started':
-        case 'thread/compacted':
           // Not much do to here yet! Added here so they're muted from console.
           break
         default:
+          if (method.startsWith('codex/event/')) {
+            // These are legacy events that codex app-server still emits
+            // but we don't need to do anything with them in seraphim
+            break
+          }
+
           console.debug('Unhandled Codex message response:', message)
       }
     }
@@ -696,6 +803,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     this.codexThreadId = threadResult.thread.id
     await this.updateTask({
       threadId: threadResult.thread.id,
+      state: 'AwaitingReview',
     })
 
     this.attachCodexSubscriptions()
@@ -788,20 +896,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
   public async updateTask(data: Prisma.TaskUpdateArgs['data']): Promise<TaskWithFullContext> {
     const databaseClient = requireDatabaseClient('TaskInstance updateSelf')
 
-    const updatedTask: TaskWithFullContext = await databaseClient.task.update({
+    const updatedTask = await databaseClient.task.update({
       where: { id: this.task.id },
       data,
-      include: {
-        llm: true,
-        authAccount: true,
-        messages: true,
-        user: true,
-        workspace: {
-          include: {
-            envEntries: true,
-          },
-        },
-      },
     })
 
     broadcastSseChange({
@@ -810,8 +907,10 @@ export class TaskInstance extends EventEmitter<EventMap> {
       data: [ updatedTask ],
     })
 
-    this.task = updatedTask
+    const hydratedTask = Object.assign(this.task, updatedTask)
 
-    return updatedTask
+    this.task = hydratedTask
+
+    return hydratedTask
   }
 }

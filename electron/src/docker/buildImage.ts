@@ -16,7 +16,7 @@ import { createCodexConfig, createCodexAuthFile } from '@common/codexConfig'
 import { mkdtemp, writeFile, rm, readdir, readFile, mkdir } from 'node:fs/promises'
 import { cpSync, mkdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, relative } from 'node:path'
 import { utilsDir } from '@electron/lib/internalFiles'
 
 // Utility
@@ -54,6 +54,7 @@ export async function buildImage(
   workspace: Workspace,
   task?: TaskWithFullContext,
   cloner?: Cloner,
+  toStdout?: (data: string) => void,
 ): Promise<BuildImageResult> {
   let contextDir: string | null = null
 
@@ -67,20 +68,16 @@ export async function buildImage(
     //          SETUP INFO         //
     // /////////////////////////// //
 
-    let cloneUrl: string | null = cloner?.getCloneUrl()
     if (!cloner && task?.authAccount) {
-      const cloner = getCloner(
+      cloner = getCloner(
         task.authAccount.provider,
         workspace.sourceRepoUrl || '',
         task.authAccount.accessToken,
       )
-      cloneUrl = cloner.getCloneUrl()
     }
 
     const dockerfileContents = buildDockerfileContents({
       customCommands: workspace.customDockerfileCommands,
-      gitName: task?.authAccount?.name,
-      gitEmail: task?.authAccount?.email,
     })
 
     // /////////////////////////// //
@@ -183,10 +180,8 @@ export async function buildImage(
     await Promise.all([
       writeSetupScriptFile(
         contextDir,
-        cloneUrl,
-        task.sourceGitBranch,
-        task.workGitBranch,
-        workspace.setupScript,
+        task,
+        cloner,
         secrets,
       ),
       writeFile(
@@ -226,16 +221,20 @@ export async function buildImage(
       },
     )
 
-    console.debug('Context directory files after setup', {
-      contextDirFiles,
-    })
+    console.debug(
+      `Context directory files after setup: ${contextDir}`,
+      contextDirFiles.map((file) => relative(contextDir, file.parentPath)),
+    )
 
     // /////////////////////////// //
     //       BUILD THE IMAGE       //
     // /////////////////////////// //
 
     console.debug('Pulling the base Docker image...')
-    await pullWithProgress(DEFAULT_DOCKER_BASE_IMAGE)
+    const pullOutput = await pullWithProgress(DEFAULT_DOCKER_BASE_IMAGE)
+    if (pullOutput && toStdout) {
+      toStdout(pullOutput)
+    }
 
     console.debug('Starting Docker image build...')
 
@@ -258,10 +257,16 @@ export async function buildImage(
 
     // Wait for the build to complete!
     if (DOCKER_USE_BUILDKIT) {
-      await waitForBuildVersion2(buildStream, dockerClient)
+      const buildOutput = await waitForBuildVersion2(buildStream, dockerClient)
+      if (buildOutput && toStdout) {
+        toStdout(buildOutput)
+      }
     }
     else {
-      await waitForBuildVersion1(buildStream, dockerClient)
+      const buildOutput = await waitForBuildVersion1(buildStream, dockerClient)
+      if (buildOutput && toStdout) {
+        toStdout(buildOutput)
+      }
     }
 
     console.debug('Docker build completed successfully')
@@ -275,9 +280,14 @@ export async function buildImage(
     console.debug('Error during image build', {
       error,
     })
+
+    const message = (error as Error).message || 'Unknown error during image build'
+
+    toStdout(message)
+
     return {
       success: false,
-      errors: [ (error as Error).message || 'Unknown error during image build' ],
+      errors: [ message ],
     }
   }
   finally {

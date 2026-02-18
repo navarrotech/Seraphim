@@ -13,8 +13,6 @@ import {
 
 type Options = {
   customCommands?: string,
-  gitName?: string
-  gitEmail?: string
 }
 
 export function buildDockerfileContents(
@@ -22,8 +20,6 @@ export function buildDockerfileContents(
 ): string {
   const {
     customCommands,
-    gitName = 'codex',
-    gitEmail = 'codex@jalapenolabs.io',
   } = options
 
   let lines: string = `
@@ -48,10 +44,6 @@ COPY ./codex_config.toml ${CODEX_WORKDIR}/config.toml
 COPY ./codex_auth.json ${CODEX_WORKDIR}/auth.json
 COPY ./AGENTS.md ${CODEX_WORKDIR}/AGENTS.md
 COPY ./docs ${CODEX_WORKDIR}/docs
-
-# Setup git
-RUN git config --global user.name  "${gitName}" \\
-  && git config --global user.email "${gitEmail}"
 
 # Copy the validation script
 COPY ${VALIDATE_SCRIPT_NAME} /opt/seraphim/${VALIDATE_SCRIPT_NAME}

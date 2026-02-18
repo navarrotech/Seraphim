@@ -2,9 +2,12 @@
 
 /* eslint-disable max-len */
 
+import type { TaskWithFullContext } from './types'
+
 // Core
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { Cloner } from './cloning/polymorphism/cloner'
 
 // Misc
 import { redactSecrets } from './redactSecrets'
@@ -18,13 +21,18 @@ import {
 
 export async function writeSetupScriptFile(
   contextDir: string,
-  gitCloneUrl: string = BACKUP_GITHUB_CLONE_SAMPLE_URL,
-  gitSourceBranch: string = 'main',
-  gitWorkBranchName: string = 'seraphim-work',
-  customSetupContents?: string,
+  task: TaskWithFullContext,
+  cloner: Cloner = new Cloner(BACKUP_GITHUB_CLONE_SAMPLE_URL),
   secrets: string[] = [],
 ) {
-  let customUserSetupCommands = customSetupContents?.trim() ?? ''
+  const gitCloneUrl = cloner.getCloneUrl()
+
+  const gitUserName = task.authAccount?.name || 'codex'
+  const gitUserEmail = task.authAccount?.email || 'codex@jalapenolabs.io'
+  const gitSourceBranch = task.sourceGitBranch || 'main'
+  const gitWorkBranchName = `seraphim-work`
+
+  let customUserSetupCommands = task.workspace.setupScript?.trim() ?? ''
   if (customUserSetupCommands) {
     let remappedCommands = ''
     for (const line of customUserSetupCommands.split('\n')) {
@@ -42,6 +50,11 @@ printf "%b\n" "$\{BOLD}$\{GREEN}======== FINISHED CUSTOM SETUP SCRIPT ========$\
     `.trim()
   }
 
+  let authCommand = ''
+  if (cloner.token) {
+    authCommand = `printf "https://x-access-token:%s@github.com\n" "${cloner.token}" > /root/.git-credentials`
+  }
+
   const updatedContent = `
 #!/usr/bin/env bash
 set -euo pipefail
@@ -52,6 +65,21 @@ CYAN='\\033[36m'
 RED='\\033[31m'
 GREEN='\\033[32m'
 GRAY='\\033[90m'
+
+export HOME=/root
+export XDG_CONFIG_HOME=/root/.config
+export GIT_CONFIG_GLOBAL=/root/.gitconfig
+
+export CI=1
+export FORCE_COLOR=1
+
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+export YARN_ENABLE_TELEMETRY=0
+
+unset GIT_CONFIG GIT_CONFIG_COUNT || true
+
+mkdir -p "$HOME" "$XDG_CONFIG_HOME"
+touch "$GIT_CONFIG_GLOBAL"
 
 # Merge stderr into stdout for the setup block: '{ ... } 2>&1'
 # This is to enforce logging in the setup stuff is intrepeted in the same order for logging without TTY attached
@@ -67,11 +95,46 @@ GRAY='\\033[90m'
 
   printf "%b\n" "$\{BOLD}$\{CYAN}======== CLONING REPOSITORY ========$\{RESET}"
 
-  echo "git clone --recurse-submodules --branch \\"${gitSourceBranch}\\" \\"${redactSecrets(gitCloneUrl, secrets)}\\" ."
-  git clone --recurse-submodules --branch "${gitSourceBranch}" "${gitCloneUrl}" .
+  echo "$ git version"
+  git --version || true
+
+  # Setup git user
+  git config --global user.name  "${gitUserName}"
+  git config --global user.email "${gitUserEmail}"
+
+  # Setup git credential helpers
+  git config --global credential.helper store
+  git config --global --unset-all url."https://github.com/".insteadOf || true
+  git config --global --add url."https://github.com/".insteadOf "git@github.com:"
+  git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
+
+  # Setup your branch to support 'git pull' and 'git push' shorthand
+  git config --global pull.default current
+  git config --global push.default current
+
+  # Setup quality of life defaults:
+  git config --global color.ui auto
+  git config --global pull.rebase true
+  git config --global init.defaultbranch main
+
+  # Make first push automatically set the upstream
+  git config --global push.autoSetupRemote true
+  git config --global remote.pushDefault origin
+
+  ${authCommand}
+
+  echo "$ git clone --branch \\"${gitSourceBranch}\\" \\"${redactSecrets(gitCloneUrl, secrets)}\\" ."
+  git clone --branch "${gitSourceBranch}" "${gitCloneUrl}" .
+
+  echo 'Cloning submodules:'
+  printf "$ git submodule sync --recursive\n"
+  git submodule sync --recursive
+  printf "$ git submodule update --init --recursive\n"
+  git submodule update --init --recursive
+
   echo "Git clone complete."
 
-  echo "git switch -C "${gitWorkBranchName}" "origin/${gitSourceBranch}""
+  echo "$ git switch -C "${gitWorkBranchName}" "origin/${gitSourceBranch}""
   git switch -C "${gitWorkBranchName}" "origin/${gitSourceBranch}"
 
   #ls -1AF --group-directories-first

@@ -44,15 +44,21 @@ function splitScopeHeader(scopeHeader: string | number | null): string[] {
 
 function getMissingScopes(grantedScopes: string[]): string[] {
   const grantedScopeSet = new Set(grantedScopes)
-  const missingScopes: string[] = []
+  const missingScopes: Set<string> = new Set()
 
   for (const requiredScope of GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES) {
     if (!grantedScopeSet.has(requiredScope)) {
-      missingScopes.push(requiredScope)
+      missingScopes.add(requiredScope)
     }
   }
 
-  return missingScopes
+  // 'user' scope implies both 'read:user' and 'user:email'
+  if (grantedScopeSet.has('user')) {
+    missingScopes.delete('read:user')
+    missingScopes.delete('user:email')
+  }
+
+  return Array.from(missingScopes)
 }
 
 function getErrorStatus(error: unknown): number | undefined {

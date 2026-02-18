@@ -30,6 +30,25 @@ enum Role {
   User
 }
 
+enum MessageType {
+  text
+  diff
+  threadCompacted
+  agentMessage
+  collabAgentToolCall
+  userMessage
+  plan
+  reasoning
+  commandExecution
+  fileChange
+  mcpToolCall
+  webSearch
+  imageView
+  enteredReviewMode
+  exitedReviewMode
+  contextCompaction
+}
+
 enum TaskState {
   Creating
   SettingUp
@@ -91,6 +110,7 @@ model Task {
   authAccountId String
   authAccount   AuthAccount @relation(fields: [authAccountId], references: [id])
 
+  turns    Turn[]
   messages Message[]
 
   name      String?
@@ -116,15 +136,32 @@ model Task {
   updatedAt DateTime @updatedAt @map("updated_at")
 }
 
+model Turn {
+  id String @id @default(uuid())
+
+  taskId String @map("task_id")
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  timeTaken  Float?    @map("time_taken")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  finishedAt DateTime? @map("finished_at")
+}
+
 model Message {
   id String @id @default(uuid())
 
-  taskId String @map("turn_id")
-  task   Task   @relation(fields: [taskId], references: [id])
+  taskId String @map("task_id")
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  turnId String @map("turn_id")
+  turn   Turn   @relation(fields: [turnId], references: [id], onDelete: Cascade)
 
   role    Role
-  type    String  @default("text")
-  media   Bytes[] @default([])
+  type    MessageType @default(text)
+  media   Bytes[]     @default([])
+  meta    Json?
+  start   Boolean     @default(false)
   content String
 
   createdAt DateTime @default(now()) @map("created_at")

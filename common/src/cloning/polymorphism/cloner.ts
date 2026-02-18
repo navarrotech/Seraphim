@@ -12,8 +12,8 @@ export type ParsedRepositoryDetails = {
 // Polymorophism!
 // Github and other types can get their own extensions of this class
 export class Cloner {
-  protected readonly sourceRepoUrl: string
-  protected readonly token?: string
+  public readonly sourceRepoUrl: string
+  public readonly token?: string
 
   // Extracted details:
   protected orgName?: string

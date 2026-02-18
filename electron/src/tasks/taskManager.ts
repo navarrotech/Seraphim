@@ -12,8 +12,8 @@ import { teardownTask } from '@electron/jobs/teardownTask'
 import { updateTaskState } from '@electron/jobs/updateTaskState'
 import { callLLM } from '@common/llms/call'
 
-
 // Misc
+import { selectTaskWithFullContext } from './select'
 import { TaskInstance } from './taskInstance'
 class TaskManager {
   private taskInstances = new Map<string, TaskInstance>()
@@ -32,17 +32,7 @@ class TaskManager {
     const databaseClient = requireDatabaseClient('TaskManager initialize')
     const tasks = await databaseClient.task.findMany({
       where: { archived: false },
-      include: {
-        llm: true,
-        authAccount: true,
-        messages: true,
-        user: true,
-        workspace: {
-          include: {
-            envEntries: true,
-          },
-        },
-      },
+      include: selectTaskWithFullContext,
     })
 
     for (const task of tasks) {
@@ -165,28 +155,8 @@ class TaskManager {
         containerName: resolvedContainerName,
         archived: request.archived,
       },
-      include: {
-        llm: true,
-        messages: true,
-        authAccount: true,
-        user: true,
-        workspace: {
-          include: {
-            envEntries: true,
-          },
-        },
-      },
+      include: selectTaskWithFullContext,
     })
-
-    const initialMessage = await databaseClient.message.create({
-      data: {
-        role: 'User',
-        content: request.message,
-        taskId: createdTask.id,
-      },
-    })
-
-    createdTask.messages = [ initialMessage ]
 
     const taskInstance = new TaskInstance({
       task: createdTask,
@@ -207,17 +177,22 @@ class TaskManager {
     }
   }
 
-  public async launchTask(taskId: string): Promise<void> {
-    const taskInstance = this.taskInstances.get(taskId)
-    if (!taskInstance) {
-      console.debug('TaskManager launch requested without task instance', {
-        taskId,
-      })
-      return
-    }
-
+  public async launchTask(taskId: string, initialMessage: string): Promise<void> {
     try {
+      const taskInstance = this.taskInstances.get(taskId)
+      if (!taskInstance) {
+        console.debug('Task launch requested for task that does not exist in TaskManager', {
+          taskId,
+        })
+        return
+      }
+
       const updatedTask = await taskInstance.createContainer()
+      await updatedTask.queueUserMessage({
+        role: 'User',
+        type: 'userMessage',
+        content: initialMessage,
+      })
 
       broadcastSseChange({
         type: 'update',
@@ -335,16 +310,9 @@ class TaskManager {
       })
       await teardownTask(existingTask.container)
 
-      // Atomic deletion to avoid race conditions
       console.debug('Deleting task and its messages')
-      await databaseClient.$transaction(async (transaction) => {
-        await transaction.message.deleteMany({
-          where: { taskId: trimmedTaskId },
-        })
-
-        await transaction.task.delete({
-          where: { id: trimmedTaskId },
-        })
+      await databaseClient.task.delete({
+        where: { id: trimmedTaskId },
       })
     }
 
@@ -376,7 +344,7 @@ class TaskManager {
         callLLM(
           llm,
           (`Git branch template: '${workspace.gitBranchTemplate}'`
-          + `\n\nTask:\n\`\`\`${userMessage}\n\`\`\``),
+          + `\n\nTask:\n\`\`\`\n${userMessage}\n\`\`\``),
           (`You're an assistant helping to prepare an automated git job,`
             + ` and you're responsible for naming the git branch for this automated task.`
             + ` Below the user will provide an initial task request AND a give preferred git work branch template.`

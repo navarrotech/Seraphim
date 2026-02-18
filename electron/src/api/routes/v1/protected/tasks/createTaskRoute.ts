@@ -39,8 +39,7 @@ export async function handleCreateTaskRequest(
     }
 
     response.status(201).json({ task: result.task })
-
-    await taskManager.launchTask(result.task.id)
+    await taskManager.launchTask(result.task.id, body.message)
   }
   catch (error) {
     console.error('Failed to create task', error)
