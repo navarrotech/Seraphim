@@ -90,7 +90,7 @@ function downloadToFile(url: string, outPath: string) {
           try {
             fs.unlinkSync(outPath)
           }
- catch {}
+          catch {}
           resolve(downloadToFile(res.headers.location, outPath))
           return
         }

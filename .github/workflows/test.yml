@@ -39,6 +39,11 @@ jobs:
           node-version: "lts/krypton"
           cache: yarn
 
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
       - name: Setup yarn
         run: corepack enable
 
