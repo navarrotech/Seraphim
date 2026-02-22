@@ -2,13 +2,12 @@
 
 import type { Request, Response } from 'express'
 
-// Lib
+// Core
+import { requireDatabaseClient } from '@electron/database'
+import { parseRequestParams } from '../../validation'
 import { z } from 'zod'
 
-// Utility
-import { parseRequestParams } from '../../validation'
-
-// Misc
+// Schema
 import { getTaskManager } from '@electron/tasks/taskManager'
 
 type RouteParams = {
@@ -37,9 +36,19 @@ export async function handleDeleteTaskRequest(
   }
 
   try {
+    const prisma = requireDatabaseClient('Delete task API')
+    const task = await prisma.task.findUnique({
+      where: { id: params.taskId },
+    })
+
+    if (!task) {
+      response.status(404).json({ error: 'Task not found' })
+      return
+    }
+
     const taskManager = getTaskManager()
 
-    response.status(200).json({ deleted: true })
+    response.status(200).json({ deleted: true, task })
 
     await taskManager.deleteTask(params.taskId)
   }

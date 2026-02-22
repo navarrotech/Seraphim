@@ -45,6 +45,9 @@ export async function handleDeleteWorkspaceRequest(
   try {
     const existingWorkspace = await databaseClient.workspace.findUnique({
       where: { id: workspaceId },
+      include: {
+        envEntries: true,
+      },
     })
 
     if (!existingWorkspace) {
@@ -65,7 +68,7 @@ export async function handleDeleteWorkspaceRequest(
       data: existingWorkspace,
     })
 
-    response.status(200).json({ deleted: true, workspaceId })
+    response.status(200).json({ deleted: true, workspace: existingWorkspace })
   }
   catch (error) {
     console.error('Failed to delete workspace', error)

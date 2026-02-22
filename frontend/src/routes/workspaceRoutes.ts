@@ -6,6 +6,10 @@ import type { WorkspaceCreateRequest, WorkspaceUpdateRequest } from '@common/sch
 // Core
 import { apiClient, parseRequestBeforeSend } from '@common/api'
 
+// Redux
+import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
+import { dispatch } from '@frontend/framework/store'
+
 // Schema
 import { workspaceCreateSchema, workspaceUpdateSchema } from '@common/schema/workspace'
 
@@ -17,10 +21,16 @@ type ListWorkspacesResponse = {
   workspaces: WorkspaceWithEnv[]
 }
 
-export function listWorkspaces() {
-  return apiClient
+export async function listWorkspaces() {
+  const response = await apiClient
     .get('v1/protected/workspaces')
     .json<ListWorkspacesResponse>()
+
+  dispatch(
+    workspaceActions.setWorkspaces(response.workspaces),
+  )
+
+  return response
 }
 
 // /////////////////////////////// //
@@ -33,14 +43,18 @@ type CreateWorkspaceResponse = {
 
 export const createWorkspaceSchema = workspaceCreateSchema
 
-export type { WorkspaceCreateRequest }
-
 export async function createWorkspace(raw: WorkspaceCreateRequest) {
   const json = parseRequestBeforeSend(workspaceCreateSchema, raw)
 
-  return apiClient
+  const response = await apiClient
     .post('v1/protected/workspaces', { json })
     .json<CreateWorkspaceResponse>()
+
+  dispatch(
+    workspaceActions.upsertWorkspace(response.workspace),
+  )
+
+  return response
 }
 
 // /////////////////////////////// //
@@ -54,16 +68,38 @@ type UpdateWorkspaceResponse = {
 export async function updateWorkspace(workspaceId: string, raw: WorkspaceUpdateRequest) {
   const json = parseRequestBeforeSend(workspaceUpdateSchema, raw)
 
-  return apiClient
+  const response = await apiClient
     .patch(`v1/protected/workspaces/${workspaceId}`, { json })
     .json<UpdateWorkspaceResponse>()
+
+  dispatch(
+    workspaceActions.upsertWorkspace(response.workspace),
+  )
+
+  return response
 }
 
 // /////////////////////////////// //
 //         Delete Workspace        //
 // /////////////////////////////// //
 
-export function deleteWorkspace(workspaceId: string) {
-  return apiClient
-    .delete(`v1/protected/workspaces/${workspaceId}`)
+type DeleteWorkspaceRequest = {
+  id: string
+}
+
+type DeleteWorkspaceResponse = {
+  deleted: boolean
+  workspace: WorkspaceWithEnv
+}
+
+export async function deleteWorkspace(request: DeleteWorkspaceRequest) {
+  const response = await apiClient
+    .delete(`v1/protected/workspaces/${request.id}`)
+    .json<DeleteWorkspaceResponse>()
+
+  dispatch(
+    workspaceActions.removeWorkspace(response.workspace),
+  )
+
+  return response
 }
