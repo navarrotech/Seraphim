@@ -13,7 +13,7 @@ import { x as extractTar } from 'tar'
 const BUILDKIT_VERSION = process.env.BUILDKIT_VERSION ?? 'v0.27.0'
 
 // Everything lives under here
-const ROOT_DIR = path.resolve('electron/src/vendor/buildkit')
+const ROOT_DIR = path.resolve('common/src/vendor/buildkit')
 const PROTO_DIR = path.join(ROOT_DIR, 'proto')
 const GEN_DIR = path.join(ROOT_DIR, 'gen')
 
