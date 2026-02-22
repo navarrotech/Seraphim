@@ -10,7 +10,7 @@ import useSWR from 'swr'
 import { Card } from '@heroui/react'
 
 // Misc
-import { listAccounts } from '@frontend/routes/accounts'
+import { listAccounts } from '@frontend/routes/accountsRoutes'
 import { listLlms } from '@frontend/routes/llmRoutes'
 import { listTasks } from '@frontend/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/routes/workspaceRoutes'

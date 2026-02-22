@@ -2,11 +2,11 @@
 
 import type { Prisma } from '@prisma/client'
 import type { Request, Response } from 'express'
-import type { WorkspaceCreateRequest } from '@common/schema'
+import type { WorkspaceCreateRequest } from '@common/schema/workspace'
 
 // Utility
 import { parseRequestBody } from '../../validation'
-import { workspaceCreateSchema } from '@common/schema'
+import { workspaceCreateSchema } from '@common/schema/workspace'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'

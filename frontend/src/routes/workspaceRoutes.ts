@@ -1,23 +1,20 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace, WorkspaceEnv } from '@common/types'
+import type { WorkspaceWithEnv } from '@common/types'
+import type { WorkspaceCreateRequest, WorkspaceUpdateRequest } from '@common/schema/workspace'
 
-// Lib
-import { z } from 'zod'
+// Core
+import { apiClient, parseRequestBeforeSend } from '@common/api'
 
-// Utility
-import {
-  workspaceCreateSchema,
-  workspaceUpdateSchema,
-} from '@common/schema'
+// Schema
+import { workspaceCreateSchema, workspaceUpdateSchema } from '@common/schema/workspace'
 
-// Misc
-import { apiClient } from '../../../common/src/api'
-
-type WorkspaceResponse = Workspace & { envEntries: WorkspaceEnv[] }
+// /////////////////////////////// //
+//         List Workspaces         //
+// /////////////////////////////// //
 
 type ListWorkspacesResponse = {
-  workspaces: WorkspaceResponse[]
+  workspaces: WorkspaceWithEnv[]
 }
 
 export function listWorkspaces() {
@@ -26,41 +23,45 @@ export function listWorkspaces() {
     .json<ListWorkspacesResponse>()
 }
 
-type GetWorkspaceResponse = {
-  workspace: WorkspaceResponse
-}
-
-export function getWorkspace(workspaceId: string) {
-  return apiClient
-    .get(`v1/protected/workspaces/${workspaceId}`)
-    .json<GetWorkspaceResponse>()
-}
+// /////////////////////////////// //
+//         Create Workspace        //
+// /////////////////////////////// //
 
 type CreateWorkspaceResponse = {
-  workspace: WorkspaceResponse
+  workspace: WorkspaceWithEnv
 }
 
 export const createWorkspaceSchema = workspaceCreateSchema
 
-export type CreateWorkspaceRequest = z.infer<typeof workspaceCreateSchema>
+export type { WorkspaceCreateRequest }
 
-export function createWorkspace(body: CreateWorkspaceRequest) {
+export async function createWorkspace(raw: WorkspaceCreateRequest) {
+  const json = parseRequestBeforeSend(workspaceCreateSchema, raw)
+
   return apiClient
-    .post('v1/protected/workspaces', { json: body })
+    .post('v1/protected/workspaces', { json })
     .json<CreateWorkspaceResponse>()
 }
 
-type UpdateWorkspaceRequestBody = z.infer<typeof workspaceUpdateSchema>
+// /////////////////////////////// //
+//         Update Workspace        //
+// /////////////////////////////// //
 
 type UpdateWorkspaceResponse = {
-  workspace: WorkspaceResponse
+  workspace: WorkspaceWithEnv
 }
 
-export function updateWorkspace(workspaceId: string, body: UpdateWorkspaceRequestBody) {
+export async function updateWorkspace(workspaceId: string, raw: WorkspaceUpdateRequest) {
+  const json = parseRequestBeforeSend(workspaceUpdateSchema, raw)
+
   return apiClient
-    .patch(`v1/protected/workspaces/${workspaceId}`, { json: body })
+    .patch(`v1/protected/workspaces/${workspaceId}`, { json })
     .json<UpdateWorkspaceResponse>()
 }
+
+// /////////////////////////////// //
+//         Delete Workspace        //
+// /////////////////////////////// //
 
 export function deleteWorkspace(workspaceId: string) {
   return apiClient

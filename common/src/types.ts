@@ -65,6 +65,10 @@ export type LlmWithRateLimits = Llm & {
   rateLimits: RateLimitSnapshot | null
 }
 
+export type UserWithSettings = User & {
+  settings: UserSettings | null
+}
+
 export type LlmUsage = {
   taskId: string
   llmId: string

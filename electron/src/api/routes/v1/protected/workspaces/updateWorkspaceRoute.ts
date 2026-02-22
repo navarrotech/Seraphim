@@ -1,14 +1,14 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { WorkspaceUpdateRequest } from '@common/schema'
+import type { WorkspaceUpdateRequest } from '@common/schema/workspace'
 
 // Lib
 import { z } from 'zod'
 
 // Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
-import { workspaceUpdateSchema } from '@common/schema'
+import { workspaceUpdateSchema } from '@common/schema/workspace'
 import { workspaceIdSchema } from '@electron/validators'
 
 // Misc

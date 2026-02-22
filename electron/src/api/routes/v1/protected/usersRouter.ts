@@ -20,4 +20,3 @@ export function createUsersRouter(): Router {
 
   return usersRouter
 }
-
