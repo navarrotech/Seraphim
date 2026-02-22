@@ -33,18 +33,17 @@ root.render(
   <Provider store={store}>
     <BrowserRouter>
       <HeroUIProviderCustom>
-        <ApiSocketGate>
-          <InitialDataGate>
-            <ConfirmGate>
-              <PromptGate>
-                <UnsavedWorkGate>
-                  <ToastProvider />
-                  <Router />
-                </UnsavedWorkGate>
-              </PromptGate>
-            </ConfirmGate>
-          </InitialDataGate>
-        </ApiSocketGate>
+        <ApiSocketGate />
+        <ToastProvider />
+        <InitialDataGate>
+          <ConfirmGate>
+            <PromptGate>
+              <UnsavedWorkGate>
+                <Router />
+              </UnsavedWorkGate>
+            </PromptGate>
+          </ConfirmGate>
+        </InitialDataGate>
       </HeroUIProviderCustom>
     </BrowserRouter>
   </Provider>,
