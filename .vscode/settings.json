@@ -15,13 +15,19 @@
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
   // Max length ruler:
   "editor.rulers": [
     120
   ],
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
   "[json]": {
     "editor.defaultFormatter": "oliversturm.fix-json",
     "editor.formatOnSave": true,
@@ -33,7 +39,7 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   },
-  "i18next.i18nPaths": "frontend/public/locales",
+  "css.lint.unknownAtRules": "ignore",
   "files.exclude": {
     ".yarn": true,
     ".yarnrc.yml": true,

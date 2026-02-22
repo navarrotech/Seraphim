@@ -30,7 +30,6 @@ jobs:
         with:
           submodules: "recursive"
           set-safe-directory: true
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -160,7 +159,6 @@ jobs:
         with:
           submodules: "recursive"
           set-safe-directory: true
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - uses: earthly/actions-setup@v1
         with:

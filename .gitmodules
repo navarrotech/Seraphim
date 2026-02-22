@@ -1,0 +1,3 @@
+[submodule "frontend/public/brand"]
+	path = frontend/public/brand
+	url = git@github.com:JalapenoLabs/brand.git
