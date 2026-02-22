@@ -2,6 +2,7 @@
 
 import type { Llm } from '@prisma/client'
 import type { ResponsesModel } from 'openai/resources/shared'
+import type { LlmUsage } from '@common/types'
 
 // Core
 import { CallableLLM } from './callLlm'
@@ -53,5 +54,23 @@ export class CallableOpenAI extends CallableLLM {
     }
 
     return 'Unnamed task'
+  }
+
+  public async getUsageStatistics(): Promise<LlmUsage> {
+    return {
+      llmId: this.llm.id,
+      usage: {
+        last: null,
+        modelContextWindow: 0,
+        total: {
+          cachedInputTokens: 0,
+          reasoningOutputTokens: 0,
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+      },
+      rateLimits: null,
+    }
   }
 }

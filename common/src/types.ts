@@ -11,6 +11,8 @@ import type {
   WorkspaceEnv,
 } from '@prisma/client'
 
+import type { RateLimitSnapshot, ThreadTokenUsage } from '@common/vendor/codex-protocol/v2'
+
 // ////////////////////////// //
 //        Common Basic        //
 // ////////////////////////// //
@@ -45,6 +47,12 @@ export type TaskWithFullContext = Task & {
 
 export type LlmRecord = Llm & {
   preferredModel?: string | null
+}
+
+export type LlmUsage = {
+  llmId: string
+  usage: ThreadTokenUsage | null
+  rateLimits: RateLimitSnapshot | null
 }
 
 // ////////////////////////// //

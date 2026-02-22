@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Message, Prisma, Turn } from '@prisma/client'
-import type { TaskWithFullContext } from '@common/types'
+import type { LlmUsage, TaskWithFullContext } from '@common/types'
 import type { Container } from 'dockerode'
 import type { SetOptional } from 'type-fest'
 import type { ClientRequest, ClientNotification, ServerNotification } from '@common/vendor/codex-protocol'
@@ -81,6 +81,14 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
   get data() {
     return this.task
+  }
+
+  get usageData(): LlmUsage {
+    return {
+      llmId: this.task.llm.id,
+      usage: this.usage,
+      rateLimits: this.rateLimits,
+    }
   }
 
   get containerId(): string | null {
@@ -777,6 +785,11 @@ export class TaskInstance extends EventEmitter<EventMap> {
           break
         case 'account/rateLimits/updated':
           this.rateLimits = params.rateLimits
+          broadcastSseChange({
+            type: 'update',
+            kind: 'usage',
+            data: [ this.usageData ],
+          })
           break
         case 'thread/tokenUsage/updated':
           this.usage = params.tokenUsage
