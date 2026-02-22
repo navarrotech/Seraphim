@@ -3,7 +3,7 @@
 import type { getDockerClient } from './docker'
 
 // Core
-import { StatusResponse } from '@electron/vendor/buildkit/gen/github.com/moby/buildkit/api/services/control/control'
+import { StatusResponse } from '@common/vendor/buildkit/gen/github.com/moby/buildkit/api/services/control/control'
 
 export function waitForBuildVersion2(
   buildStream: NodeJS.ReadableStream,

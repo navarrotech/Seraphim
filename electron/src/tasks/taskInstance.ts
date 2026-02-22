@@ -4,8 +4,8 @@ import type { Message, Prisma, Turn } from '@prisma/client'
 import type { TaskWithFullContext } from '@common/types'
 import type { Container } from 'dockerode'
 import type { SetOptional } from 'type-fest'
-import type { ClientRequest, ClientNotification, ServerNotification } from '@electron/vendor/codex-protocol'
-import type { RateLimitSnapshot, ThreadTokenUsage, ThreadStartResponse } from '@electron/vendor/codex-protocol/v2'
+import type { ClientRequest, ClientNotification, ServerNotification } from '@common/vendor/codex-protocol'
+import type { RateLimitSnapshot, ThreadTokenUsage, ThreadStartResponse } from '@common/vendor/codex-protocol/v2'
 
 // Core
 import { requireDatabaseClient } from '@electron/database'
