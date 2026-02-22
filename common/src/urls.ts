@@ -3,18 +3,6 @@
 // Urls
 export const UrlTree = {
   root: '/',
-  settings: '/settings',
-  settingsGeneral: '/settings/general',
-  settingsAdvanced: '/settings/advanced',
-  settingsGitRepos: '/settings/git-repos',
-  settingsWorkspaces: '/settings/workspaces',
-  settingsLlms: '/settings/llms',
-  llms: '/llms',
-  workspacesList: '/settings/workspaces',
-  workspaceCreate: '/settings/workspaces/create',
-  workspaceEdit: '/settings/workspaces/:workspaceId/edit',
-  tasksList: '/tasks',
-  taskView: '/tasks/:taskId',
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 
@@ -26,14 +14,8 @@ export type ExternalLinkValue = typeof ExternalLinks[keyof typeof ExternalLinks]
 export type ValidApplicationLink = UrlValue | ExternalLinkValue
 
 // Settings
-export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.tasksList
+export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.root
 
 // ///////////////////////////// //
 //         Link factories        //
 // ///////////////////////////// //
-
-export const getWorkspaceEditUrl = (workspaceId: string) =>
-  UrlTree.workspaceEdit.replace(':workspaceId', workspaceId)
-
-export const getTaskViewUrl = (taskId: string) =>
-  UrlTree.taskView.replace(':taskId', taskId)

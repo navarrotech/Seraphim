@@ -2,7 +2,12 @@
 
 import type { ReactNode } from 'react'
 
+// Core
+import { useEffect } from 'react'
+import useSWR from 'swr'
+
 // Redux
+import { dispatch } from '@frontend/framework/store'
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
 import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
@@ -18,7 +23,6 @@ import { listLlms } from '@frontend/lib/routes/llmRoutes'
 import { listTasks } from '@frontend/lib/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
-import { useInitialData } from './useInitialData'
 
 type Props = {
   children: ReactNode
@@ -94,4 +98,30 @@ export function InitialDataGate(props: Props) {
   }
 
   return props.children
+}
+
+export function useInitialData<Shape>(
+  cacheKey: string,
+  fetcher: () => Promise<Shape>,
+  dispatchAction: (reduxDispatch: typeof dispatch, data: Shape) => void,
+) {
+  const query = useSWR(cacheKey, fetcher)
+
+  useEffect(() => {
+    if (!query.data) {
+      return
+    }
+
+    if (query.error) {
+      console.error(`Error fetching initial data for ${cacheKey}`, query.error)
+      return
+    }
+
+    dispatchAction(dispatch, query.data)
+  }, [ query.data ])
+
+  return {
+    isLoading: query.isLoading,
+    error: query.error,
+  } as const
 }
