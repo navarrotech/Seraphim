@@ -72,7 +72,7 @@ export async function handleLogoutAccountRequest(
   broadcastSseChange({
     type: 'delete',
     kind: 'accounts',
-    data: [ account ],
+    data: account,
   })
 
   response.status(200).json({

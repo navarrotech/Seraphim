@@ -10,6 +10,7 @@ import { handleCreateOpenAiApiKeyLlmRequest } from './llms/createOpenAiApiKeyLlm
 import { handleCreateOpenAiLoginTokenLlmRequest } from './llms/createOpenAiLoginTokenLlmRoute'
 import { handleDeleteLlmRequest } from './llms/deleteLlmRoute'
 import { handleGetLlmRequest } from './llms/getLlmRoute'
+import { handleGetLlmRateLimitsRequest } from './llms/getLlmRateLimitsRoute'
 import { handleListLlmsRequest } from './llms/listLlmsRoute'
 import { handleUpdateLlmRequest } from './llms/updateLlmRoute'
 
@@ -25,6 +26,8 @@ export function createLlmsRouter(): Router {
     '/openai-login-token',
     handleCreateOpenAiLoginTokenLlmRequest,
   )
+  // /api/v1/protected/llms/:llmId/rate-limits
+  llmsRouter.get('/:llmId/rate-limits', handleGetLlmRateLimitsRequest)
   // /api/v1/protected/llms/:llmId
   llmsRouter.get('/:llmId', handleGetLlmRequest)
   // /api/v1/protected/llms/:llmId

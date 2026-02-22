@@ -1,7 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { AccountSummary } from './accountSanitizer'
 
 // Lib
 import { z } from 'zod'
@@ -131,9 +130,9 @@ export async function handleUpdateAccountRequest(
     },
   })
 
-  const accountSummary: AccountSummary = sanitizeAccount(account)
+  const sanitized = sanitizeAccount(account)
 
   response.status(200).json({
-    account: accountSummary,
+    account: sanitized,
   })
 }

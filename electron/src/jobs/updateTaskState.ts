@@ -34,7 +34,7 @@ export async function updateTaskState(
     broadcastSseChange({
       type: 'update',
       kind: 'tasks',
-      data: [ updatedTask ],
+      data: updatedTask,
     })
 
     return updatedTask

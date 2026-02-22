@@ -153,7 +153,7 @@ export async function handleUpdateLlmRequest(
     broadcastSseChange({
       type: 'update',
       kind: 'llms',
-      data: [ sanitizedLlm ],
+      data: sanitizedLlm,
     })
 
     response.status(200).json({ llm: sanitizedLlm })

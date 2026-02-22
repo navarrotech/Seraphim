@@ -9,9 +9,8 @@ import { z } from 'zod'
 import { parseRequestParams } from '../../validation'
 
 // Misc
-import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { sanitizeLlm } from './llmSanitizer'
+import { getLlmRateLimits } from '@common/llms/call'
 
 type RouteParams = {
   llmId: string
@@ -21,18 +20,18 @@ const llmParamsSchema = z.object({
   llmId: z.string().trim().min(1),
 })
 
-export async function handleDeleteLlmRequest(
+export async function handleGetLlmRateLimitsRequest(
   request: Request<RouteParams>,
   response: Response,
 ): Promise<void> {
-  const databaseClient = requireDatabaseClient('Delete llm API')
+  const databaseClient = requireDatabaseClient('Get llm rate limits API')
 
   const routeParams = parseRequestParams(
     llmParamsSchema,
     request,
     response,
     {
-      context: 'Delete llm API',
+      context: 'Get llm rate limits API',
       errorMessage: 'Llm ID is required',
     },
   )
@@ -43,32 +42,27 @@ export async function handleDeleteLlmRequest(
   const { llmId } = routeParams
 
   try {
-    const existingLlm = await databaseClient.llm.findUnique({
+    const llm = await databaseClient.llm.findUnique({
       where: { id: llmId },
     })
 
-    if (!existingLlm) {
-      console.debug('Llm delete failed, llm not found', {
+    if (!llm) {
+      console.debug('Llm rate limits get failed, llm not found', {
         llmId,
       })
       response.status(404).json({ error: 'Llm not found' })
       return
     }
 
-    await databaseClient.llm.delete({
-      where: { id: llmId },
-    })
+    const rateLimits = await getLlmRateLimits(llm)
 
-    broadcastSseChange({
-      type: 'delete',
-      kind: 'llms',
-      data: sanitizeLlm(existingLlm),
+    response.status(200).json({
+      llmId: llm.id,
+      rateLimits,
     })
-
-    response.status(200).json({ deleted: true, llmId })
   }
   catch (error) {
-    console.error('Failed to delete llm', error)
-    response.status(500).json({ error: 'Failed to delete llm' })
+    console.error('Failed to get llm rate limits', error)
+    response.status(500).json({ error: 'Failed to get llm rate limits' })
   }
 }

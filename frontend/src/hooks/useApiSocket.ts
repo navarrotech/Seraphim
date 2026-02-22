@@ -1,10 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { SseChangePayload, SseChangeKind, SseChangeType } from '@common/types'
+
 // Core
 import { useEffect } from 'react'
-
-// Lib
-import { z } from 'zod'
+import chalk from 'chalk'
 
 // Redux
 import { dispatch } from '@frontend/framework/store'
@@ -15,166 +15,68 @@ import { taskActions } from '@frontend/framework/redux/stores/tasks'
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
 // Misc
+import { safeParseJson } from '@common/json'
 import { getApiRoot } from '../lib/api'
-import { listAccounts } from '@frontend/lib/routes/accountsRoutes'
-import { listLlms } from '@frontend/lib/routes/llmRoutes'
-import { listTasks } from '@frontend/lib/routes/taskRoutes'
-import { listWorkspaces } from '@frontend/lib/routes/workspaceRoutes'
-import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 
-const ssePayloadSchema = z.object({
-  type: z.enum([ 'create', 'update', 'delete' ]),
-  kind: z.enum([ 'accounts', 'settings', 'workspaces', 'tasks', 'llms' ]),
-})
-
-function logSseEvent(eventType: string, event: MessageEvent): void {
-  console.debug('SSE event received', {
-    eventType,
-    data: event.data,
-    lastEventId: event.lastEventId,
-    origin: event.origin,
-  })
+type SseDataByKind = {
+  [Kind in SseChangeKind]: SseChangePayload<Kind>['data']
 }
+
+type ActionCreatorFor<Kind extends SseChangeKind> = (data: SseDataByKind[Kind]) => any
+
+type SseActionMap = {
+  [Type in SseChangeType]: {
+    [Kind in SseChangeKind]: readonly ActionCreatorFor<Kind>[]
+  }
+}
+type AnySseChangePayload = {
+  [Kind in SseChangeKind]: SseChangePayload<Kind>
+}[SseChangeKind]
+
+const actions = {
+  create: {
+    tasks: [ taskActions.upsertTask ],
+    settings: [ settingsActions.setSettings ],
+    accounts: [ accountActions.upsertAccount ],
+    llms: [ llmActions.upsertLlm ],
+    workspaces: [ workspaceActions.upsertWorkspace ],
+    usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
+  },
+  update: {
+    tasks: [ taskActions.upsertTask ],
+    settings: [ settingsActions.setSettings ],
+    accounts: [ accountActions.upsertAccount ],
+    llms: [ llmActions.upsertLlm ],
+    workspaces: [ workspaceActions.upsertWorkspace ],
+    usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
+  },
+  delete: {
+    tasks: [ taskActions.removeTask ],
+    settings: [],
+    accounts: [ accountActions.removeAccount ],
+    llms: [ llmActions.removeLlm ],
+    workspaces: [ workspaceActions.removeWorkspace ],
+    usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
+  },
+} as const satisfies SseActionMap
 
 function handleMessage(event: MessageEvent) {
-  logSseEvent('message', event)
-}
+    const payload: AnySseChangePayload = safeParseJson(event.data)
+  if (!payload) {
+    console.error(
+      chalk.red('SSE event payload is not valid JSON'),
+      event.data,
+    )
+    return
+  }
 
-function handleConnected(event: MessageEvent) {
-  logSseEvent('connected', event)
-}
+  const targetActions = actions[payload.type][payload.kind]
 
-async function refreshWorkspaces(): Promise<void> {
-  try {
-    const response = await listWorkspaces()
-
+  for (const action of targetActions) {
     dispatch(
-      workspaceActions.setWorkspaces(response.workspaces),
+      action(payload.data),
     )
   }
-  catch (error) {
-    console.debug('SSE failed to refresh workspaces', { error })
-  }
-}
-
-async function refreshAccounts(): Promise<void> {
-  try {
-    const response = await listAccounts()
-
-    dispatch(
-      accountActions.setAccounts(response.accounts),
-    )
-  }
-  catch (error) {
-    console.debug('SSE failed to refresh accounts', { error })
-  }
-}
-
-async function refreshLlms(): Promise<void> {
-  try {
-    const response = await listLlms()
-
-    dispatch(
-      llmActions.setLlms(response.llms),
-    )
-  }
-  catch (error) {
-    console.debug('SSE failed to refresh llms', { error })
-  }
-}
-
-async function refreshTasks(): Promise<void> {
-  try {
-    const response = await listTasks()
-
-    dispatch(
-      taskActions.setTasks(response.tasks),
-    )
-  }
-  catch (error) {
-    console.debug('SSE failed to refresh tasks', { error })
-  }
-}
-
-async function refreshSettings(): Promise<void> {
-  try {
-    const response = await getCurrentUser()
-
-    dispatch(
-      settingsActions.setSettings(response.user.settings ?? null),
-    )
-  }
-  catch (error) {
-    console.debug('SSE failed to refresh settings', { error })
-  }
-}
-
-async function handleChange(eventType: string, event: MessageEvent) {
-  logSseEvent(eventType, event)
-
-  let payload: unknown
-  try {
-    payload = JSON.parse(event.data)
-  }
-  catch (error: unknown) {
-    console.error(error)
-    console.debug('SSE event payload is not valid JSON', {
-      eventType,
-      data: event.data,
-    })
-    return
-  }
-
-  const parsed = ssePayloadSchema.safeParse(payload)
-  if (!parsed.success) {
-    console.debug('SSE event payload failed validation', {
-      eventType,
-      errors: parsed.error.flatten(),
-    })
-    return
-  }
-
-  if (parsed.data.kind === 'tasks') {
-    await refreshTasks()
-    return
-  }
-
-  if (parsed.data.kind === 'settings') {
-    await refreshSettings()
-    return
-  }
-
-  if (parsed.data.kind === 'accounts') {
-    await refreshAccounts()
-    return
-  }
-
-  if (parsed.data.kind === 'llms') {
-    await refreshLlms()
-    return
-  }
-
-  if (parsed.data.kind === 'workspaces') {
-    await refreshWorkspaces()
-    return
-  }
-
-  console.debug('SSE event payload has unsupported kind', {
-    eventType,
-    kind: parsed.data.kind,
-  })
-}
-
-function handleCreate(event: MessageEvent) {
-  void handleChange('create', event)
-}
-
-function handleUpdate(event: MessageEvent) {
-  void handleChange('update', event)
-}
-
-function handleDelete(event: MessageEvent) {
-  void handleChange('delete', event)
 }
 
 export function useApiSocket(): void {
@@ -190,18 +92,10 @@ export function useApiSocket(): void {
     }
 
     eventSource.addEventListener('message', handleMessage)
-    eventSource.addEventListener('connected', handleConnected)
-    eventSource.addEventListener('create', handleCreate)
-    eventSource.addEventListener('update', handleUpdate)
-    eventSource.addEventListener('delete', handleDelete)
     eventSource.addEventListener('error', handleError)
 
     return function cleanupApiSocket() {
       eventSource.removeEventListener('message', handleMessage)
-      eventSource.removeEventListener('connected', handleConnected)
-      eventSource.removeEventListener('create', handleCreate)
-      eventSource.removeEventListener('update', handleUpdate)
-      eventSource.removeEventListener('delete', handleDelete)
       eventSource.removeEventListener('error', handleError)
       eventSource.close()
     }

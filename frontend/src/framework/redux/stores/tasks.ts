@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Task } from '@prisma/client'
+import type { LlmUsage } from '@common/types'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
@@ -11,68 +12,43 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 export type TasksState = {
   items: Task[]
   archivedItems: Task[]
+  usageByTaskId: Record<string, LlmUsage | null>
 }
 
 const initialState: TasksState = {
   items: [],
   archivedItems: [],
+  usageByTaskId: {},
 } as const
-
-function splitTasksByArchived(tasks: Task[]) {
-  const activeItems: Task[] = []
-  const archivedItems: Task[] = []
-
-  for (const task of tasks) {
-    if (task.archived) {
-      archivedItems.push(task)
-      continue
-    }
-
-    activeItems.push(task)
-  }
-
-  return {
-    activeItems,
-    archivedItems,
-  }
-}
-
-function upsertTaskMap(existingTasks: Task[], incomingTasks: Task[]) {
-  const tasksById = new Map(existingTasks.map((task) => [ task.id, task ]))
-
-  for (const task of incomingTasks) {
-    tasksById.set(task.id, task)
-  }
-
-  return Array.from(tasksById.values())
-}
 
 export const slice = createEnhancedSlice({
   name: 'tasks',
   initialState,
   reducers: {
     setTasks: (state, action: PayloadAction<Task[]>) => {
-      const { activeItems, archivedItems } = splitTasksByArchived(action.payload)
-      state.items = activeItems
-      state.archivedItems = archivedItems
-      return state
+      state.items = action.payload.filter((task) => !task.archived)
+      state.archivedItems = action.payload.filter((task) => task.archived)
     },
-    upsertTasks: (state, action: PayloadAction<Task[]>) => {
-      const allTasks = upsertTaskMap(
-        [ ...state.items, ...state.archivedItems ],
-        action.payload,
-      )
-      const { activeItems, archivedItems } = splitTasksByArchived(allTasks)
-
-      state.items = activeItems
-      state.archivedItems = archivedItems
-      return state
+    upsertTask: (state, action: PayloadAction<Task>) => {
+      if (action.payload.archived) {
+        const asRecord = Object.fromEntries(state.archivedItems.map((item) => [ item.id, item ]))
+        asRecord[action.payload.id] = action.payload
+        state.archivedItems = Object.values(asRecord)
+      }
+      else {
+        const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
+        asRecord[action.payload.id] = action.payload
+        state.items = Object.values(asRecord)
+      }
     },
-    removeTasks: (state, action: PayloadAction<Task[]>) => {
-      const taskIds = new Set(action.payload.map((task) => task.id))
-      state.items = state.items.filter((task) => !taskIds.has(task.id))
-      state.archivedItems = state.archivedItems.filter((task) => !taskIds.has(task.id))
-      return state
+    removeTask: (state, action: PayloadAction<{ id: string }>) => {
+      state.items = state.items.filter((task) => task.id !== action.payload.id)
+      state.archivedItems = state.archivedItems.filter((task) => task.id !== action.payload.id)
+      delete state.usageByTaskId[action.payload.id]
+    },
+    upsertTaskUsage: (state, action: PayloadAction<LlmUsage>) => {
+      const id = action.payload.taskId
+      state.usageByTaskId[id] = action.payload
     },
   },
 })

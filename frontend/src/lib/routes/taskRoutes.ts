@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Message, Task } from '@prisma/client'
+import type { LlmUsage } from '@common/types'
 
 // Lib
 import { z } from 'zod'
@@ -29,6 +30,12 @@ export function getTask(taskId: string) {
   return apiClient
     .get(`v1/protected/tasks/${taskId}`)
     .json<GetTaskResponse>()
+}
+
+export function getTaskUsage(taskId: string) {
+  return apiClient
+    .get(`v1/protected/tasks/${taskId}/usage`)
+    .json<LlmUsage>()
 }
 
 type CreateTaskRequest = z.infer<typeof taskCreateSchema>

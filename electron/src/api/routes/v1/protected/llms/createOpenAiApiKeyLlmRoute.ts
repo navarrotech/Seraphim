@@ -83,7 +83,7 @@ export async function handleCreateOpenAiApiKeyLlmRequest(
     broadcastSseChange({
       type: 'create',
       kind: 'llms',
-      data: [ sanitizedLlm ],
+      data: sanitizedLlm,
     })
 
     response.status(201).json({ llm: sanitizedLlm })

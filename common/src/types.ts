@@ -7,6 +7,7 @@ import type {
   Turn,
   Task,
   User,
+  UserSettings,
   Workspace,
   WorkspaceEnv,
 } from '@prisma/client'
@@ -50,14 +51,38 @@ export type LlmRecord = Llm & {
 }
 
 export type LlmUsage = {
+  taskId: string
   llmId: string
   usage: ThreadTokenUsage | null
   rateLimits: RateLimitSnapshot | null
 }
 
 // ////////////////////////// //
+//            SSE             //
+// ////////////////////////// //
+
+export type SseChangeType = 'create' | 'update' | 'delete'
+
+type SsePayloadByKind = {
+  accounts: AuthAccount
+  settings: UserSettings
+  workspaces: Workspace
+  tasks: Task
+  llms: Llm
+  usage: LlmUsage
+}
+export type SseChangeKind = keyof SsePayloadByKind
+
+export type SseChangePayload<Kind extends SseChangeKind = SseChangeKind> = {
+  type: SseChangeType
+  kind: Kind
+  data: SsePayloadByKind[Kind]
+}
+
+// ////////////////////////// //
 //        Other types         //
 // ////////////////////////// //
+
 
 export type CodexAuthJson = {
   OPENAI_API_KEY?: string | null,

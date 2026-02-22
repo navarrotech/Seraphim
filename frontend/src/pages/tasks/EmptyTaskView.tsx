@@ -1,13 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@prisma/client'
 import type { Key } from 'react'
+import type { Workspace, AuthAccount } from '@prisma/client'
 import type { LlmRecord } from '@common/types'
 import type { Selection } from '@react-types/shared'
-import type {
-  ConnectedAccount,
-  GithubBranchSummary,
-} from '@frontend/lib/routes/accountsRoutes'
+import type { GithubBranchSummary } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
@@ -450,7 +447,7 @@ function getBranchLabel(branchOption: GithubBranchSummary, defaultBranch: string
   return branchOption.name
 }
 
-function getAuthAccountLabel(authAccount: ConnectedAccount) {
+function getAuthAccountLabel(authAccount: AuthAccount) {
   if (authAccount.username) {
     return `${authAccount.name} (${authAccount.username})`
   }

@@ -1,15 +1,14 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { AuthAccount } from '@prisma/client'
 import type { Request, Response } from 'express'
-
-import type { AccountSummary } from './accountSanitizer'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
 import { sanitizeAccount } from './accountSanitizer'
 
 type ListAccountsResponse = {
-  accounts: AccountSummary[]
+  accounts: AuthAccount[]
 }
 
 export async function handleListAccountsRequest(
@@ -20,7 +19,7 @@ export async function handleListAccountsRequest(
 
   const databaseClient = requireDatabaseClient('List token accounts')
 
-  let accounts: AccountSummary[] = []
+  let accounts: AuthAccount[] = []
 
   try {
     const accountRecords = await databaseClient.authAccount.findMany({

@@ -1,12 +1,13 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Message, Task } from '@prisma/client'
+import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
 // Core
 import { useState } from 'react'
 
 // User interface
-import { Button, Skeleton, Textarea } from '@heroui/react'
+import { Button, Progress, Skeleton, Textarea } from '@heroui/react'
 import { TaskFilesView } from './TaskFilesView'
 
 // Misc
@@ -18,6 +19,7 @@ type Props = {
   task?: Task
   isLoading?: boolean
   containerName?: string
+  rateLimits?: RateLimitSnapshot | null
 }
 
 type TaskTabId = 'conversation' | 'logs' | 'files'
@@ -76,11 +78,58 @@ function getSkeletonWidths() {
   ] as const
 }
 
+function getRateLimitProgress(rateLimits: RateLimitSnapshot | null) {
+  if (!rateLimits) {
+    return null
+  }
+
+  if (rateLimits.credits?.unlimited) {
+    return null
+  }
+
+  const primaryWindow = rateLimits.primary
+  if (!primaryWindow) {
+    return null
+  }
+
+  const usedPercent = primaryWindow.usedPercent
+  if (typeof usedPercent !== 'number' || !Number.isFinite(usedPercent)) {
+    console.debug('TaskView received invalid rate limit usage', {
+      rateLimits,
+    })
+    return null
+  }
+
+  if (
+    usedPercent <= 0
+    && !primaryWindow.windowDurationMins
+    && !primaryWindow.resetsAt
+  ) {
+    return null
+  }
+
+  const normalizedUsed = Math.min(100, Math.max(0, usedPercent))
+  const remainingPercent = Math.max(0, 100 - normalizedUsed)
+
+  return {
+    remainingPercent,
+    usedPercent: normalizedUsed,
+  } as const
+}
+
 export function TaskView(props: Props) {
-  const { messages, taskName, task, isLoading = false, containerName } = props
+  const {
+    messages,
+    taskName,
+    task,
+    isLoading = false,
+    containerName,
+    rateLimits,
+  } = props
   const [ draftMessage, setDraftMessage ] = useState<string>('')
   const [ activeTabId, setActiveTabId ] = useState<TaskTabId>('conversation')
   const skeletonWidths = getSkeletonWidths()
+  const rateLimitProgress = getRateLimitProgress(rateLimits ?? null)
 
   function handleSendMessage() {
     const trimmedMessage = draftMessage.trim()
@@ -205,6 +254,18 @@ export function TaskView(props: Props) {
           />
         )}
       </div>
+      {rateLimitProgress && (
+        <div className='relaxed max-w-xl'>
+          <Progress
+            label='Rate limit remaining'
+            value={rateLimitProgress.remainingPercent}
+            maxValue={100}
+            showValueLabel
+            size='sm'
+            color='success'
+          />
+        </div>
+      )}
     </div>
     <div className='level-centered relaxed'>
       <div className='flex flex-wrap justify-center gap-2'>

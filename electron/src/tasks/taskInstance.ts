@@ -85,6 +85,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
   get usageData(): LlmUsage {
     return {
+      taskId: this.task.id,
       llmId: this.task.llm.id,
       usage: this.usage,
       rateLimits: this.rateLimits,
@@ -788,11 +789,16 @@ export class TaskInstance extends EventEmitter<EventMap> {
           broadcastSseChange({
             type: 'update',
             kind: 'usage',
-            data: [ this.usageData ],
+            data: this.usageData,
           })
           break
         case 'thread/tokenUsage/updated':
           this.usage = params.tokenUsage
+          broadcastSseChange({
+            type: 'update',
+            kind: 'usage',
+            data: this.usageData,
+          })
           break
         case 'thread/compacted':
           await this.saveCodexMessage({
@@ -1012,7 +1018,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
     broadcastSseChange({
       kind: 'tasks',
       type: 'update',
-      data: [ updatedTask ],
+      data: updatedTask,
     })
 
     const hydratedTask = Object.assign(this.task, updatedTask)

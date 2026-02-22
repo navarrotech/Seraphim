@@ -1,7 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Key } from 'react'
-import type { AuthProvider, ConnectedAccount } from '@frontend/lib/routes/accountsRoutes'
+import type { AuthAccount } from '@prisma/client'
+import type { AuthProvider } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useEffect, useState } from 'react'
@@ -42,7 +43,7 @@ type Props = {
   isOpen: boolean
   isSubmitting: boolean
   errorMessage: string | null
-  accountToEdit?: ConnectedAccount | null
+  accountToEdit?: AuthAccount | null
   onOpenChange: (isOpen: boolean) => void
   onSubmitCreate: (payload: CreateAccountPayload) => Promise<void>
   onSubmitEdit: (accountId: string, payload: EditAccountPayload) => Promise<void>
@@ -65,7 +66,7 @@ function getDefaultPayload(): CreateAccountPayload {
   }
 }
 
-function getEditPayload(accountToEdit: ConnectedAccount): CreateAccountPayload {
+function getEditPayload(accountToEdit: AuthAccount): CreateAccountPayload {
   return {
     provider: accountToEdit.provider,
     name: accountToEdit.name,

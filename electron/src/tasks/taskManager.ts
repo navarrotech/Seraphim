@@ -168,7 +168,7 @@ class TaskManager {
     broadcastSseChange({
       type: 'create',
       kind: 'tasks',
-      data: [ createdTask ],
+      data: createdTask,
     })
 
     return {
@@ -197,7 +197,7 @@ class TaskManager {
       broadcastSseChange({
         type: 'update',
         kind: 'tasks',
-        data: [ updatedTask.data ],
+        data: updatedTask.data,
       })
     }
     catch (error) {
@@ -262,7 +262,7 @@ class TaskManager {
     broadcastSseChange({
       type: 'update',
       kind: 'tasks',
-      data: [ archivedTask ],
+      data: archivedTask,
     })
 
     return {
@@ -321,7 +321,7 @@ class TaskManager {
     broadcastSseChange({
       type: 'delete',
       kind: 'tasks',
-      data: [ existingTask ],
+      data: existingTask,
     })
 
     return {

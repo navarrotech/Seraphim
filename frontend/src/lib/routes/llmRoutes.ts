@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { LlmRecord } from '@common/types'
+import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
 // Lib
 import { z } from 'zod'
@@ -62,6 +63,17 @@ export function getLlm(llmId: string) {
   return apiClient
     .get(`v1/protected/llms/${llmId}`)
     .json<GetLlmResponse>()
+}
+
+type GetLlmRateLimitsResponse = {
+  llmId: string
+  rateLimits: RateLimitSnapshot | null
+}
+
+export function getLlmRateLimits(llmId: string) {
+  return apiClient
+    .get(`v1/protected/llms/${llmId}/rate-limits`)
+    .json<GetLlmRateLimitsResponse>()
 }
 
 type UpdateLlmRequestBody = z.infer<typeof llmUpdateSchema>

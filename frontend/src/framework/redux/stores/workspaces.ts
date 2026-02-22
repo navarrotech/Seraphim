@@ -22,26 +22,14 @@ export const slice = createEnhancedSlice({
   reducers: {
     setWorkspaces: (state, action: PayloadAction<Workspace[]>) => {
       state.items = action.payload
-      return state
     },
-    upsertWorkspaces: (state, action: PayloadAction<Workspace[]>) => {
-      const workspacesById = new Map(state.items.map((workspace) => [ workspace.id, workspace ]))
-
-      for (const workspace of action.payload) {
-        workspacesById.set(workspace.id, workspace)
-      }
-
-      state.items = Array.from(workspacesById.values())
-      return state
+    upsertWorkspace: (state, action: PayloadAction<Workspace>) => {
+      const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
+      asRecord[action.payload.id] = action.payload
+      state.items = Object.values(asRecord)
     },
-    removeWorkspace: (state, action: PayloadAction<string>) => {
-      state.items = state.items.filter((workspace) => workspace.id !== action.payload)
-      return state
-    },
-    removeWorkspaces: (state, action: PayloadAction<Workspace[]>) => {
-      const workspaceIds = new Set(action.payload.map((workspace) => workspace.id))
-      state.items = state.items.filter((workspace) => !workspaceIds.has(workspace.id))
-      return state
+    removeWorkspace: (state, action: PayloadAction<{ id: string }>) => {
+      state.items = state.items.filter((workspace) => workspace.id !== action.payload.id)
     },
   },
 })

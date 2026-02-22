@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 // Lib
@@ -9,6 +9,7 @@ import useSWR from 'swr'
 
 // Redux
 import { dispatch, useSelector } from '@frontend/framework/store'
+import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
 
 // User interface
@@ -17,7 +18,8 @@ import { EmptyTaskView } from './EmptyTaskView'
 import { TaskView } from './TaskView'
 
 // Misc
-import { createTask, getTask } from '@frontend/lib/routes/taskRoutes'
+import { createTask, getTask, getTaskUsage } from '@frontend/lib/routes/taskRoutes'
+import { getLlmRateLimits } from '@frontend/lib/routes/llmRoutes'
 import { getCurrentUser } from '@frontend/lib/routes/userRoutes'
 import { getTaskViewUrl } from '@common/urls'
 
@@ -53,6 +55,10 @@ export function Tasks() {
     () => getTask(resolvedTaskId),
   )
   const currentUserQuery = useSWR('current-user', getCurrentUser)
+  const taskUsageQuery = useSWR(
+    taskId ? [ 'task-usage', taskId ] : null,
+    () => getTaskUsage(resolvedTaskId),
+  )
 
   const [ isSubmitting, setIsSubmitting ] = useState<boolean>(false)
 
@@ -96,7 +102,7 @@ export function Tasks() {
       })
 
       dispatch(
-        taskActions.upsertTasks([ response.task ]),
+        taskActions.upsertTask(response.task),
       )
 
       navigate(
@@ -114,10 +120,57 @@ export function Tasks() {
   const isTaskLoading = Boolean(taskId && !taskQuery.data && !taskQuery.error)
   const taskMessages = taskQuery.data?.task.messages || []
   const resolvedTask = taskQuery.data?.task || selectedTask
+  const resolvedLlmId = resolvedTask?.llmId
+  const llmRateLimitsQuery = useSWR(
+    resolvedLlmId ? [ 'llm-rate-limits', resolvedLlmId ] : null,
+    () => getLlmRateLimits(resolvedLlmId || ''),
+  )
   const shouldShowEmpty = !taskId
   const taskName = taskQuery.data?.task.name || selectedTask?.name || 'Untitled task'
   const taskContainerName = taskQuery.data?.task.containerName || selectedTask?.containerName
   const emptyWorkspaceId = taskQuery.data?.task.workspaceId || selectedTask?.workspaceId
+  const taskUsage = useSelector((state) =>
+    state.tasks.usageByTaskId[resolvedTaskId] ?? null,
+  )
+  const llmRateLimitsById = useSelector((state) => state.llms.rateLimitsById)
+  let rateLimits = taskUsage?.rateLimits ?? null
+  if (!rateLimits && resolvedTask?.llmId) {
+    rateLimits = llmRateLimitsById[resolvedTask.llmId] ?? null
+  }
+
+  useEffect(() => {
+    if (!taskUsageQuery.data) {
+      return
+    }
+
+    if (taskUsageQuery.data.taskId !== resolvedTaskId) {
+      console.debug('Tasks received task usage for a different task', {
+        resolvedTaskId,
+        responseTaskId: taskUsageQuery.data.taskId,
+      })
+    }
+
+    dispatch(
+      taskActions.upsertTaskUsage(taskUsageQuery.data),
+    )
+  }, [ resolvedTaskId, taskUsageQuery.data ])
+
+  useEffect(() => {
+    if (!llmRateLimitsQuery.data) {
+      return
+    }
+
+    if (!llmRateLimitsQuery.data.llmId) {
+      console.debug('Tasks received rate limits without a llmId', {
+        payload: llmRateLimitsQuery.data,
+      })
+      return
+    }
+
+    dispatch(
+      llmActions.setLlmRateLimits(llmRateLimitsQuery.data),
+    )
+  }, [ llmRateLimitsQuery.data ])
 
   return <section className={`flex flex-1 min-h-0 flex-col bg-gradient-to-br
   from-slate-50 via-sky-50 to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800`}>
@@ -130,6 +183,7 @@ export function Tasks() {
             task={resolvedTask}
             containerName={taskContainerName}
             isLoading
+            rateLimits={rateLimits}
           />
         )}
         {!isTaskLoading && taskQuery.error && (
@@ -151,6 +205,7 @@ export function Tasks() {
             taskName={taskName}
             task={resolvedTask}
             containerName={taskContainerName}
+            rateLimits={rateLimits}
           />
         )}
       </main>

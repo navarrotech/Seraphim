@@ -1,10 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
-import type {
-  AddAccountResponse,
-  ConnectedAccount,
-  UpdateConnectedAccountRequest,
-} from '@frontend/lib/routes/accountsRoutes'
+import type { AuthAccount } from '@prisma/client'
+import type { UpdateConnectedAccountRequest } from '@frontend/lib/routes/accountsRoutes'
 
 // Core
 import { useState } from 'react'
@@ -129,28 +126,10 @@ function formatTimestamp(dateIso: string | Date) {
   }
 }
 
-function applyCreatedAccount(response: AddAccountResponse) {
-  dispatch(
-    accountActions.upsertAccounts([ response.account ]),
-  )
-}
-
-function applyUpdatedAccount(account: ConnectedAccount) {
-  dispatch(
-    accountActions.upsertAccounts([ account ]),
-  )
-}
-
-function removeAccountFromState(accountId: string) {
-  dispatch(
-    accountActions.removeAccount(accountId),
-  )
-}
-
 export function ConnectedAccounts() {
   const [ isDrawerOpen, setIsDrawerOpen ] = useState(false)
   const [ isSubmitting, setIsSubmitting ] = useState(false)
-  const [ editingAccount, setEditingAccount ] = useState<ConnectedAccount | null>(null)
+  const [ editingAccount, setEditingAccount ] = useState<AuthAccount | null>(null)
   const [ drawerErrorMessage, setDrawerErrorMessage ] = useState<string | null>(null)
   const [ statusMessage, setStatusMessage ] = useState<string | null>(null)
   const accounts = useSelector((reduxState) => reduxState.accounts.items)
@@ -162,7 +141,9 @@ export function ConnectedAccounts() {
 
     try {
       const response = await addAccount(payload)
-      applyCreatedAccount(response)
+      dispatch(
+        accountActions.upsertAccount(response.account),
+      )
       setIsDrawerOpen(false)
       setStatusMessage('Connected account saved successfully.')
     }
@@ -194,7 +175,9 @@ export function ConnectedAccounts() {
 
     try {
       const response = await updateConnectedAccount(accountId, payload)
-      applyUpdatedAccount(response.account)
+      dispatch(
+        accountActions.upsertAccount(response.account),
+      )
       setIsDrawerOpen(false)
       setEditingAccount(null)
       setStatusMessage('Connected account updated successfully.')
@@ -221,24 +204,26 @@ export function ConnectedAccounts() {
     }
   }
 
-  async function handleDisconnectAccount(account: ConnectedAccount) {
+  async function handleDisconnectAccount(account: AuthAccount) {
     try {
       await logoutAccount({
         provider: account.provider,
         accountId: account.id,
       })
-      removeAccountFromState(account.id)
+      dispatch(
+        accountActions.removeAccount({ id: account.id }),
+      )
       setStatusMessage('Connected account removed successfully.')
     }
     catch (error) {
-      console.debug('ConnectedAccounts failed to disconnect account', {
+      console.debug('AuthAccounts failed to disconnect account', {
         error,
         accountId: account.id,
       })
     }
   }
 
-  function handleEditAccountClick(account: ConnectedAccount) {
+  function handleEditAccountClick(account: AuthAccount) {
     setDrawerErrorMessage(null)
     setEditingAccount(account)
     setIsDrawerOpen(true)
@@ -306,7 +291,7 @@ export function ConnectedAccounts() {
               <div className='text-sm opacity-80'>{account.email}</div>
             </div>
             <div className='col-span-2'>
-              <div className='text-sm opacity-80'>{account.tokenPreview}</div>
+              <div className='text-sm opacity-80'>{account.accessToken}</div>
             </div>
             <div className='col-span-2'>
               <Tooltip content={createdAt.full}>

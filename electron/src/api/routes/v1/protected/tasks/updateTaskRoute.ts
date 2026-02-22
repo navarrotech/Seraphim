@@ -79,7 +79,7 @@ export async function handleUpdateTaskRequest(
     broadcastSseChange({
       type: 'update',
       kind: 'tasks',
-      data: [ task ],
+      data: task,
     })
 
     response.status(200).json({ task })

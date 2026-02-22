@@ -2,7 +2,7 @@
 
 import type { Llm } from '@prisma/client'
 import type { ResponsesModel } from 'openai/resources/shared'
-import type { LlmUsage } from '@common/types'
+import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
 // Core
 import { CallableLLM } from './callLlm'
@@ -56,21 +56,24 @@ export class CallableOpenAI extends CallableLLM {
     return 'Unnamed task'
   }
 
-  public async getUsageStatistics(): Promise<LlmUsage> {
+  public async getRateLimits(): Promise<RateLimitSnapshot> {
     return {
-      llmId: this.llm.id,
-      usage: {
-        last: null,
-        modelContextWindow: 0,
-        total: {
-          cachedInputTokens: 0,
-          reasoningOutputTokens: 0,
-          totalTokens: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
+      primary: {
+        usedPercent: 0,
+        windowDurationMins: null,
+        resetsAt: null,
       },
-      rateLimits: null,
+      secondary: {
+        usedPercent: 0,
+        windowDurationMins: null,
+        resetsAt: null,
+      },
+      credits: {
+        hasCredits: true,
+        unlimited: true,
+        balance: null,
+      },
+      planType: 'unknown',
     }
   }
 }

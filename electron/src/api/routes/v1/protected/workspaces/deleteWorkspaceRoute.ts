@@ -62,7 +62,7 @@ export async function handleDeleteWorkspaceRequest(
     broadcastSseChange({
       type: 'delete',
       kind: 'workspaces',
-      data: [ existingWorkspace ],
+      data: existingWorkspace,
     })
 
     response.status(200).json({ deleted: true, workspaceId })

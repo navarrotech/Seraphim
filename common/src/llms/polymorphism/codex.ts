@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { LlmUsage, CodexAuthJson } from '@common/types'
+import type { CodexAuthJson } from '@common/types'
 import type { RateLimitWindow } from '@common/vendor/codex-protocol/v2/RateLimitWindow'
 import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 import type { PlanType } from '@common/vendor/codex-protocol/PlanType'
@@ -98,7 +98,7 @@ export class CallableCodex extends CallableLLM {
     return 'Unnamed task'
   }
 
-  public async getUsageStatistics(): Promise<LlmUsage> {
+  public async getRateLimits(): Promise<RateLimitSnapshot | null> {
     try {
       const auth: CodexAuthJson = JSON.parse(this.llm.apiKey)
 
@@ -202,30 +202,12 @@ export class CallableCodex extends CallableLLM {
         planType: content.plan_type || 'unknown',
       }
 
-      return {
-        llmId: this.llm.id,
-        usage: null, // endpoint payload does not include token usage breakdowns
-        rateLimits,
-      }
+      return rateLimits
     }
     catch (error) {
-      console.error('Error during Codex query', error)
+      console.error('Error during Codex rate limit request', error)
     }
 
-    return {
-      llmId: this.llm.id,
-      usage: {
-        last: null,
-        modelContextWindow: 0,
-        total: {
-          cachedInputTokens: 0,
-          reasoningOutputTokens: 0,
-          totalTokens: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
-      },
-      rateLimits: null, // Codex SDK does not currently provide rate limit info
-    }
+    return null
   }
 }

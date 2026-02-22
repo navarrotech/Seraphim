@@ -93,7 +93,7 @@ export async function handleCreateWorkspaceRequest(
     broadcastSseChange({
       type: 'create',
       kind: 'workspaces',
-      data: [ workspace ],
+      data: workspace,
     })
 
     response.status(201).json({ workspace })

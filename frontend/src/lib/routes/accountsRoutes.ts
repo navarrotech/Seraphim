@@ -1,5 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
+import type { AuthAccount } from '@prisma/client'
+
 // Redux
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
 import { dispatch } from '@frontend/framework/store'
@@ -8,19 +10,6 @@ import { dispatch } from '@frontend/framework/store'
 import { apiClient } from '../api'
 
 export type AuthProvider = 'GITHUB'
-
-export type ConnectedAccount = {
-  id: string
-  provider: AuthProvider
-  name: string
-  username: string
-  email: string
-  tokenPreview: string
-  scope: string
-  lastUsedAt: string | null
-  createdAt: string
-  updatedAt: string
-}
 
 export type GithubRepoSummary = {
   id: number
@@ -39,7 +28,7 @@ export type GithubRepoSummary = {
 }
 
 type ListAccountsResponse = {
-  accounts: ConnectedAccount[]
+  accounts: AuthAccount[]
 }
 
 type RepoAccountResult = {
@@ -87,7 +76,7 @@ export type AddAccountRequest = {
 }
 
 export type AddAccountResponse = {
-  account: ConnectedAccount
+  account: AuthAccount
   gitUserName: string
   gitUserEmail: string
   githubIdentity: {
@@ -106,7 +95,7 @@ export type UpdateConnectedAccountRequest = {
 }
 
 export type UpdateConnectedAccountResponse = {
-  account: ConnectedAccount
+  account: AuthAccount
 }
 
 type LogoutAccountRequest = {

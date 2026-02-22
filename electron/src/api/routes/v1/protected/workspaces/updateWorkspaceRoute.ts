@@ -98,7 +98,7 @@ export async function handleUpdateWorkspaceRequest(
     broadcastSseChange({
       type: 'update',
       kind: 'workspaces',
-      data: [ workspace ],
+      data: workspace,
     })
 
     response.status(200).json({ workspace })

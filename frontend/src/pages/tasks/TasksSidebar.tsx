@@ -137,12 +137,12 @@ export function TasksSidebar() {
           await archiveTask(task.id)
 
           dispatch(
-            taskActions.upsertTasks([
+            taskActions.upsertTask(
               {
                 ...task,
                 archived: true,
               },
-            ]),
+            ),
           )
 
           if (task.id === selectedTaskId) {

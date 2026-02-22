@@ -25,7 +25,6 @@ export const slice = createEnhancedSlice({
     setSettings: (state, action: PayloadAction<UserSettings | null>) => {
       state.value = action.payload
       state.hasLoaded = true
-      return state
     },
   },
 })

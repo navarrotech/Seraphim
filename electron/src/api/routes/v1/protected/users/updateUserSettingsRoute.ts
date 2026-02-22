@@ -138,7 +138,7 @@ export async function handleUpdateUserSettingsRequest(
     broadcastSseChange({
       type: 'update',
       kind: 'settings',
-      data: [ settings ],
+      data: settings,
     })
 
     response.status(200).json({ settings })

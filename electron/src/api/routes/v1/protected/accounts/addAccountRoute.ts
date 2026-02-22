@@ -2,8 +2,6 @@
 
 import type { Request, Response } from 'express'
 
-import type { AccountSummary } from './accountSanitizer'
-
 // Lib
 import { z } from 'zod'
 
@@ -80,10 +78,10 @@ export async function handleAddAccountRequest(
     },
   })
 
-  const accountSummary: AccountSummary = sanitizeAccount(account)
+  const sanitized = sanitizeAccount(account)
 
   response.status(200).json({
-    account: accountSummary,
+    account: sanitized,
     gitUserName: payload.gitUserName,
     gitUserEmail: payload.gitUserEmail,
     githubIdentity: {

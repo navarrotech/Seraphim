@@ -183,7 +183,7 @@ export function Llms() {
           await deleteLlm(llm.id)
 
           dispatch(
-            llmActions.removeLlm(llm.id),
+            llmActions.removeLlm(llm),
           )
         }
         catch (error) {

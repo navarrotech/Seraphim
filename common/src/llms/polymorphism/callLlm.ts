@@ -1,8 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Llm } from '@prisma/client'
-import type { LlmUsage } from '@common/types'
-
+import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
 export class CallableLLM {
   protected readonly llm: Llm
@@ -17,23 +16,12 @@ export class CallableLLM {
     return `Response to: ${prompt}`
   }
 
-  public async getUsageStatistics(): Promise<LlmUsage> {
-    // Placeholder implementation - replace with actual usage retrieval logic
-    console.debug('Fetching usage statistics for LLM', { llmId: this.llm.id })
-    return {
+  public async getRateLimits(): Promise<RateLimitSnapshot | null> {
+    // Placeholder implementation - replace with actual rate limit retrieval logic
+    console.debug('CallableLLM getRateLimits has no provider implementation', {
       llmId: this.llm.id,
-      usage: {
-        last: null,
-        modelContextWindow: 0,
-        total: {
-          cachedInputTokens: 0,
-          reasoningOutputTokens: 0,
-          totalTokens: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-        },
-      },
-      rateLimits: null,
-    }
+      llmType: this.llm.type,
+    })
+    return null
   }
 }

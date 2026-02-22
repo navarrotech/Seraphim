@@ -1,31 +1,20 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { SseChangePayload, SseChangeKind } from '@common/types'
+
 // Misc
 import { sseManager } from './sseManager'
 
-export type SseChangeType = 'create' | 'update' | 'delete'
-export type SseChangeKind = 'accounts' | 'settings' | 'workspaces' | 'tasks' | 'llms' | 'usage'
-
-export type SseChangePayload<Shape> = {
-  type: SseChangeType
-  kind: SseChangeKind
-  data: Shape[]
-}
-
-export function broadcastSseChange<Shape>(payload: SseChangePayload<Shape>): void {
+export function broadcastSseChange<Kind extends SseChangeKind>(payload: SseChangePayload<Kind>): void {
   try {
     const serializedPayload = JSON.stringify(payload)
-    sseManager.broadcastEvent(payload.type, serializedPayload)
+    sseManager.broadcastEvent(
+      payload.type,
+      serializedPayload,
+    )
   }
   catch (error) {
-    console.debug('Failed to serialize SSE payload', {
-      payload,
-      data: payload.data?.length === 1
-        ? payload.data[0]
-        : payload.data,
-      kind: payload.kind,
-      type: payload.type,
-    })
+    console.debug('Failed to serialize SSE payload', payload)
     console.error(error)
   }
 }

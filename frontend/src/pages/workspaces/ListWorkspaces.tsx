@@ -47,7 +47,7 @@ export function ListWorkspaces() {
     try {
       await deleteWorkspace(workspaceId)
       dispatch(
-        workspaceActions.removeWorkspace(workspaceId),
+        workspaceActions.removeWorkspace({ id: workspaceId }),
       )
     }
     catch (error) {

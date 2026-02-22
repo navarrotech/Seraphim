@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { LlmRecord } from '@common/types'
+import type { LlmRecord, LlmUsage } from '@common/types'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
@@ -8,10 +8,12 @@ import { createEnhancedSlice } from '../createEnhancedSlice'
 
 export type LlmsState = {
   items: LlmRecord[]
+  rateLimitsById: Record<string, LlmUsage['rateLimits'] | null>
 }
 
 const initialState: LlmsState = {
   items: [],
+  rateLimitsById: {},
 } as const
 
 export const slice = createEnhancedSlice({
@@ -20,28 +22,19 @@ export const slice = createEnhancedSlice({
   reducers: {
     setLlms: (state, action: PayloadAction<LlmRecord[]>) => {
       state.items = action.payload
-      return state
     },
-    upsertLlms: (state, action: PayloadAction<LlmRecord[]>) => {
-      const llmsById = new Map(
-        state.items.map((llm) => [ llm.id, llm ]),
-      )
-
-      for (const llm of action.payload) {
-        llmsById.set(llm.id, llm)
-      }
-
-      state.items = Array.from(llmsById.values())
-      return state
+    upsertLlm: (state, action: PayloadAction<LlmRecord>) => {
+      const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
+      asRecord[action.payload.id] = action.payload
+      state.items = Object.values(asRecord)
     },
-    removeLlm: (state, action: PayloadAction<string>) => {
-      state.items = state.items.filter((llm) => llm.id !== action.payload)
-      return state
+    removeLlm: (state, action: PayloadAction<{ id: string }>) => {
+      state.items = state.items.filter((llm) => llm.id !== action.payload.id)
+      delete state.rateLimitsById[action.payload.id]
     },
-    removeLlms: (state, action: PayloadAction<LlmRecord[]>) => {
-      const llmIds = new Set(action.payload.map((llm) => llm.id))
-      state.items = state.items.filter((llm) => !llmIds.has(llm.id))
-      return state
+    setLlmRateLimits: (state, action: PayloadAction<{ llmId: string, rateLimits: LlmUsage['rateLimits'] }>) => {
+      const id = action.payload.llmId
+      state.rateLimitsById[id] = action.payload.rateLimits
     },
   },
 })
