@@ -41,7 +41,7 @@ export const slice = createEnhancedSlice({
         state.items = Object.values(asRecord)
       }
     },
-    removeTask: (state, action: PayloadAction<{ id: string }>) => {
+    removeTask: (state, action: PayloadAction<Task>) => {
       state.items = state.items.filter((task) => task.id !== action.payload.id)
       state.archivedItems = state.archivedItems.filter((task) => task.id !== action.payload.id)
       delete state.usageByTaskId[action.payload.id]

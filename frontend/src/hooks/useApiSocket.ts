@@ -33,7 +33,7 @@ type AnySseChangePayload = {
   [Kind in SseChangeKind]: SseChangePayload<Kind>
 }[SseChangeKind]
 
-const actions = {
+const actions: SseActionMap = {
   create: {
     tasks: [ taskActions.upsertTask ],
     settings: [ settingsActions.setSettings ],
@@ -58,18 +58,9 @@ const actions = {
     workspaces: [ workspaceActions.removeWorkspace ],
     usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
   },
-} as const satisfies SseActionMap
+}
 
-function handleMessage(event: MessageEvent) {
-    const payload: AnySseChangePayload = safeParseJson(event.data)
-  if (!payload) {
-    console.error(
-      chalk.red('SSE event payload is not valid JSON'),
-      event.data,
-    )
-    return
-  }
-
+function dispatchPayload<Kind extends SseChangeKind>(payload: SseChangePayload<Kind>) {
   const targetActions = actions[payload.type][payload.kind]
 
   for (const action of targetActions) {
@@ -83,6 +74,19 @@ export function useApiSocket(): void {
   useEffect(function manageApiSocket() {
     const apiRoot = getApiRoot()
     const eventSource = new EventSource(`${apiRoot}/events`)
+
+    function handleMessage(event: MessageEvent) {
+      const payload: AnySseChangePayload = safeParseJson(event.data)
+      if (!payload) {
+        console.error(
+          chalk.red('SSE event payload is not valid JSON'),
+          event.data,
+        )
+        return
+      }
+
+      dispatchPayload(payload)
+    }
 
     function handleError(event: Event) {
       console.debug('SSE error received', {

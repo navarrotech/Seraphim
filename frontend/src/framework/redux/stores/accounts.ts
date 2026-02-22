@@ -28,7 +28,7 @@ export const slice = createEnhancedSlice({
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },
-    removeAccount: (state, action: PayloadAction<{ id: string }>) => {
+    removeAccount: (state, action: PayloadAction<AuthAccount>) => {
       state.items = state.items.filter((account) => account.id !== action.payload.id)
     },
   },

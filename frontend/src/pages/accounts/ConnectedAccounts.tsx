@@ -211,7 +211,7 @@ export function ConnectedAccounts() {
         accountId: account.id,
       })
       dispatch(
-        accountActions.removeAccount({ id: account.id }),
+        accountActions.removeAccount(account),
       )
       setStatusMessage('Connected account removed successfully.')
     }

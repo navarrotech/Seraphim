@@ -28,7 +28,7 @@ export const slice = createEnhancedSlice({
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },
-    removeWorkspace: (state, action: PayloadAction<{ id: string }>) => {
+    removeWorkspace: (state, action: PayloadAction<Workspace>) => {
       state.items = state.items.filter((workspace) => workspace.id !== action.payload.id)
     },
   },

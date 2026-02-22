@@ -1,5 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { Workspace } from '@prisma/client'
+
 // Core
 import { Link } from 'react-router-dom'
 
@@ -43,11 +45,11 @@ function formatTimestamp(dateIso: string | Date) {
 export function ListWorkspaces() {
   const workspaces = useSelector((state) => state.workspaces.items)
 
-  async function handleDelete(workspaceId: string) {
+  async function handleDelete(workspace: Workspace) {
     try {
-      await deleteWorkspace(workspaceId)
+      await deleteWorkspace(workspace.id)
       dispatch(
-        workspaceActions.removeWorkspace({ id: workspaceId }),
+        workspaceActions.removeWorkspace(workspace),
       )
     }
     catch (error) {
@@ -153,7 +155,7 @@ export function ListWorkspaces() {
                     size='sm'
                     variant='light'
                     isIconOnly
-                    onPress={() => handleDelete(workspace.id)}
+                    onPress={() => handleDelete(workspace)}
                   >
                     <span className='icon'>
                       <DeleteIcon />

@@ -28,7 +28,7 @@ export const slice = createEnhancedSlice({
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },
-    removeLlm: (state, action: PayloadAction<{ id: string }>) => {
+    removeLlm: (state, action: PayloadAction<LlmRecord>) => {
       state.items = state.items.filter((llm) => llm.id !== action.payload.id)
       delete state.rateLimitsById[action.payload.id]
     },
