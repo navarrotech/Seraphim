@@ -20,8 +20,8 @@ import type { RateLimitSnapshot, ThreadTokenUsage } from '@common/vendor/codex-p
 
 export type DateISO = string
 export type AbsoluteFilePath = string
-export type Theme = 'light' | 'dark' | 'system'
-export type ThemePreference = Exclude<Theme, 'system'>
+export type Theme = 'light' | 'dark'
+export type ThemePreference = Theme | 'system'
 export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug' | 'verbose' | 'silly'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
 export type UnsubscribeFunction = () => any

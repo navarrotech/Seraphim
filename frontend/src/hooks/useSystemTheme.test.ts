@@ -2,7 +2,7 @@
 
 /* @vitest-environment happy-dom */
 
-import type { ThemePreference } from '@bifrost/types'
+import type { ThemePreference } from '@common/types'
 import type { Root } from 'react-dom/client'
 import type { Mock } from 'vitest'
 
@@ -12,7 +12,7 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 
 // Redux
-import { useSelector } from '@frontend/core/redux-store'
+import { useSelector } from '@frontend/framework/store'
 
 // Utility
 import { useSystemTheme } from './useSystemTheme'
