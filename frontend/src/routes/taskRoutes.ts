@@ -1,15 +1,20 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Message, Task, LlmUsage } from '@common/types'
+import type {
+  TaskCreateRequest,
+  TaskUpdateRequest,
+} from '@common/schema/task'
 
-// Lib
-import { z } from 'zod'
+// Core
+import { apiClient, parseRequestBeforeSend } from '@common/api'
 
-// Utility
-import { taskCreateSchema, taskUpdateSchema } from '@common/schema'
+// Schema
+import { taskCreateSchema, taskUpdateSchema } from '@common/schema/task'
 
-// Misc
-import { apiClient } from '../../../common/src/api'
+// /////////////////////////////// //
+//           List Tasks            //
+// /////////////////////////////// //
 
 type ListTasksResponse = {
   tasks: Task[]
@@ -21,6 +26,10 @@ export function listTasks() {
     .json<ListTasksResponse>()
 }
 
+// /////////////////////////////// //
+//            Get Task             //
+// /////////////////////////////// //
+
 type GetTaskResponse = {
   task: Task & { messages: Message[] }
 }
@@ -31,46 +40,69 @@ export function getTask(taskId: string) {
     .json<GetTaskResponse>()
 }
 
+// /////////////////////////////// //
+//          Get Task Usage         //
+// /////////////////////////////// //
+
 export function getTaskUsage(taskId: string) {
   return apiClient
     .get(`v1/protected/tasks/${taskId}/usage`)
     .json<LlmUsage>()
 }
 
-type CreateTaskRequest = z.infer<typeof taskCreateSchema>
+// /////////////////////////////// //
+//           Create Task           //
+// /////////////////////////////// //
 
 type CreateTaskResponse = {
   task: Task
 }
 
-export function createTask(body: CreateTaskRequest) {
+export async function createTask(raw: TaskCreateRequest) {
+  const json = parseRequestBeforeSend(taskCreateSchema, raw)
+
   return apiClient
-    .post('v1/protected/tasks', { json: body })
+    .post('v1/protected/tasks', { json })
     .json<CreateTaskResponse>()
 }
 
-type UpdateTaskRequest = z.infer<typeof taskUpdateSchema>
+// /////////////////////////////// //
+//           Update Task           //
+// /////////////////////////////// //
 
 type UpdateTaskResponse = {
   task: Task
 }
 
-export function updateTask(taskId: string, body: UpdateTaskRequest) {
+export async function updateTask(taskId: string, raw: TaskUpdateRequest) {
+  const json = parseRequestBeforeSend(taskUpdateSchema, raw)
+
   return apiClient
-    .patch(`v1/protected/tasks/${taskId}`, { json: body })
+    .patch(`v1/protected/tasks/${taskId}`, { json })
     .json<UpdateTaskResponse>()
 }
+
+// /////////////////////////////// //
+//           Delete Task           //
+// /////////////////////////////// //
 
 export function deleteTask(taskId: string) {
   return apiClient
     .delete(`v1/protected/tasks/${taskId}`)
 }
 
+// /////////////////////////////// //
+//          Archive Task           //
+// /////////////////////////////// //
 
 export function archiveTask(taskId: string) {
   return apiClient
     .delete(`v1/protected/tasks/${taskId}/archive`)
 }
+
+// /////////////////////////////// //
+//         Task Git Actions        //
+// /////////////////////////////// //
 
 type TaskGitActionResponse = {
   message: string

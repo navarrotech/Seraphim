@@ -1,14 +1,14 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { TaskUpdateRequest } from '@common/schema'
+import type { TaskUpdateRequest } from '@common/schema/task'
 
 // Lib
 import { z } from 'zod'
 
 // Utility
 import { parseRequestBody, parseRequestParams } from '../../validation'
-import { taskUpdateSchema } from '@common/schema'
+import { taskUpdateSchema } from '@common/schema/task'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'

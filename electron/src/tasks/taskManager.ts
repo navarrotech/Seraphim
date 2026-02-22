@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Llm, Workspace } from '@prisma/client'
-import type { TaskCreateRequest } from '@common/schema'
+import type { TaskCreateRequest } from '@common/schema/task'
 import type { ArchiveTaskResult, CreateTaskResult, DeleteTaskResult } from './types'
 
 // Utility
@@ -15,6 +15,7 @@ import { getCallableLLM } from '@common/llms/call'
 // Misc
 import { selectTaskWithFullContext } from './select'
 import { TaskInstance } from './taskInstance'
+
 class TaskManager {
   private taskInstances = new Map<string, TaskInstance>()
 

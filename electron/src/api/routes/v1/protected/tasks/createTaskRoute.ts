@@ -1,11 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { TaskCreateRequest } from '@common/schema'
+import type { TaskCreateRequest } from '@common/schema/task'
 
 // Utility
 import { parseRequestBody } from '../../validation'
-import { taskCreateSchema } from '@common/schema'
+import { taskCreateSchema } from '@common/schema/task'
 
 // Misc
 import { getTaskManager } from '@electron/tasks/taskManager'
