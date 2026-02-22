@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Misc
-import { apiClient } from '../api'
+import { apiClient } from '@common/api'
 
 export type BuildDockerImageRequest = {
   customDockerfileCommands?: string
@@ -11,10 +11,10 @@ export type BuildDockerImageResponse = {
   jobId: string
 }
 
-export function buildDockerImage(payload: BuildDockerImageRequest = {}) {
+export function buildDockerImage(json: BuildDockerImageRequest = {}) {
   return apiClient
     .post('v1/protected/docker/build', {
-      json: payload,
+      json: json,
     })
     .json<BuildDockerImageResponse>()
 }

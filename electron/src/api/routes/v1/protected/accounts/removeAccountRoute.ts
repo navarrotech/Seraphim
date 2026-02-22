@@ -11,46 +11,46 @@ import { parseRequestBody } from '../../validation'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 
-const logoutAccountSchema = z.object({
+const removeAccountSchema = z.object({
   provider: z.literal('GITHUB'),
-  accountId: z.string().trim().min(1),
+  id: z.string().trim().min(1),
 })
-type LogoutAccountPayload = z.infer<typeof logoutAccountSchema>
+type RemoveAccountPayload = z.infer<typeof removeAccountSchema>
 
-export async function handleLogoutAccountRequest(
+export async function handleRemoveAccountRequest(
   request: Request,
   response: Response,
 ): Promise<void> {
-  const payload = parseRequestBody<LogoutAccountPayload>(
-    logoutAccountSchema,
+  const payload = parseRequestBody<RemoveAccountPayload>(
+    removeAccountSchema,
     request,
     response,
     {
-      context: 'Logout token account',
-      errorMessage: 'Invalid logout request',
+      context: 'Remove token account',
+      errorMessage: 'Invalid remove request',
     },
   )
 
   if (!payload) {
-    console.debug('Logout token account request failed validation')
+    console.debug('Remove token account request failed validation')
     return
   }
 
-  const databaseClient = requireDatabaseClient('Logout token account')
+  const databaseClient = requireDatabaseClient('Remove token account')
 
   const account = await databaseClient.authAccount.findUnique({
-    where: { id: payload.accountId },
+    where: { id: payload.id },
   })
 
   if (!account) {
-    console.debug('Logout requested for unknown account', { accountId: payload.accountId })
+    console.debug('Remove requested for unknown account', { accountId: payload.id })
     response.status(404).json({ error: 'Account not found' })
     return
   }
 
   if (account.provider !== payload.provider) {
-    console.debug('Logout requested with provider mismatch', {
-      accountId: payload.accountId,
+    console.debug('Remove requested with provider mismatch', {
+      accountId: payload.id,
       provider: payload.provider,
       accountProvider: account.provider,
     })
@@ -77,7 +77,7 @@ export async function handleLogoutAccountRequest(
 
   response.status(200).json({
     provider: payload.provider,
-    accountId: payload.accountId,
+    accountId: payload.id,
     revoked: true,
   })
 }

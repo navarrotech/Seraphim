@@ -12,7 +12,6 @@ declare global {
       electron: string
     },
     config: {
-      getApiUrl: () => string
       exitApp: () => Promise<void>
       restartGui: () => Promise<void>,
       openDialog: (options: OpenDialogOptions) => Promise<string[] | null>,

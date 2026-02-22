@@ -42,7 +42,7 @@ export function createCodexAuthFile(
     })
   }
   else if (task.llm.type === 'OPENAI_LOGIN_TOKEN') {
-    return task.llm.accessToken
+    return task.llm.apiKey
   }
   else {
     throw new Error(`Unsupported LLM type: ${task.llm.type}`)

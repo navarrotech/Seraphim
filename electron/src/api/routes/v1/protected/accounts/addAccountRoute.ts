@@ -1,32 +1,24 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { AddAccountRequest } from '@common/schema/accounts'
 
-// Lib
-import { z } from 'zod'
-
-// Utility
-import { requireDatabaseClient } from '@electron/database'
-import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
+// Core
 import { parseRequestBody } from '../../validation'
-import { sanitizeAccount } from './accountSanitizer'
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 
-const addAccountRequestSchema = z.object({
-  provider: z.literal('GITHUB'),
-  name: z.string().trim().min(1),
-  accessToken: z.string().trim().min(1),
-  gitUserName: z.string().trim().min(1),
-  gitUserEmail: z.string().trim().email(),
-})
-
-type AddAccountPayload = z.infer<typeof addAccountRequestSchema>
+// Schema
+import { addAccountSchema } from '@common/schema/accounts'
+import { sanitizeAccount } from './utils.ts'
+import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
 
 export async function handleAddAccountRequest(
   request: Request,
   response: Response,
 ): Promise<void> {
-  const payload = parseRequestBody<AddAccountPayload>(
-    addAccountRequestSchema,
+  const payload = parseRequestBody<AddAccountRequest>(
+    addAccountSchema,
     request,
     response,
     {
@@ -79,6 +71,12 @@ export async function handleAddAccountRequest(
   })
 
   const sanitized = sanitizeAccount(account)
+
+  broadcastSseChange({
+    type: 'create',
+    kind: 'accounts',
+    data: sanitized,
+  })
 
   response.status(200).json({
     account: sanitized,

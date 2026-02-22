@@ -1,40 +1,40 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { LlmRecord, LlmUsage } from '@common/types'
+import type { Llm, LlmWithRateLimits, LlmUsage } from '@common/types'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
 export type LlmsState = {
-  items: LlmRecord[]
-  rateLimitsById: Record<string, LlmUsage['rateLimits'] | null>
+  items: LlmWithRateLimits[]
 }
 
 const initialState: LlmsState = {
   items: [],
-  rateLimitsById: {},
 } as const
 
 export const slice = createEnhancedSlice({
   name: 'llms',
   initialState,
   reducers: {
-    setLlms: (state, action: PayloadAction<LlmRecord[]>) => {
+    setLlms: (state, action: PayloadAction<LlmWithRateLimits[]>) => {
       state.items = action.payload
     },
-    upsertLlm: (state, action: PayloadAction<LlmRecord>) => {
+    upsertLlm: (state, action: PayloadAction<LlmWithRateLimits>) => {
       const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },
-    removeLlm: (state, action: PayloadAction<LlmRecord>) => {
+    removeLlm: (state, action: PayloadAction<Llm>) => {
       state.items = state.items.filter((llm) => llm.id !== action.payload.id)
-      delete state.rateLimitsById[action.payload.id]
     },
-    setLlmRateLimits: (state, action: PayloadAction<{ llmId: string, rateLimits: LlmUsage['rateLimits'] }>) => {
-      const id = action.payload.llmId
-      state.rateLimitsById[id] = action.payload.rateLimits
+    setLlmRateLimits: (state, action: PayloadAction<LlmUsage>) => {
+      const { llmId, rateLimits } = action.payload
+      const llm = state.items.find((item) => item.id === llmId)
+      if (llm) {
+        llm.rateLimits = rateLimits
+      }
     },
   },
 })

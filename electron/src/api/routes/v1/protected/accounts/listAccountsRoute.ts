@@ -5,7 +5,7 @@ import type { Request, Response } from 'express'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
-import { sanitizeAccount } from './accountSanitizer'
+import { sanitizeAccount } from './utils.ts'
 
 type ListAccountsResponse = {
   accounts: AuthAccount[]

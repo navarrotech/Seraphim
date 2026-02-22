@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@prisma/client'
+import type { Workspace } from '@common/types'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'

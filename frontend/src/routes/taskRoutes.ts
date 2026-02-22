@@ -1,7 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Message, Task } from '@prisma/client'
-import type { LlmUsage } from '@common/types'
+import type { Message, Task, LlmUsage } from '@common/types'
 
 // Lib
 import { z } from 'zod'
@@ -10,7 +9,7 @@ import { z } from 'zod'
 import { taskCreateSchema, taskUpdateSchema } from '@common/schema'
 
 // Misc
-import { apiClient } from '../api'
+import { apiClient } from '../../../common/src/api'
 
 type ListTasksResponse = {
   tasks: Task[]

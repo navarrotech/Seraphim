@@ -24,4 +24,13 @@ export class CallableLLM {
     })
     return null
   }
+
+  public async validateLlm(): Promise<[ boolean, string ]> {
+    // Placeholder implementation - replace with actual validation logic
+    console.debug('CallableLLM validateLlm has no provider implementation', {
+      llmId: this.llm.id,
+      llmType: this.llm.type,
+    })
+    return [ false, `Not implemented for this LLM type: ${this.llm.type}` ]
+  }
 }

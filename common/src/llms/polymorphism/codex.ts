@@ -15,6 +15,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 // Misc
+import { safeParseJson } from '@common/json'
 import { Timer } from '@common/timer'
 
 export class CallableCodex extends CallableLLM {
@@ -75,7 +76,7 @@ export class CallableCodex extends CallableLLM {
 
       if (!normalizedPrompt) {
         console.debug('Codex query was empty after normalization')
-        return 'Unnamed task'
+        return ''
       }
 
       console.debug('Sending query to Codex', { prompt: normalizedPrompt, systemPrompt })
@@ -95,7 +96,7 @@ export class CallableCodex extends CallableLLM {
       timer.stop()
     }
 
-    return 'Unnamed task'
+    return ''
   }
 
   public async getRateLimits(): Promise<RateLimitSnapshot | null> {
@@ -209,5 +210,33 @@ export class CallableCodex extends CallableLLM {
     }
 
     return null
+  }
+
+  public async validateLlm(): Promise<[ boolean, string ]> {
+    try {
+      const authAsJson: CodexAuthJson = safeParseJson(this.llm.apiKey)
+      if (!authAsJson) {
+        console.debug('Codex validation failed, apiKey is not valid JSON')
+        return [ false, 'Invalid api key provided (not an auth.json)' ]
+      }
+
+      if (!authAsJson.tokens?.access_token) {
+        console.debug('Codex validation failed, apiKey JSON does not contain access token', { authAsJson })
+        return [ false, 'Invalid api key provided (missing access token)' ]
+      }
+
+      const response = await this.query('What is 2 + 2?')
+
+      if (response?.length && typeof response === 'string') {
+        return [ true, '' ]
+      }
+
+      console.debug('Codex validation failed, unexpected response', { response })
+    }
+    catch (error) {
+      console.error('Error during Codex validation', error)
+    }
+
+    return [ false, 'Codex authentication failed' ]
   }
 }

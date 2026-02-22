@@ -1,7 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Task } from '@prisma/client'
-import type { LlmUsage } from '@common/types'
+import type { Task, LlmUsage } from '@common/types'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'

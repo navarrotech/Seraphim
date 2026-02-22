@@ -5,6 +5,9 @@ import type { LlmType } from '@prisma/client'
 // Project Configuration
 export const CONFIG_FILE_NAME = 'seraphim.jsonc' as const
 
+// Ports
+export const API_PORT = 9900
+
 // User Settings
 export const USER_LANGUAGE_OPTIONS = [ 'auto', 'en-US' ] as const
 export const USER_THEME_OPTIONS = [ 'system', 'dark', 'light' ] as const

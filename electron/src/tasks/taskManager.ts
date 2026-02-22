@@ -10,7 +10,7 @@ import { requireDatabaseClient } from '@electron/database'
 import { toContainerName } from '@electron/jobs/taskNaming'
 import { teardownTask } from '@electron/jobs/teardownTask'
 import { updateTaskState } from '@electron/jobs/updateTaskState'
-import { callLLM } from '@common/llms/call'
+import { getCallableLLM } from '@common/llms/call'
 
 // Misc
 import { selectTaskWithFullContext } from './select'
@@ -332,17 +332,16 @@ class TaskManager {
 
   private async requestTaskName(llm: Llm, workspace: Workspace, userMessage: string) {
     try {
+      const callableLlm = getCallableLLM(llm)
       const [ taskName, gitWorkBranchName ] = await Promise.all([
-        callLLM(
-          llm,
+        callableLlm.query(
           userMessage,
           (`Below the user will provide an initial request for a given agentic task.`
           + ` Your job is to give it a clean and short & friendly PR name for when the task is completed.`
           + ` Use 3-6 words when possible, and no more than 10 words.`
           + ` Return the task name only, no punctuation or quotes.`),
         ),
-        callLLM(
-          llm,
+        callableLlm.query(
           (`Git branch template: '${workspace.gitBranchTemplate}'`
           + `\n\nTask:\n\`\`\`\n${userMessage}\n\`\`\``),
           (`You're an assistant helping to prepare an automated git job,`

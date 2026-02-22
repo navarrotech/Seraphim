@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace, WorkspaceEnv } from '@prisma/client'
+import type { Workspace, WorkspaceEnv } from '@common/types'
 
 // Lib
 import { z } from 'zod'
@@ -12,7 +12,7 @@ import {
 } from '@common/schema'
 
 // Misc
-import { apiClient } from '../api'
+import { apiClient } from '../../../common/src/api'
 
 type WorkspaceResponse = Workspace & { envEntries: WorkspaceEnv[] }
 

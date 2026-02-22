@@ -9,5 +9,7 @@
   },
   "include": [
     "src",
+    "../frontend/src/http",
+    "../frontend/src/routes",
   ]
 }

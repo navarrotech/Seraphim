@@ -2,6 +2,7 @@
 
 import type {
   AuthAccount,
+  AuthProvider,
   Llm,
   Message,
   Turn,
@@ -31,6 +32,19 @@ export type StandardFilePointer = string | string[]
 //         Prisma Ext         //
 // ////////////////////////// //
 
+export type {
+  AuthAccount,
+  AuthProvider,
+  Llm,
+  Message,
+  Turn,
+  Task,
+  User,
+  UserSettings,
+  Workspace,
+  WorkspaceEnv,
+}
+
 export type WorkspaceWithEnv = Workspace & {
   envEntries: WorkspaceEnv[]
 }
@@ -47,8 +61,8 @@ export type TaskWithFullContext = Task & {
   workspace: WorkspaceWithEnv
 }
 
-export type LlmRecord = Llm & {
-  preferredModel?: string | null
+export type LlmWithRateLimits = Llm & {
+  rateLimits: RateLimitSnapshot | null
 }
 
 export type LlmUsage = {
@@ -56,6 +70,28 @@ export type LlmUsage = {
   llmId: string
   usage: ThreadTokenUsage | null
   rateLimits: RateLimitSnapshot | null
+}
+
+export type GithubRepoSummary = {
+  id: number
+  name: string
+  fullName: string
+  description: string | null
+  htmlUrl: string
+  cloneUrl: string
+  sshUrl: string
+  defaultBranch: string
+  ownerLogin: string
+  isPrivate: boolean
+  isFork: boolean
+  isArchived: boolean
+  updatedAt: string
+}
+
+export type GithubBranchSummary = {
+  name: string
+  sha: string
+  isProtected: boolean
 }
 
 // ////////////////////////// //
@@ -69,7 +105,7 @@ type SsePayloadByKind = {
   settings: UserSettings
   workspaces: Workspace
   tasks: Task
-  llms: Llm
+  llms: LlmWithRateLimits
   usage: LlmUsage
 }
 export type SseChangeKind = keyof SsePayloadByKind
@@ -84,6 +120,17 @@ export type SseChangePayload<Kind extends SseChangeKind = SseChangeKind> = {
 //        Other types         //
 // ////////////////////////// //
 
+export type StandardUrlParams = {
+  q?: string
+  page?: number
+  limit?: number
+}
+
+export type StandardPaginatedResponseData = {
+  totalCount: number
+  page: number
+  limit: number
+}
 
 export type CodexAuthJson = {
   OPENAI_API_KEY?: string | null,

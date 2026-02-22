@@ -24,7 +24,6 @@
     "@tanstack/query-core": "^5.90.16",
     "events": "^3.3.0",
     "framer-motion": "^12.19.1",
-    "ky": "^1.14.2",
     "lodash-es": "^4.17.21",
     "monaco-editor": "^0.55.1",
     "react": "^19.0.0",

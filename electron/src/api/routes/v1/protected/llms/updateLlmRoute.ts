@@ -1,78 +1,38 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Llm, Prisma } from '@prisma/client'
+import type { LlmWithRateLimits } from '@common/types'
 import type { Request, Response } from 'express'
-import type { LlmUpdateRequest } from '@common/schema'
+import type { UpdateLlmRequest } from '@common/schema/llm'
 
-// Lib
-import { z } from 'zod'
-
-// Utility
+// Core
 import { parseRequestBody, parseRequestParams } from '../../validation'
-import { llmUpdateSchema } from '@common/schema'
-
-// Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { sanitizeLlm } from './llmSanitizer'
+import { z } from 'zod'
+
+// Schema
+import { updateLlmSchema } from '@common/schema/llm'
+import { sanitizeLlm, setNewDefaultLlm } from './utils'
+import { getCallableLLM } from '@common/llms/call'
 
 type RouteParams = {
   llmId: string
 }
 
-type DatabaseClient = ReturnType<typeof requireDatabaseClient>
-
-export type RequestBody = LlmUpdateRequest
-
-const apiKeyLlmTypes = new Set<Llm['type']>([
-  'OPENAI_API_KEY',
-])
-
-const accessTokenLlmTypes = new Set<Llm['type']>([
-  'OPENAI_LOGIN_TOKEN',
-])
-
-const llmParamsSchema = z.object({
+const Params = z.object({
   llmId: z.string().trim().min(1),
 })
 
-async function updateLlmWithDefaults(
-  databaseClient: DatabaseClient,
-  llmId: string,
-  userId: string,
-  updateData: RequestBody,
-) {
-  async function updateLlmTransaction(
-    transactionClient: Prisma.TransactionClient,
-  ) {
-    if (updateData.isDefault === true) {
-      await transactionClient.llm.updateMany({
-        where: {
-          userId,
-          id: { not: llmId },
-          isDefault: true,
-        },
-        data: { isDefault: false },
-      })
-    }
-
-    return transactionClient.llm.update({
-      where: { id: llmId },
-      data: updateData,
-    })
-  }
-
-  return databaseClient.$transaction(updateLlmTransaction)
-}
+export type RequestBody = UpdateLlmRequest
 
 export async function handleUpdateLlmRequest(
   request: Request<RouteParams, unknown, RequestBody>,
   response: Response,
 ): Promise<void> {
-  const databaseClient = requireDatabaseClient('Update llm API')
+  const prisma = requireDatabaseClient('Update llm API')
 
   const routeParams = parseRequestParams(
-    llmParamsSchema,
+    Params,
     request,
     response,
     {
@@ -84,8 +44,8 @@ export async function handleUpdateLlmRequest(
     return
   }
 
-  const updateData = parseRequestBody(
-    llmUpdateSchema,
+  const body = parseRequestBody(
+    updateLlmSchema,
     request,
     response,
     {
@@ -93,14 +53,14 @@ export async function handleUpdateLlmRequest(
       errorMessage: 'Invalid request body',
     },
   )
-  if (!updateData) {
+  if (!body) {
     return
   }
 
   const { llmId } = routeParams
 
   try {
-    const existingLlm = await databaseClient.llm.findUnique({
+    const existingLlm = await prisma.llm.findUnique({
       where: { id: llmId },
     })
 
@@ -108,55 +68,66 @@ export async function handleUpdateLlmRequest(
       console.debug('Llm update failed, llm not found', {
         llmId,
       })
-      response.status(404).json({ error: 'Llm not found' })
+      response.status(400).json({ error: 'Llm not found' })
       return
     }
 
-    if (
-      updateData.apiKey
-      && !apiKeyLlmTypes.has(existingLlm.type)
-    ) {
-      console.debug('Llm update rejected for unsupported apiKey change', {
-        llmId,
-        type: existingLlm.type,
-      })
-      response.status(400).json({
-        error: 'API key updates are not supported for this llm type',
-      })
-      return
+    const callableLlm = getCallableLLM(existingLlm)
+
+    // Ensure that if the apiKey changed, the LLM is still valid/reachable!
+    if (body.apiKey) {
+      const [ isValid, errorMessage ] = await callableLlm.validateLlm()
+
+      if (!isValid) {
+        console.debug('Llm update rejected for unsupported apiKey change', {
+          llmId,
+          type: existingLlm.type,
+          errorMessage,
+        })
+        response.status(400).json({
+          error: errorMessage,
+        })
+        return
+      }
     }
 
+    const [ createdLlm, rateLimits ] = await Promise.all([
+      prisma.llm.create({
+        data: {
+          user: {
+            connect: {
+              id: existingLlm.userId,
+            },
+          },
+          type: body.type,
+          name: body.name,
+          preferredModel: body.preferredModel,
+          apiKey: body.apiKey,
+          tokenLimit: body.tokenLimit,
+          isDefault: body.isDefault,
+        },
+      }),
+      callableLlm.getRateLimits(),
+    ])
 
-    if (
-      updateData.accessToken
-      && !accessTokenLlmTypes.has(existingLlm.type)
-    ) {
-      console.debug('Llm update rejected for unsupported accessToken change', {
-        llmId,
-        type: existingLlm.type,
-      })
-      response.status(400).json({
-        error: 'Access token updates are not supported for this llm type',
-      })
-      return
+    if (body.isDefault) {
+      await setNewDefaultLlm(existingLlm.userId, llmId)
     }
 
-    const llm = await updateLlmWithDefaults(
-      databaseClient,
-      llmId,
-      existingLlm.userId,
-      updateData,
-    )
-
-    const sanitizedLlm = sanitizeLlm(llm)
+    const llmWithRateLimits: LlmWithRateLimits = {
+      ...sanitizeLlm(createdLlm),
+      rateLimits,
+    }
 
     broadcastSseChange({
       type: 'update',
       kind: 'llms',
-      data: sanitizedLlm,
+      data: llmWithRateLimits,
     })
 
-    response.status(200).json({ llm: sanitizedLlm })
+    response.status(201).json({
+      llm: llmWithRateLimits,
+    })
   }
   catch (error) {
     console.error('Failed to update llm', error)

@@ -1,10 +1,10 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
-import type { User, UserSettings } from '@prisma/client'
+import type { User, UserSettings } from '@common/types'
 import type { UserSettingsUpdateRequest } from '@common/schema'
 
 // Misc
-import { apiClient } from '../api'
+import { apiClient } from '../../../common/src/api'
 
 type GetCurrentUserResponse = {
   user: User & { settings: UserSettings | null }
@@ -25,4 +25,3 @@ export function updateCurrentUserSettings(body: UserSettingsUpdateRequest) {
     .patch('v1/protected/users/me/settings', { json: body })
     .json<UpdateCurrentUserSettingsResponse>()
 }
-

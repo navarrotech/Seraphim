@@ -1,38 +1,28 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { UpdateAccountRequest } from '@common/schema/accounts'
 
-// Lib
+// Core
+import { parseRequestBody, parseRequestParams } from '../../validation'
+import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { requireDatabaseClient } from '@electron/database'
 import { z } from 'zod'
 
-// Utility
-import { requireDatabaseClient } from '@electron/database'
+// Schema
+import { updateAccountSchema } from '@common/schema/accounts'
+import { sanitizeAccount } from './utils.ts'
 import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
-import { parseRequestBody, parseRequestParams } from '../../validation'
-import { sanitizeAccount } from './accountSanitizer'
+
 
 const updateAccountParamsSchema = z.object({
   accountId: z.string().trim().uuid(),
 })
 
-const updateAccountRequestSchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  accessToken: z.string().trim().min(1).optional(),
-  gitUserEmail: z.string().trim().email().optional(),
-}).refine(
-  function hasUpdateData(payload) {
-    return Boolean(payload.name || payload.accessToken || payload.gitUserEmail)
-  },
-  {
-    message: 'At least one editable account field is required',
-  },
-)
-
 type UpdateAccountRouteParams = z.infer<typeof updateAccountParamsSchema>
-type UpdateAccountPayload = z.infer<typeof updateAccountRequestSchema>
 
 export async function handleUpdateAccountRequest(
-  request: Request<UpdateAccountRouteParams, unknown, UpdateAccountPayload>,
+  request: Request<UpdateAccountRouteParams, unknown, UpdateAccountRequest>,
   response: Response,
 ): Promise<void> {
   const params = parseRequestParams(
@@ -50,7 +40,7 @@ export async function handleUpdateAccountRequest(
   }
 
   const payload = parseRequestBody(
-    updateAccountRequestSchema,
+    updateAccountSchema,
     request,
     response,
     {
@@ -63,9 +53,9 @@ export async function handleUpdateAccountRequest(
     return
   }
 
-  const databaseClient = requireDatabaseClient('Update connected account')
+  const prisma = requireDatabaseClient('Update connected account')
 
-  const existingAccount = await databaseClient.authAccount.findUnique({
+  const existingAccount = await prisma.authAccount.findUnique({
     where: {
       id: params.accountId,
     },
@@ -117,7 +107,7 @@ export async function handleUpdateAccountRequest(
     nextLastUsedAt = new Date()
   }
 
-  const account = await databaseClient.authAccount.update({
+  const account = await prisma.authAccount.update({
     where: {
       id: existingAccount.id,
     },
@@ -131,6 +121,12 @@ export async function handleUpdateAccountRequest(
   })
 
   const sanitized = sanitizeAccount(account)
+
+  broadcastSseChange({
+    type: 'update',
+    kind: 'accounts',
+    data: sanitized,
+  })
 
   response.status(200).json({
     account: sanitized,

@@ -1,13 +1,13 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { BuildDockerImageRequest } from '@frontend/lib/routes/dockerRoutes'
+import type { BuildDockerImageRequest } from '@frontend/routes/dockerRoutes'
 
 // Core
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Misc
-import { getApiRoot } from '@frontend/lib/api'
-import { buildDockerImage } from '@frontend/lib/routes/dockerRoutes'
+import { getApiRoot } from '@common/api'
+import { buildDockerImage } from '@frontend/routes/dockerRoutes'
 
 type BuildStatus = 'success' | 'fail'
 

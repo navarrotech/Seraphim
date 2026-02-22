@@ -6,7 +6,7 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
-import { createAccountsRouter } from './accounts/accountsRouter'
+import { createAccountsRouter } from './accountsRouter'
 import { createLlmsRouter } from './llmsRouter'
 import { createDockerRouter } from './docker/dockerRouter'
 import { createTasksRouter } from './tasksRouter'

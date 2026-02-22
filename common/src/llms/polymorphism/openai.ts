@@ -76,4 +76,25 @@ export class CallableOpenAI extends CallableLLM {
       planType: 'unknown',
     }
   }
+
+  public async validateLlm(): Promise<[ boolean, string ]> {
+    try {
+      if (!this.llm.apiKey) {
+        return [ false, 'No api key provided' ]
+      }
+
+      const response = await this.query('What is 2 + 2?')
+
+      if (response?.length && typeof response === 'string') {
+        return [ true, '' ]
+      }
+
+      console.debug('OpenAI API Key validation failed, unexpected response', { response })
+    }
+    catch (error) {
+      console.error('Error during OpenAI API Key validation', error)
+    }
+
+    return [ false, 'OpenAI API Key authentication failed' ]
+  }
 }

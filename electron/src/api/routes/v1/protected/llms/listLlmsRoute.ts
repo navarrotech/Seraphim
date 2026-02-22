@@ -1,10 +1,12 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { LlmWithRateLimits } from '@common/types'
 
 // Misc
+import { getCallableLLM } from '@common/llms/call'
 import { requireDatabaseClient } from '@electron/database'
-import { sanitizeLlm } from './llmSanitizer'
+import { sanitizeLlm } from './utils'
 
 export async function handleListLlmsRequest(
   request: Request,
@@ -17,8 +19,20 @@ export async function handleListLlmsRequest(
       orderBy: { createdAt: 'desc' },
     })
 
+    const llmsWithRateLimits: LlmWithRateLimits[] = await Promise.all(
+      llms.map(async (llm) => {
+        const callableLlm = getCallableLLM(llm)
+        const rateLimits = await callableLlm.getRateLimits()
+
+        return {
+          ...sanitizeLlm(llm),
+          rateLimits,
+        }
+      }),
+    )
+
     response.status(200).json({
-      llms: llms.map(sanitizeLlm),
+      llms: llmsWithRateLimits,
     })
   }
   catch (error) {

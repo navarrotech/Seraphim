@@ -20,7 +20,6 @@ export const TRANSCRIBER_START_PATH = 'transcribe/start'
 export const TRANSCRIBER_STOP_PATH = 'transcribe/stop'
 
 export const IPC_SIGNALS = {
-  getApiUrl: 'get-api-url',
   exitApp: 'exit-app',
   reloadElectron: 'reload-electron',
   openDialog: 'open-dialog',

@@ -6,12 +6,12 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
-import { handleAddAccountRequest } from './addAccountRoute'
-import { handleListAccountsRequest } from './listAccountsRoute'
-import { handleListBranchesRequest } from './listBranchesRoute'
-import { handleListReposRequest } from './listReposRoute'
-import { handleLogoutAccountRequest } from './logoutAccountRoute'
-import { handleUpdateAccountRequest } from './updateAccountRoute'
+import { handleAddAccountRequest } from './accounts/addAccountRoute'
+import { handleListAccountsRequest } from './accounts/listAccountsRoute'
+import { handleListBranchesRequest } from './accounts/listBranchesRoute'
+import { handleListReposRequest } from './accounts/listReposRoute'
+import { handleRemoveAccountRequest } from './accounts/removeAccountRoute'
+import { handleUpdateAccountRequest } from './accounts/updateAccountRoute'
 
 export function createAccountsRouter(): Router {
   const accountsRouter = createRouter()
@@ -22,8 +22,8 @@ export function createAccountsRouter(): Router {
   // /api/v1/protected/accounts/add
   accountsRouter.post('/add', handleAddAccountRequest)
 
-  // /api/v1/protected/accounts/logout
-  accountsRouter.post('/logout', handleLogoutAccountRequest)
+  // /api/v1/protected/accounts/
+  accountsRouter.delete('/', handleRemoveAccountRequest)
 
   // /api/v1/protected/accounts/:accountId
   accountsRouter.patch('/:accountId', handleUpdateAccountRequest)

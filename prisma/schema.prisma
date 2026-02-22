@@ -183,7 +183,6 @@ model Llm {
 
   // Auth
   apiKey       String?   @map("api_key")
-  accessToken  String?   @map("access_token")
   refreshToken String?   @map("refresh_token")
   expiresAt    DateTime? @map("expires_at")
 

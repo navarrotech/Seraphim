@@ -16,7 +16,7 @@ import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 
 // Misc
 import { safeParseJson } from '@common/json'
-import { getApiRoot } from '../lib/api'
+import { ApiRoot } from '@common/api'
 
 type SseDataByKind = {
   [Kind in SseChangeKind]: SseChangePayload<Kind>['data']
@@ -72,8 +72,7 @@ function dispatchPayload<Kind extends SseChangeKind>(payload: SseChangePayload<K
 
 export function useApiSocket(): void {
   useEffect(function manageApiSocket() {
-    const apiRoot = getApiRoot()
-    const eventSource = new EventSource(`${apiRoot}/events`)
+    const eventSource = new EventSource(`${ApiRoot}/events`)
 
     function handleMessage(event: MessageEvent) {
       const payload: AnySseChangePayload = safeParseJson(event.data)

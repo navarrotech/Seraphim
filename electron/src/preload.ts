@@ -12,7 +12,6 @@ contextBridge.exposeInMainWorld('version', {
 })
 
 contextBridge.exposeInMainWorld('config', {
-  getApiUrl: () => ipcRenderer.sendSync(IPC_SIGNALS.getApiUrl),
   exitApp: () => ipcRenderer.invoke(IPC_SIGNALS.exitApp),
   restartGui: () => ipcRenderer.invoke(IPC_SIGNALS.reloadElectron),
   openDialog: (options: OpenDialogOptions) => ipcRenderer.invoke(IPC_SIGNALS.openDialog, options),

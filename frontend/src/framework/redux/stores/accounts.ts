@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@prisma/client'
+import type { AuthAccount } from '@common/types'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
