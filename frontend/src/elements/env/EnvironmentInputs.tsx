@@ -13,7 +13,7 @@ import {
   useDisclosure,
 } from '@heroui/react'
 import { BulkEditModal } from './BulkEditModal'
-import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/common/IconNexus'
+import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/elements/IconNexus'
 import { DisplayErrors } from '../DisplayErrors'
 
 type Props = {

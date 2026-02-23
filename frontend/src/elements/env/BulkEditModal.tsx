@@ -15,7 +15,7 @@ import {
   ModalBody,
   ModalFooter,
 } from '@heroui/react'
-import { Monaco } from '@frontend/common/Monaco'
+import { Monaco } from '@frontend/elements/Monaco'
 
 // Utility
 import { convertEnvironmentToDotEnv, convertDotEnvToEnvironment } from '@common/envKit'
