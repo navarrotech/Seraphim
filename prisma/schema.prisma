@@ -242,8 +242,9 @@ model IssueTracking {
   baseUrl     String                @map("base_url")
 
   // Details
-  name  String
-  email String
+  name        String
+  email       String
+  targetBoard String @map("target_board")
 
   // Metadata
   lastUsedAt DateTime? @map("last_used_at")

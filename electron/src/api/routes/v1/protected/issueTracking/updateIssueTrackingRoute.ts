@@ -79,6 +79,7 @@ export async function handleUpdateIssueTrackingRequest(
   const nextEmail = payload.email ?? existingIssueTracking.email
   const nextBaseUrl = payload.baseUrl ?? existingIssueTracking.baseUrl
   const nextAccessToken = payload.accessToken ?? existingIssueTracking.accessToken
+  const nextTargetBoard = payload.targetBoard ?? existingIssueTracking.targetBoard
   const nextLastUsedAt = payload.accessToken
     ? new Date()
     : existingIssueTracking.lastUsedAt
@@ -92,6 +93,7 @@ export async function handleUpdateIssueTrackingRequest(
       email: nextEmail,
       baseUrl: nextBaseUrl,
       accessToken: nextAccessToken,
+      targetBoard: nextTargetBoard,
       lastUsedAt: nextLastUsedAt,
     },
   })

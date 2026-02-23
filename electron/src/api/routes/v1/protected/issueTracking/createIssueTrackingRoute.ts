@@ -55,6 +55,7 @@ export async function handleCreateIssueTrackingRequest(
       baseUrl: payload.baseUrl,
       email: payload.email,
       accessToken: payload.accessToken,
+      targetBoard: payload.targetBoard,
     },
   })
 

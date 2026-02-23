@@ -10,6 +10,7 @@ export const createIssueTrackingSchema = z
     baseUrl: z.string().trim().url(),
     email: z.string().trim().email(),
     accessToken: z.string().trim().min(1),
+    targetBoard: z.string().trim().min(1),
   })
   .strict()
 export type CreateIssueTrackingRequest = z.infer<typeof createIssueTrackingSchema>
