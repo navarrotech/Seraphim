@@ -2,7 +2,7 @@
 
 import { heroui } from '@heroui/react'
 
-import { generateTailwindScale } from '../../common/src/tailwindConfig'
+import { generateTailwindScale } from '../common/src/tailwindConfig'
 
 import theme from './public/brand/theme.json'
 
