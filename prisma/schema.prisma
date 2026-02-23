@@ -23,6 +23,10 @@ enum AuthProvider {
   GITHUB
 }
 
+enum IssueTrackingProvider {
+  Jira
+}
+
 enum Role {
   System
   Docker
@@ -226,6 +230,30 @@ model AuthAccount {
   @@map("auth_accounts")
 }
 
+model IssueTrackingAccount {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Provider
+  provider    IssueTrackingProvider
+  accessToken String                @map("access_token")
+  baseUrl     String                @map("base_url")
+
+  // Details
+  name  String
+  email String
+
+  // Metadata
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@unique([provider, email])
+  @@map("issue_tracking_accounts")
+}
+
 // ///////////////////////////// //
 //           Framework           //
 // ///////////////////////////// //
@@ -233,10 +261,11 @@ model AuthAccount {
 model User {
   id String @id @default(uuid())
 
-  settings   UserSettings?
-  audioFiles AudioFile[]
-  threads    Task[]
-  llms       Llm[]
+  settings              UserSettings?
+  audioFiles            AudioFile[]
+  threads               Task[]
+  llms                  Llm[]
+  issueTrackingAccounts IssueTrackingAccount[]
 
   username String @unique
   name     String
