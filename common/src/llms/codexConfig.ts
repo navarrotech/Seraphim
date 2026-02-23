@@ -1,9 +1,9 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { TaskWithFullContext } from './types'
+import type { TaskWithFullContext } from '../types'
 
 // Misc
-import { DOCKER_WORKDIR } from './constants'
+import { DOCKER_WORKDIR } from '../constants'
 
 export function createCodexConfig(
   task: TaskWithFullContext,
