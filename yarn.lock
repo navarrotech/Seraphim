@@ -8013,7 +8013,6 @@ __metadata:
     "@openai/codex-sdk": "npm:^0.98.0"
     glob: "npm:^13.0.0"
     jsonc-parser: "npm:^3.3.1"
-    ky: "npm:^1.14.3"
     openai: "npm:^6.21.0"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -11373,13 +11372,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ky@npm:^1.14.2":
-  version: 1.14.2
-  resolution: "ky@npm:1.14.2"
-  checksum: 10c0/ea5f08660ec8574ad6b116338059d1f2bac42ee917d56df268758405edfb3d17d5baa78913ee289eb6de976f648b1ff7798d5f8a7732c61e85e59d8f10f16795
-  languageName: node
-  linkType: hard
-
 "ky@npm:^1.14.3":
   version: 1.14.3
   resolution: "ky@npm:1.14.3"
@@ -14361,7 +14353,7 @@ __metadata:
     express-rate-limit: "npm:^8.2.1"
     helmet: "npm:^8.1.0"
     hpp: "npm:^0.2.3"
-    ky: "npm:^1.14.2"
+    ky: "npm:^1.14.3"
     playwright: "npm:^1.53.1"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.8.3"
