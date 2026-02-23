@@ -100,9 +100,12 @@ export async function handleUpdateIssueTrackingRequest(
     })
 
     let isValid = false
+    let errorMessage = ''
 
     try {
-      isValid = await tracker.check()
+      const [ success, error ] = await tracker.check()
+      isValid = success
+      errorMessage = error
     }
     catch (error) {
       console.error('Issue tracking validation failed during update', error)
@@ -117,9 +120,10 @@ export async function handleUpdateIssueTrackingRequest(
         issueTrackingId: existingIssueTracking.id,
         baseUrl: nextBaseUrl,
         targetBoard: nextTargetBoard,
+        errorMessage,
       })
       response.status(400).json({
-        error: 'Issue tracking credentials are invalid',
+        error: errorMessage || 'Issue tracking credentials are invalid',
       })
       return
     }

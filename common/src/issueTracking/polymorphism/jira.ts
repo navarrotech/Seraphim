@@ -13,13 +13,13 @@ import type {
 import { IssueTracker } from './issueTracker'
 
 export class JiraIssueTracker extends IssueTracker {
-  public async check(): Promise<boolean> {
+  public async check(): Promise<[ boolean, string ]> {
     console.debug('Jira issue tracking check not implemented', {
       issueTrackingId: this.issueTracking.id,
       baseUrl: this.issueTracking.baseUrl,
       targetBoard: this.issueTracking.targetBoard,
     })
-    return false
+    return [ false, 'Jira issue tracking check not implemented' ]
   }
 
   public async listIssues(

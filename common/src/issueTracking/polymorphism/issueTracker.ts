@@ -17,13 +17,13 @@ export class IssueTracker {
     this.issueTracking = issueTracking
   }
 
-  public async check(): Promise<boolean> {
+  public async check(): Promise<[ boolean, string ]> {
     console.debug('IssueTracker check not implemented', {
       issueTrackingId: this.issueTracking.id,
       provider: this.issueTracking.provider,
       baseUrl: this.issueTracking.baseUrl,
     })
-    return false
+    return [ false, `Issue tracker check not implemented for ${this.issueTracking.provider}` ]
   }
 
   public async listIssues(

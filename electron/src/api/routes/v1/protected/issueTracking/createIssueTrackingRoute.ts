@@ -46,9 +46,12 @@ export async function handleCreateIssueTrackingRequest(
   } as IssueTracking)
 
   let isValid = false
+  let errorMessage = ''
 
   try {
-    isValid = await tracker.check()
+    const [ success, error ] = await tracker.check()
+    isValid = success
+    errorMessage = error
   }
   catch (error) {
     console.error('Issue tracking validation failed during create', error)
@@ -63,9 +66,10 @@ export async function handleCreateIssueTrackingRequest(
       provider: payload.provider,
       baseUrl: payload.baseUrl,
       targetBoard: payload.targetBoard,
+      errorMessage,
     })
     response.status(400).json({
-      error: 'Issue tracking credentials are invalid',
+      error: errorMessage || 'Issue tracking credentials are invalid',
     })
     return
   }
