@@ -42,7 +42,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
-    "ky": "^1.14.2",
+    "ky": "^1.14.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
