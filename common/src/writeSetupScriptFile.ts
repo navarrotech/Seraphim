@@ -52,7 +52,12 @@ printf "%b\n" "$\{BOLD}$\{GREEN}======== FINISHED CUSTOM SETUP SCRIPT ========$\
 
   let authCommand = ''
   if (cloner.token) {
-    authCommand = `printf "https://x-access-token:%s@github.com\n" "${cloner.token}" > /root/.git-credentials`
+    authCommand = `
+printf "https://x-access-token:%s@github.com\n" "${cloner.token}" > /root/.git-credentials
+
+printf "Setting up Github CLI authentication...\\n"
+echo '${cloner.token}' | gh auth login --with-token
+    `.trim()
   }
 
   const updatedContent = `

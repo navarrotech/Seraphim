@@ -98,6 +98,7 @@ export const DOCKER_DEBIAN_PACKAGES = [
   'bash',
   'build-essential',
   'git',
+  'gh',
   'curl',
   'openssh-client',
   'ca-certificates',
