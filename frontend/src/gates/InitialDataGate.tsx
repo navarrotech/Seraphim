@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 
 // Core
-import { useEffect } from 'react'
 import useSWR from 'swr'
 
 // UI
@@ -21,23 +20,23 @@ type Props = {
 }
 
 export function InitialDataGate(props: Props) {
-  const workspaces = useInitialData(
+  const workspaces = useSWR(
     'workspaces',
     listWorkspaces,
   )
-  const tasks = useInitialData(
+  const tasks = useSWR(
     'tasks',
     listTasks,
   )
-  const accounts = useInitialData(
+  const accounts = useSWR(
     'accounts',
     listAccounts,
   )
-  const llms = useInitialData(
+  const llms = useSWR(
     'llms',
     listLlms,
   )
-  const settings = useInitialData(
+  const settings = useSWR(
     'current-user',
     getCurrentUser,
   )
@@ -75,26 +74,4 @@ export function InitialDataGate(props: Props) {
   }
 
   return props.children
-}
-
-export function useInitialData<Shape>(
-  cacheKey: string,
-  fetcher: () => Promise<Shape>,
-) {
-  const query = useSWR(cacheKey, fetcher)
-
-  useEffect(() => {
-    if (!query.data) {
-      return
-    }
-
-    if (query.error) {
-      console.error(`Error fetching initial data for ${cacheKey}`, query.error)
-    }
-  }, [ query.data ])
-
-  return {
-    isLoading: query.isLoading,
-    error: query.error,
-  } as const
 }
