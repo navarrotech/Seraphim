@@ -8,6 +8,7 @@ import { Router as createRouter } from 'express'
 // Misc
 import { handleCreateIssueTrackingAccountRequest } from './issueTrackingAccounts/createIssueTrackingAccountRoute'
 import { handleDeleteIssueTrackingAccountRequest } from './issueTrackingAccounts/deleteIssueTrackingAccountRoute'
+import { handleListIssueTrackingAccountsRequest } from './issueTrackingAccounts/listIssueTrackingAccountsRoute'
 import { handleUpdateIssueTrackingAccountRequest } from './issueTrackingAccounts/updateIssueTrackingAccountRoute'
 
 export function createIssueTrackingAccountsRouter(): Router {
@@ -17,6 +18,12 @@ export function createIssueTrackingAccountsRouter(): Router {
   issueTrackingAccountsRouter.post(
     '/',
     handleCreateIssueTrackingAccountRequest,
+  )
+
+  // /api/v1/protected/issue-tracking-accounts
+  issueTrackingAccountsRouter.get(
+    '/',
+    handleListIssueTrackingAccountsRequest,
   )
 
   // /api/v1/protected/issue-tracking-accounts/:issueTrackingAccountId

@@ -10,6 +10,7 @@ import { Card } from '@heroui/react'
 
 // Misc
 import { listAccounts } from '@frontend/routes/accountsRoutes'
+import { listIssueTrackingAccounts } from '@frontend/routes/issueTrackingAccountsRoutes'
 import { listLlms } from '@frontend/routes/llmRoutes'
 import { listTasks } from '@frontend/routes/taskRoutes'
 import { listWorkspaces } from '@frontend/routes/workspaceRoutes'
@@ -32,6 +33,10 @@ export function InitialDataGate(props: Props) {
     'accounts',
     listAccounts,
   )
+  const issueTrackingAccounts = useSWR(
+    'issue-tracking-accounts',
+    listIssueTrackingAccounts,
+  )
   const llms = useSWR(
     'llms',
     listLlms,
@@ -45,6 +50,7 @@ export function InitialDataGate(props: Props) {
     workspaces.isLoading
     || tasks.isLoading
     || accounts.isLoading
+    || issueTrackingAccounts.isLoading
     || llms.isLoading
     || settings.isLoading,
   )
@@ -61,6 +67,7 @@ export function InitialDataGate(props: Props) {
     workspaces.error
     || tasks.error
     || accounts.error
+    || issueTrackingAccounts.error
     || llms.error
     || settings.error,
   )
