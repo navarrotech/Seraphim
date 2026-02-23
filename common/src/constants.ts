@@ -89,6 +89,11 @@ export const GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES = [
 
 // Issue tracking
 export const DEFAULT_JIRA_CLOUD_BASE_URL = 'https://api.atlassian.com' as const
+export const JIRA_CLOUD_REQUIRED_SCOPES = [
+  'read:jira-work',
+  'write:jira-work',
+  'read:jira-user',
+] as const
 
 // Docker shenanigans
 export const DEFAULT_DOCKER_BASE_IMAGE = 'mcr.microsoft.com/devcontainers/universal:5.1.4-noble' as const

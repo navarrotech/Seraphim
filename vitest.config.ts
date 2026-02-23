@@ -24,6 +24,7 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   test: {
+    setupFiles: resolve(__dirname, 'common/src/setupVitest.ts'),
     include: IS_SMOKETEST
       ? [ '**/*.spec.ts' ]
       : [ '**/*.test.ts' ],
