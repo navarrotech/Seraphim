@@ -78,7 +78,7 @@ export async function handleAddAccountRequest(
     data: sanitized,
   })
 
-  response.status(200).json({
+  response.status(201).json({
     account: sanitized,
     gitUserName: payload.gitUserName,
     gitUserEmail: payload.gitUserEmail,
