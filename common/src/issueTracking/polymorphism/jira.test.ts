@@ -47,4 +47,29 @@ describe('JiraIssueTracker', () => {
 
     expect(success, errorMessage).toBe(true)
   })
+
+  it.skipIf(invalidEnvironment)('check returns a friendly error for bad emails', async () => {
+    const invalidEmail = getRequiredEnvValue('VITEST_JIRA_BAD_EMAIL')
+      || 'invalid-email@example.invalid'
+
+    const issueTracking: IssueTracking = {
+      id: 'jira-test-bad-email',
+      userId: 'jira-test-user',
+      provider: IssueTrackingProvider.Jira,
+      accessToken: getRequiredEnvValue('VITEST_JIRA_ACCESS_TOKEN'),
+      baseUrl: getRequiredEnvValue('VITEST_JIRA_BASE_URL'),
+      name: 'Jira Test Account',
+      email: invalidEmail,
+      targetBoard: getRequiredEnvValue('VITEST_JIRA_TARGET_BOARD'),
+      lastUsedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    const tracker = new JiraIssueTracker(issueTracking)
+    const [ success, errorMessage ] = await tracker.check()
+
+    expect(success).toBe(false)
+    expect(errorMessage.toLowerCase()).toContain('email')
+  })
 })

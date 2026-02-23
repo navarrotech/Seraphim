@@ -14,7 +14,7 @@ import type {
 import { IssueTracker } from './issueTracker'
 
 // Lib
-import { Version3Client } from 'jira.js'
+import { HttpException, Version3Client } from 'jira.js'
 
 // Utility
 import { resolveIssueTrackingBaseUrl } from '../utils'
@@ -63,6 +63,16 @@ export class JiraIssueTracker extends IssueTracker {
       return [ true, '' ]
     }
     catch (error) {
+      if (error instanceof HttpException && error.status === 401) {
+        const errorMessage = 'Jira authentication failed. Check the email and access token.'
+
+        console.debug('Jira issue tracking check failed due to authentication', {
+          issueTrackingId: this.issueTracking.id,
+          error,
+        })
+        return [ false, errorMessage ]
+      }
+
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unable to validate Jira credentials'
