@@ -6,11 +6,11 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
-export type LlmsState = {
+type State = {
   items: LlmWithRateLimits[]
 }
 
-const initialState: LlmsState = {
+const initialState: State = {
   items: [],
 } as const
 

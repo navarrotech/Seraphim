@@ -19,7 +19,6 @@ export async function getSecrets(): Promise<string[]> {
     prisma.llm.findMany({
       select: {
         id: true,
-        accessToken: true,
         apiKey: true,
       },
     }),
@@ -36,9 +35,6 @@ export async function getSecrets(): Promise<string[]> {
   }
 
   for (const llm of llms) {
-    if (llm.accessToken) {
-      secrets.push(llm.accessToken)
-    }
     if (llm.apiKey) {
       secrets.push(llm.apiKey)
     }

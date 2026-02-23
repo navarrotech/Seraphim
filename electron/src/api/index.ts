@@ -6,7 +6,7 @@ import type { Server } from 'node:http'
 import { createServer } from 'node:http'
 
 // Misc
-import { API_PORT } from '../env'
+import { API_PORT } from '@common/constants'
 import { logFailed, logSuccess, logWarning } from '../lib/logging'
 import { createApiApp } from './express'
 

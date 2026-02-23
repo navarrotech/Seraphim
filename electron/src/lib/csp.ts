@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import { API_PORT } from '@electron/env'
+import { API_PORT } from '@common/constants'
 
 /* CSP notes:
  *

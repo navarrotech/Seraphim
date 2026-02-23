@@ -1,14 +1,14 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { UserSettingsUpdateRequest } from '@common/schema'
+import type { UserSettingsUpdateRequest } from '@common/schema/userSettings'
 
 // Lib
 import { AudioFor } from '@prisma/client'
 
 // Utility
 import { parseRequestBody } from '../../validation'
-import { userSettingsUpdateSchema } from '@common/schema'
+import { userSettingsUpdateSchema } from '@common/schema/userSettings'
 
 // Misc
 import { requireDatabaseClient } from '@electron/database'

@@ -1,18 +1,16 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Workspace } from '@common/types'
+import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
-// Typescript
-import type { PayloadAction } from '@reduxjs/toolkit'
-
-export type WorkspacesState = {
+type State = {
   items: Workspace[]
 }
 
-const initialState: WorkspacesState = {
+const initialState: State = {
   items: [],
 } as const
 

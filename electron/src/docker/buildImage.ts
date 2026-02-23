@@ -10,7 +10,7 @@ import { getDockerClient } from '@electron/docker/docker'
 import { buildDockerfileContents } from '@electron/docker/image'
 import { pullWithProgress } from './pullWithProgress'
 import { waitForBuildVersion1, waitForBuildVersion2 } from './waitForBuild'
-import { createCodexConfig, createCodexAuthFile } from '@common/codexConfig'
+import { createCodexConfig, createCodexAuthFile } from '@common/llms/codexConfig'
 
 // Node.js
 import { mkdtemp, writeFile, rm, readdir, readFile, mkdir } from 'node:fs/promises'

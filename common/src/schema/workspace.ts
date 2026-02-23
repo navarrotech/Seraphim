@@ -2,7 +2,7 @@
 
 // Lib
 import { z } from 'zod'
-import { envEntrySchema } from './common'
+import { environmentEntrySchema } from './common'
 
 export const workspaceCreateSchema = z
   .object({
@@ -14,7 +14,7 @@ export const workspaceCreateSchema = z
     setupScript: z.string().trim().optional().default(''),
     postScript: z.string().trim().optional().default(''),
     cacheFiles: z.array(z.string().trim()).optional().default([]),
-    envEntries: z.array(envEntrySchema).optional().default([{ key: '', value: '' }]),
+    envEntries: z.array(environmentEntrySchema).optional().default([{ key: '', value: '' }]),
   })
   .strict()
 
@@ -28,7 +28,7 @@ export const workspaceUpdateSchema = z
     setupScript: z.string().trim().optional(),
     postScript: z.string().trim().optional(),
     cacheFiles: z.array(z.string().trim()).optional(),
-    envEntries: z.array(envEntrySchema).optional(),
+    envEntries: z.array(environmentEntrySchema).optional(),
   })
   .strict()
   .refine(

@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Environment } from '@common/schema'
+import type { Environment } from '@common/schema/common'
 
 // Core
 import { useState, useEffect, useCallback } from 'react'

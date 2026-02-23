@@ -1,19 +1,17 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { UserSettings } from '@common/types'
+import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
-// Typescript
-import type { PayloadAction } from '@reduxjs/toolkit'
-
-export type SettingsState = {
+type State = {
   value: UserSettings | null
   hasLoaded: boolean
 }
 
-const initialState: SettingsState = {
+const initialState: State = {
   value: null,
   hasLoaded: false,
 } as const

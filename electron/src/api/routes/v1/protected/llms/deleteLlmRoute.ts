@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
+import type { LlmWithRateLimits } from '@common/types'
 
 // Lib
 import { z } from 'zod'
@@ -11,7 +12,7 @@ import { parseRequestParams } from '../../validation'
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
-import { sanitizeLlm } from './llmSanitizer'
+import { sanitizeLlm } from './utils'
 
 type RouteParams = {
   llmId: string
@@ -62,7 +63,7 @@ export async function handleDeleteLlmRequest(
     broadcastSseChange({
       type: 'delete',
       kind: 'llms',
-      data: sanitizeLlm(existingLlm),
+      data: sanitizeLlm(existingLlm) as LlmWithRateLimits,
     })
 
     response.status(200).json({ deleted: true, llmId })

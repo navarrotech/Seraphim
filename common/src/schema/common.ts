@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 
-export const envEntrySchema = z
+export const environmentEntrySchema = z
   .object({
     key: z
       .string()
@@ -13,4 +13,4 @@ export const envEntrySchema = z
       .trim()
       .max(2048),
   })
-export type EnvEntry = z.infer<typeof envEntrySchema>
+export type Environment = z.infer<typeof environmentEntrySchema>

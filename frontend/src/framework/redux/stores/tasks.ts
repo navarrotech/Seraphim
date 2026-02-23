@@ -8,12 +8,12 @@ import { createEnhancedSlice } from '../createEnhancedSlice'
 // Typescript
 import type { PayloadAction } from '@reduxjs/toolkit'
 
-export type TasksState = {
+type State = {
   items: Task[]
   usageByTaskId: Record<string, LlmUsage | null>
 }
 
-const initialState: TasksState = {
+const initialState: State = {
   items: [],
   usageByTaskId: {},
 } as const
