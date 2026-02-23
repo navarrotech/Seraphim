@@ -14,18 +14,19 @@ import type {
 import { IssueTracker } from './issueTracker'
 
 // Lib
-import { HttpException, Version3Client } from 'jira.js'
+import { AgileClient, HttpException, Version3Client } from 'jira.js'
 
 // Utility
 import { resolveIssueTrackingBaseUrl } from '../utils'
 
 export class JiraIssueTracker extends IssueTracker {
   private readonly client: Version3Client
+  private readonly agileClient: AgileClient
 
   constructor(issueTracking: IssueTracking) {
     super(issueTracking)
 
-    this.client = new Version3Client({
+    const clientConfig = {
       host: resolveIssueTrackingBaseUrl(this.issueTracking.baseUrl),
       authentication: {
         basic: {
@@ -33,7 +34,10 @@ export class JiraIssueTracker extends IssueTracker {
           apiToken: this.issueTracking.accessToken,
         },
       },
-    })
+    }
+
+    this.client = new Version3Client(clientConfig)
+    this.agileClient = new AgileClient(clientConfig)
   }
 
   public async check(): Promise<[ boolean, string ]> {
@@ -60,7 +64,6 @@ export class JiraIssueTracker extends IssueTracker {
 
     try {
       await this.client.myself.getCurrentUser()
-      return [ true, '' ]
     }
     catch (error) {
       if (error instanceof HttpException && error.status === 401) {
@@ -83,6 +86,13 @@ export class JiraIssueTracker extends IssueTracker {
       })
       return [ false, errorMessage ]
     }
+
+    const [ isBoardValid, boardError ] = await this.validateTargetBoard()
+    if (!isBoardValid) {
+      return [ false, boardError ]
+    }
+
+    return [ true, '' ]
   }
 
   public async listIssues(
@@ -129,5 +139,113 @@ export class JiraIssueTracker extends IssueTracker {
       update,
     })
     return super.updateIssueById(issueId, update)
+  }
+
+  private isNumericBoardId(value: string) {
+    return /^\d+$/.test(value)
+  }
+
+  private async validateTargetBoard(): Promise<[ boolean, string ]> {
+    const targetBoard = this.issueTracking.targetBoard.trim()
+
+    if (this.isNumericBoardId(targetBoard)) {
+      return this.validateBoardById(Number(targetBoard))
+    }
+
+    return this.validateBoardByProjectKey(targetBoard)
+  }
+
+  private async validateBoardById(boardId: number): Promise<[ boolean, string ]> {
+    try {
+      await this.agileClient.board.getBoard({ boardId })
+      return [ true, '' ]
+    }
+    catch (error) {
+      const handled = this.handleBoardValidationError(error, {
+        issueTrackingId: this.issueTracking.id,
+        targetBoard: String(boardId),
+        targetBoardType: 'board-id',
+      })
+      if (handled) {
+        return handled
+      }
+
+      return [ false, 'Unable to validate Jira board ID' ]
+    }
+  }
+
+  private async validateBoardByProjectKey(projectKey: string): Promise<[ boolean, string ]> {
+    try {
+      const response = await this.agileClient.board.getAllBoards({
+        projectKeyOrId: projectKey,
+        maxResults: 1,
+      })
+
+      if (!response.values?.length) {
+        return [ false, 'Jira project key did not match any boards' ]
+      }
+
+      return [ true, '' ]
+    }
+    catch (error) {
+      const handled = this.handleBoardValidationError(error, {
+        issueTrackingId: this.issueTracking.id,
+        targetBoard: projectKey,
+        targetBoardType: 'project-key',
+      })
+      if (handled) {
+        return handled
+      }
+
+      return [ false, 'Unable to validate Jira project key' ]
+    }
+  }
+
+  private handleBoardValidationError(
+    error: unknown,
+    context: {
+      issueTrackingId: string
+      targetBoard: string
+      targetBoardType: 'board-id' | 'project-key'
+    },
+  ): [ boolean, string ] | null {
+    if (error instanceof HttpException && error.status === 404) {
+      const message = context.targetBoardType === 'board-id'
+        ? 'Jira board ID was not found'
+        : 'Jira project key was not found'
+
+      console.debug('Jira target board not found', {
+        ...context,
+        error,
+      })
+      return [ false, message ]
+    }
+
+    if (error instanceof HttpException && error.status === 403) {
+      const message = context.targetBoardType === 'board-id'
+        ? 'Jira board access denied'
+        : 'Jira project access denied'
+
+      console.debug('Jira target board access denied', {
+        ...context,
+        error,
+      })
+      return [ false, message ]
+    }
+
+    if (error instanceof HttpException && error.status === 401) {
+      console.debug('Jira target board authentication failed', {
+        ...context,
+        error,
+      })
+      return [ false, 'Jira authentication failed. Check the email and access token.' ]
+    }
+
+    console.debug('Jira target board validation failed', {
+      ...context,
+      error,
+    })
+
+    return null
   }
 }
