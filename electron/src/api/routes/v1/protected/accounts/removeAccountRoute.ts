@@ -65,7 +65,9 @@ export async function handleRemoveAccountRequest(
   }
   catch (error) {
     console.error('Failed to delete token account', error)
-    response.status(500).json({ error: 'Failed to remove account' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to remove account' })
+    }
     return
   }
 

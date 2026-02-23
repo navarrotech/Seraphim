@@ -100,6 +100,8 @@ export async function handleCreateWorkspaceRequest(
   }
   catch (error) {
     console.error('Failed to create workspace', error)
-    response.status(500).json({ error: 'Failed to create workspace' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to create workspace' })
+    }
   }
 }

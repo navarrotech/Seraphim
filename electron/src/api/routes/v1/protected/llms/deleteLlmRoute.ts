@@ -70,6 +70,8 @@ export async function handleDeleteLlmRequest(
   }
   catch (error) {
     console.error('Failed to delete llm', error)
-    response.status(500).json({ error: 'Failed to delete llm' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to delete llm' })
+    }
   }
 }

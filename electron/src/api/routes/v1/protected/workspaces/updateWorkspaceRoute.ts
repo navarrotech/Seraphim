@@ -105,6 +105,8 @@ export async function handleUpdateWorkspaceRequest(
   }
   catch (error) {
     console.error('Failed to update workspace', error)
-    response.status(500).json({ error: 'Failed to update workspace' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to update workspace' })
+    }
   }
 }

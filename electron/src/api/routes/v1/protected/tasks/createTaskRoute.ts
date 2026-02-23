@@ -43,6 +43,8 @@ export async function handleCreateTaskRequest(
   }
   catch (error) {
     console.error('Failed to create task', error)
-    response.status(500).json({ error: 'Failed to create task' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to create task' })
+    }
   }
 }

@@ -37,6 +37,8 @@ export async function handleListLlmsRequest(
   }
   catch (error) {
     console.error('Failed to list llms', error)
-    response.status(500).json({ error: 'Failed to list llms' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to list llms' })
+    }
   }
 }

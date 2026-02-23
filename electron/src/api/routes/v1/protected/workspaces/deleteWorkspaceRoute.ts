@@ -72,6 +72,8 @@ export async function handleDeleteWorkspaceRequest(
   }
   catch (error) {
     console.error('Failed to delete workspace', error)
-    response.status(500).json({ error: 'Failed to delete workspace' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to delete workspace' })
+    }
   }
 }

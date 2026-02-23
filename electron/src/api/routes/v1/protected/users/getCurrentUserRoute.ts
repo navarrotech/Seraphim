@@ -27,6 +27,8 @@ export async function handleGetCurrentUserRequest(
   }
   catch (error) {
     console.error('Failed to fetch current user', error)
-    response.status(500).json({ error: 'Failed to fetch current user' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to fetch current user' })
+    }
   }
 }

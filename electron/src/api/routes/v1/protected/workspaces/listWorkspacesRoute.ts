@@ -20,7 +20,8 @@ export async function handleListWorkspacesRequest(
   }
   catch (error) {
     console.error('Failed to list workspaces', error)
-    response.status(500).json({ error: 'Failed to list workspaces' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to list workspaces' })
+    }
   }
 }
-

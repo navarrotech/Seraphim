@@ -86,6 +86,8 @@ export async function handleUpdateTaskRequest(
   }
   catch (error) {
     console.error('Failed to update task', error)
-    response.status(500).json({ error: 'Failed to update task' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to update task' })
+    }
   }
 }

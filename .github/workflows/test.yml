@@ -30,6 +30,7 @@ jobs:
         with:
           submodules: "recursive"
           set-safe-directory: true
+          token: ${{ secrets.CI_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

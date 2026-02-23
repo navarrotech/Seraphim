@@ -60,6 +60,8 @@ export async function handleGetTaskRequest(
   }
   catch (error) {
     console.error('Failed to fetch task', error)
-    response.status(500).json({ error: 'Failed to fetch task' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to fetch task' })
+    }
   }
 }

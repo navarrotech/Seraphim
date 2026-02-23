@@ -145,6 +145,8 @@ export async function handleUpdateUserSettingsRequest(
   }
   catch (error) {
     console.error('Failed to update user settings', error)
-    response.status(500).json({ error: 'Failed to update user settings' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to update user settings' })
+    }
   }
 }

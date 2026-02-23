@@ -19,8 +19,9 @@ export async function handleListTasksRequest(
   }
   catch (error) {
     console.error('Failed to list tasks', error)
-    response.status(500).json({ error: 'Failed to list tasks' })
+    if (!response.headersSent) {
+      response.status(500).json({ error: 'Failed to list tasks' })
+    }
   }
 }
-
 
