@@ -1,11 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { IssueTrackingAccount } from '@common/types'
+import type { IssueTracking } from '@common/types'
 
 // Utility
 import { maskToken } from '@common/maskToken'
 
-export function sanitizeIssueTrackingAccount(account: IssueTrackingAccount) {
+export function sanitizeIssueTracking(account: IssueTracking) {
   return {
     ...account,
     accessToken: maskToken(account.accessToken),

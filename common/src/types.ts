@@ -3,7 +3,7 @@
 import type {
   AuthAccount,
   AuthProvider,
-  IssueTrackingAccount,
+  IssueTracking,
   IssueTrackingProvider,
   Llm,
   Message,
@@ -37,7 +37,7 @@ export type StandardFilePointer = string | string[]
 export type {
   AuthAccount,
   AuthProvider,
-  IssueTrackingAccount,
+  IssueTracking,
   IssueTrackingProvider,
   Llm,
   Message,
@@ -110,7 +110,7 @@ export type SseChangeType = 'create' | 'update' | 'delete'
 
 type SsePayloadByKind = {
   accounts: AuthAccount
-  issueTrackingAccounts: IssueTrackingAccount
+  issueTracking: IssueTracking
   settings: UserSettings
   workspaces: Workspace
   tasks: Task

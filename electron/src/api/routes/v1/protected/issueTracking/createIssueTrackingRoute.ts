@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { CreateIssueTrackingAccountRequest } from '@common/schema/issueTrackingAccounts'
+import type { CreateIssueTrackingRequest } from '@common/schema/issueTracking'
 
 // Core
 import { parseRequestBody } from '../../validation'
@@ -9,45 +9,45 @@ import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 
 // Schema
-import { createIssueTrackingAccountSchema } from '@common/schema/issueTrackingAccounts'
-import { sanitizeIssueTrackingAccount } from './utils'
+import { createIssueTrackingSchema } from '@common/schema/issueTracking'
+import { sanitizeIssueTracking } from './utils'
 
-export async function handleCreateIssueTrackingAccountRequest(
+export async function handleCreateIssueTrackingRequest(
   request: Request<
     Record<string, never>,
     unknown,
-    CreateIssueTrackingAccountRequest
+    CreateIssueTrackingRequest
   >,
   response: Response,
 ): Promise<void> {
   const payload = parseRequestBody(
-    createIssueTrackingAccountSchema,
+    createIssueTrackingSchema,
     request,
     response,
     {
-      context: 'Create issue tracking account',
-      errorMessage: 'Invalid issue tracking account request',
+      context: 'Create issue tracking',
+      errorMessage: 'Invalid issue tracking request',
     },
   )
 
   if (!payload) {
-    console.debug('Create issue tracking account request failed validation')
+    console.debug('Create issue tracking request failed validation')
     return
   }
 
-  const databaseClient = requireDatabaseClient('Create issue tracking account')
+  const databaseClient = requireDatabaseClient('Create issue tracking')
 
   const user = await databaseClient.user.findFirst({
     orderBy: { createdAt: 'asc' },
   })
 
   if (!user) {
-    console.debug('Issue tracking account create requested but no users exist')
+    console.debug('Issue tracking create requested but no users exist')
     response.status(404).json({ error: 'User not found' })
     return
   }
 
-  const account = await databaseClient.issueTrackingAccount.create({
+  const account = await databaseClient.issueTracking.create({
     data: {
       userId: user.id,
       provider: payload.provider,
@@ -58,15 +58,15 @@ export async function handleCreateIssueTrackingAccountRequest(
     },
   })
 
-  const sanitized = sanitizeIssueTrackingAccount(account)
+  const sanitized = sanitizeIssueTracking(account)
 
   broadcastSseChange({
     type: 'create',
-    kind: 'issueTrackingAccounts',
+    kind: 'issueTracking',
     data: sanitized,
   })
 
   response.status(201).json({
-    account: sanitized,
+    issueTracking: sanitized,
   })
 }

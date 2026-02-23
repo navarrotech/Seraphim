@@ -9,7 +9,7 @@ import chalk from 'chalk'
 // Redux
 import { dispatch } from '@frontend/framework/store'
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
-import { issueTrackingAccountActions } from '@frontend/framework/redux/stores/issueTrackingAccounts'
+import { issueTrackingActions } from '@frontend/framework/redux/stores/issueTracking'
 import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
@@ -39,7 +39,7 @@ const actions: SseActionMap = {
     tasks: [ taskActions.upsertTask ],
     settings: [ settingsActions.setSettings ],
     accounts: [ accountActions.upsertAccount ],
-    issueTrackingAccounts: [ issueTrackingAccountActions.upsertIssueTrackingAccount ],
+    issueTracking: [ issueTrackingActions.upsertIssueTracking ],
     llms: [ llmActions.upsertLlm ],
     workspaces: [ workspaceActions.upsertWorkspace ],
     usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
@@ -48,7 +48,7 @@ const actions: SseActionMap = {
     tasks: [ taskActions.upsertTask ],
     settings: [ settingsActions.setSettings ],
     accounts: [ accountActions.upsertAccount ],
-    issueTrackingAccounts: [ issueTrackingAccountActions.upsertIssueTrackingAccount ],
+    issueTracking: [ issueTrackingActions.upsertIssueTracking ],
     llms: [ llmActions.upsertLlm ],
     workspaces: [ workspaceActions.upsertWorkspace ],
     usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],
@@ -57,7 +57,7 @@ const actions: SseActionMap = {
     tasks: [ taskActions.removeTask ],
     settings: [],
     accounts: [ accountActions.removeAccount ],
-    issueTrackingAccounts: [ issueTrackingAccountActions.removeIssueTrackingAccount ],
+    issueTracking: [ issueTrackingActions.removeIssueTracking ],
     llms: [ llmActions.removeLlm ],
     workspaces: [ workspaceActions.removeWorkspace ],
     usage: [ taskActions.upsertTaskUsage, llmActions.setLlmRateLimits ],

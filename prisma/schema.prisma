@@ -230,7 +230,7 @@ model AuthAccount {
   @@map("auth_accounts")
 }
 
-model IssueTrackingAccount {
+model IssueTracking {
   id String @id @default(uuid())
 
   userId String @map("user_id")
@@ -251,7 +251,7 @@ model IssueTrackingAccount {
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@unique([provider, email])
-  @@map("issue_tracking_accounts")
+  @@map("issue_tracking")
 }
 
 // ///////////////////////////// //
@@ -261,11 +261,11 @@ model IssueTrackingAccount {
 model User {
   id String @id @default(uuid())
 
-  settings              UserSettings?
-  audioFiles            AudioFile[]
-  threads               Task[]
-  llms                  Llm[]
-  issueTrackingAccounts IssueTrackingAccount[]
+  settings      UserSettings?
+  audioFiles    AudioFile[]
+  threads       Task[]
+  llms          Llm[]
+  issueTracking IssueTracking[]
 
   username String @unique
   name     String
