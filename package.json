@@ -23,7 +23,7 @@
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
     "generate": "yarn prisma generate && yarn codex app-server generate-ts --out ./common/src/vendor/codex-protocol && tsx ./scripts/buildkit-proto.ts",
-    "setup": "yarn generate && yarn prisma db push",
+    "db": "yarn prisma db push",
     "build": "yarn workspaces foreach -Apt run build",
     "typecheck": "yarn workspaces foreach -Apt run typecheck",
     "smoketest": "cross-env SMOKETEST=true vitest run",
