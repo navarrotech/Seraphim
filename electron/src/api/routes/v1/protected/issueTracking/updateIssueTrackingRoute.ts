@@ -8,10 +8,17 @@ import { parseRequestBody, parseRequestParams } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 import { getIssueTracker } from '@common/issueTracking/getIssueTracker'
+
+// Lib
 import { z } from 'zod'
+
+// Utility
+import { resolveIssueTrackingBaseUrl } from '@common/issueTracking/utils'
 
 // Schema
 import { updateIssueTrackingSchema } from '@common/schema/issueTracking'
+
+// Utility
 import { sanitizeIssueTracking } from './utils'
 
 const updateIssueTrackingParamsSchema = z.object({
@@ -78,7 +85,9 @@ export async function handleUpdateIssueTrackingRequest(
 
   const nextName = payload.name ?? existingIssueTracking.name
   const nextEmail = payload.email ?? existingIssueTracking.email
-  const nextBaseUrl = payload.baseUrl ?? existingIssueTracking.baseUrl
+  const nextBaseUrl = resolveIssueTrackingBaseUrl(
+    payload.baseUrl ?? existingIssueTracking.baseUrl,
+  )
   const nextAccessToken = payload.accessToken ?? existingIssueTracking.accessToken
   const nextTargetBoard = payload.targetBoard ?? existingIssueTracking.targetBoard
   const nextLastUsedAt = payload.accessToken

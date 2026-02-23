@@ -12,6 +12,9 @@ import { getIssueTracker } from '@common/issueTracking/getIssueTracker'
 
 // Schema
 import { createIssueTrackingSchema } from '@common/schema/issueTracking'
+
+// Utility
+import { resolveIssueTrackingBaseUrl } from '@common/issueTracking/utils'
 import { sanitizeIssueTracking } from './utils'
 
 export async function handleCreateIssueTrackingRequest(
@@ -37,10 +40,13 @@ export async function handleCreateIssueTrackingRequest(
     return
   }
 
+  const resolvedBaseUrl = resolveIssueTrackingBaseUrl(payload.baseUrl)
+
   const tracker = getIssueTracker({
     id: 'draft',
     provider: payload.provider,
-    baseUrl: payload.baseUrl,
+    baseUrl: resolvedBaseUrl,
+    email: payload.email,
     accessToken: payload.accessToken,
     targetBoard: payload.targetBoard,
   } as IssueTracking)
@@ -64,7 +70,7 @@ export async function handleCreateIssueTrackingRequest(
   if (!isValid) {
     console.debug('Issue tracking validation failed during create', {
       provider: payload.provider,
-      baseUrl: payload.baseUrl,
+      baseUrl: resolvedBaseUrl,
       targetBoard: payload.targetBoard,
       errorMessage,
     })
@@ -91,7 +97,7 @@ export async function handleCreateIssueTrackingRequest(
       userId: user.id,
       provider: payload.provider,
       name: payload.name,
-      baseUrl: payload.baseUrl,
+      baseUrl: resolvedBaseUrl,
       email: payload.email,
       accessToken: payload.accessToken,
       targetBoard: payload.targetBoard,

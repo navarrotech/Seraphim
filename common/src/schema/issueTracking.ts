@@ -7,7 +7,7 @@ export const createIssueTrackingSchema = z
   .object({
     name: z.string().trim().min(1),
     provider: z.nativeEnum(IssueTrackingProvider),
-    baseUrl: z.string().trim().url(),
+    baseUrl: z.string().trim().url().optional(),
     email: z.string().trim().email(),
     accessToken: z.string().trim().min(1),
     targetBoard: z.string().trim().min(1),

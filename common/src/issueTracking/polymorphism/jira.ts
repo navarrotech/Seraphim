@@ -1,5 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { IssueTracking } from '@prisma/client'
 import type {
   IssueTrackingIssue,
   IssueTrackingIssueList,
@@ -12,14 +13,66 @@ import type {
 // Core
 import { IssueTracker } from './issueTracker'
 
+// Lib
+import { Version3Client } from 'jira.js'
+
+// Utility
+import { resolveIssueTrackingBaseUrl } from '../utils'
+
 export class JiraIssueTracker extends IssueTracker {
-  public async check(): Promise<[ boolean, string ]> {
-    console.debug('Jira issue tracking check not implemented', {
-      issueTrackingId: this.issueTracking.id,
-      baseUrl: this.issueTracking.baseUrl,
-      targetBoard: this.issueTracking.targetBoard,
+  private readonly client: Version3Client
+
+  constructor(issueTracking: IssueTracking) {
+    super(issueTracking)
+
+    this.client = new Version3Client({
+      host: resolveIssueTrackingBaseUrl(this.issueTracking.baseUrl),
+      authentication: {
+        basic: {
+          email: this.issueTracking.email,
+          apiToken: this.issueTracking.accessToken,
+        },
+      },
     })
-    return [ false, 'Jira issue tracking check not implemented' ]
+  }
+
+  public async check(): Promise<[ boolean, string ]> {
+    if (!this.issueTracking.email?.trim()) {
+      console.debug('Jira check failed because email is missing', {
+        issueTrackingId: this.issueTracking.id,
+      })
+      return [ false, 'Jira email is required' ]
+    }
+
+    if (!this.issueTracking.accessToken?.trim()) {
+      console.debug('Jira check failed because access token is missing', {
+        issueTrackingId: this.issueTracking.id,
+      })
+      return [ false, 'Jira access token is required' ]
+    }
+
+    if (!this.issueTracking.targetBoard?.trim()) {
+      console.debug('Jira check failed because target board is missing', {
+        issueTrackingId: this.issueTracking.id,
+      })
+      return [ false, 'Jira target board is required' ]
+    }
+
+    try {
+      await this.client.myself.getCurrentUser()
+      return [ true, '' ]
+    }
+    catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Unable to validate Jira credentials'
+
+      console.debug('Jira issue tracking check failed', {
+        issueTrackingId: this.issueTracking.id,
+        error,
+      })
+      return [ false, errorMessage ]
+    }
   }
 
   public async listIssues(
