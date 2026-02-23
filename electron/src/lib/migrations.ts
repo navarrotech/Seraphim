@@ -35,6 +35,6 @@ export async function databaseMigrations() {
   }
   catch (error) {
     logFailed('Database migrations failed')
-    console.error(error)
+    throw error
   }
 }

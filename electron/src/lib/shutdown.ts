@@ -54,6 +54,6 @@ process.on('uncaughtException', async function ElectronGracefulShutdown(error) {
 })
 
 process.on('unhandledRejection', async function ElectronUnhandledRejection(reason: any) {
-  console.error('Unhandled promise rejection', reason)
+  console.error('Fatal', reason)
   await gracefulShutdown(1, 'unhandledRejection')
 })

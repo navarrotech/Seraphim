@@ -8,46 +8,36 @@ import { PrismaClient } from '@prisma/client'
 import { logFailed, logSuccess, logWarning } from './lib/logging'
 import { DATABASE_URL } from './env'
 
-let prisma: PrismaClient | null = null
-
-const adapter = new PrismaPg({
-  connectionString: DATABASE_URL,
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString: DATABASE_URL,
+  }),
 })
 
 export async function startDatabase(): Promise<boolean> {
-  if (prisma) {
-    logWarning('Database already started, skipping new llm')
-    return true
-  }
-
-  prisma = new PrismaClient({
-    adapter,
-  })
-
   try {
     await prisma.$connect()
+    // Test query to confirm connection is working
+    await prisma.user.findFirst()
     logSuccess('Database connected')
     return true
   }
   catch (error) {
     logFailed('Database failed to connect')
+    if (error instanceof Error && 'code' in error) {
+      if (error.code === 'ECONNREFUSED') {
+        logFailed('Connection refused - is the database server running?')
+        throw new Error('Database connection refused - is the database server running?')
+      }
+    }
     console.error(error)
-    prisma = null
-    return false
+    throw error
   }
 }
 
 export async function stopDatabase(): Promise<void> {
-  if (!prisma) {
-    logWarning('Database stop requested, but no llm is running')
-    return
-  }
-
-  const prismaClient = prisma
-  prisma = null
-
   try {
-    await prismaClient.$disconnect()
+    await prisma.$disconnect()
     logSuccess('Database disconnected')
   }
   catch (error) {

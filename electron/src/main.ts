@@ -31,12 +31,7 @@ if (squirrelStartup) {
 async function startup() {
   console.info('App starting up')
 
-  const databaseConnected = await startDatabase()
-  if (!databaseConnected) {
-    console.error('App failed to start due to database connection failure')
-    gracefulShutdown()
-    return
-  }
+  await startDatabase()
 
   await databaseMigrations()
 
@@ -45,14 +40,8 @@ async function startup() {
     connectToDocker(),
     registerVoiceHotkeyListener(),
   ])
-
-  try {
-    const taskManager = getTaskManager()
-    await taskManager.initializeFromDatabase()
-  }
-  catch (error) {
-    console.error('Failed to initialize task manager', error)
-  }
+  const taskManager = getTaskManager()
+  await taskManager.initializeFromDatabase()
 
   newWindow()
 }

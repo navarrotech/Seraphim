@@ -24,7 +24,7 @@ export async function connectToDocker() {
   }
   catch (error) {
     logFailed('Failed to connect to Docker')
-    console.error(error)
+    throw error
   }
 }
 
