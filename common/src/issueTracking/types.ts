@@ -1,9 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
-export type IssueTrackingListIssuesParams = {
-  search?: string
-  page?: number
-  limit?: number
-}
+
+import type { StandardPaginatedResponseData, StandardUrlParams } from '@common/types'
+
+export type IssueTrackingListIssuesParams = StandardUrlParams
 
 export type IssueTrackingIssue = {
   id: string
@@ -13,11 +12,8 @@ export type IssueTrackingIssue = {
   labels: string[]
 }
 
-export type IssueTrackingIssueList = {
+export type IssueTrackingIssueList = StandardPaginatedResponseData & {
   items: IssueTrackingIssue[]
-  page: number
-  limit: number
-  totalCount: number
 }
 
 export type IssueTrackingLabel = {

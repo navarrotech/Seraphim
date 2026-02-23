@@ -27,7 +27,7 @@ export class JiraIssueTracker extends IssueTracker {
   ): Promise<IssueTrackingIssueList> {
     console.debug('Jira listIssues not implemented', {
       issueTrackingId: this.issueTracking.id,
-      search: params.search ?? null,
+      search: params.q ?? null,
       page: params.page ?? null,
       limit: params.limit ?? null,
     })

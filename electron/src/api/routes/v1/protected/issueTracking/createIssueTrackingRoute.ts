@@ -1,5 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { IssueTracking } from '@prisma/client'
 import type { Request, Response } from 'express'
 import type { CreateIssueTrackingRequest } from '@common/schema/issueTracking'
 
@@ -7,6 +8,7 @@ import type { CreateIssueTrackingRequest } from '@common/schema/issueTracking'
 import { parseRequestBody } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
+import { getIssueTracker } from '@common/issueTracking/getIssueTracker'
 
 // Schema
 import { createIssueTrackingSchema } from '@common/schema/issueTracking'
@@ -32,6 +34,39 @@ export async function handleCreateIssueTrackingRequest(
 
   if (!payload) {
     console.debug('Create issue tracking request failed validation')
+    return
+  }
+
+  const tracker = getIssueTracker({
+    id: 'draft',
+    provider: payload.provider,
+    baseUrl: payload.baseUrl,
+    accessToken: payload.accessToken,
+    targetBoard: payload.targetBoard,
+  } as IssueTracking)
+
+  let isValid = false
+
+  try {
+    isValid = await tracker.check()
+  }
+  catch (error) {
+    console.error('Issue tracking validation failed during create', error)
+    response.status(500).json({
+      error: 'Issue tracking validation failed',
+    })
+    return
+  }
+
+  if (!isValid) {
+    console.debug('Issue tracking validation failed during create', {
+      provider: payload.provider,
+      baseUrl: payload.baseUrl,
+      targetBoard: payload.targetBoard,
+    })
+    response.status(400).json({
+      error: 'Issue tracking credentials are invalid',
+    })
     return
   }
 

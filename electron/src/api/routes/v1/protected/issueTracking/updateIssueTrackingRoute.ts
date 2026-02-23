@@ -7,6 +7,7 @@ import type { UpdateIssueTrackingRequest } from '@common/schema/issueTracking'
 import { parseRequestBody, parseRequestParams } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
+import { getIssueTracker } from '@common/issueTracking/getIssueTracker'
 import { z } from 'zod'
 
 // Schema
@@ -83,6 +84,46 @@ export async function handleUpdateIssueTrackingRequest(
   const nextLastUsedAt = payload.accessToken
     ? new Date()
     : existingIssueTracking.lastUsedAt
+
+  const shouldValidate = Boolean(
+    payload.accessToken
+    || payload.baseUrl
+    || payload.targetBoard,
+  )
+
+  if (shouldValidate) {
+    const tracker = getIssueTracker({
+      ...existingIssueTracking,
+      baseUrl: nextBaseUrl,
+      accessToken: nextAccessToken,
+      targetBoard: nextTargetBoard,
+    })
+
+    let isValid = false
+
+    try {
+      isValid = await tracker.check()
+    }
+    catch (error) {
+      console.error('Issue tracking validation failed during update', error)
+      response.status(500).json({
+        error: 'Issue tracking validation failed',
+      })
+      return
+    }
+
+    if (!isValid) {
+      console.debug('Issue tracking validation failed during update', {
+        issueTrackingId: existingIssueTracking.id,
+        baseUrl: nextBaseUrl,
+        targetBoard: nextTargetBoard,
+      })
+      response.status(400).json({
+        error: 'Issue tracking credentials are invalid',
+      })
+      return
+    }
+  }
 
   const issueTracking = await databaseClient.issueTracking.update({
     where: {

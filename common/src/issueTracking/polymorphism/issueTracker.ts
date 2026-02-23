@@ -35,7 +35,7 @@ export class IssueTracker {
     console.debug('IssueTracker listIssues not implemented', {
       issueTrackingId: this.issueTracking.id,
       provider: this.issueTracking.provider,
-      search: params.search ?? null,
+      search: params.q ?? null,
       page,
       limit,
     })
