@@ -71,7 +71,6 @@ export class JiraIssueTracker extends IssueTracker {
 
         console.debug('Jira issue tracking check failed due to authentication', {
           issueTrackingId: this.issueTracking.id,
-          error,
         })
         return [ false, errorMessage ]
       }
@@ -216,7 +215,6 @@ export class JiraIssueTracker extends IssueTracker {
 
       console.debug('Jira target board not found', {
         ...context,
-        error,
       })
       return [ false, message ]
     }
@@ -228,7 +226,6 @@ export class JiraIssueTracker extends IssueTracker {
 
       console.debug('Jira target board access denied', {
         ...context,
-        error,
       })
       return [ false, message ]
     }
@@ -236,7 +233,6 @@ export class JiraIssueTracker extends IssueTracker {
     if (error instanceof HttpException && error.status === 401) {
       console.debug('Jira target board authentication failed', {
         ...context,
-        error,
       })
       return [ false, 'Jira authentication failed. Check the email and access token.' ]
     }

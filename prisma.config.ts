@@ -17,7 +17,7 @@ function buildDatabaseUrlFromParts(): string {
   const password = process.env.POSTGRES_PASSWORD ?? ''
   const database = process.env.POSTGRES_DB ?? ''
   const host = process.env.POSTGRES_HOST ?? 'localhost'
-  const port = process.env.POSTGRES_PORT ?? '992'
+  const port = '9902'
 
   if (!user || !password || !database) {
     console.debug('Database credentials missing for DATABASE_URL composition', {

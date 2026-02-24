@@ -4,11 +4,15 @@ import type { IssueTracking } from '@prisma/client'
 
 // Core
 import 'dotenv/config'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Misc
 import { IssueTrackingProvider } from '@prisma/client'
 import { JiraIssueTracker } from './jira'
+
+type Context = {
+  debugMock: ReturnType<typeof vi.spyOn>
+}
 
 function getRequiredEnvValue(key: string) {
   const value = process.env[key]
@@ -24,25 +28,40 @@ function hasRequiredEnvValues() {
   return Boolean(accessToken && email && targetBoard && baseUrl)
 }
 
+function buildIssueTracking(
+  overrides: Partial<IssueTracking> = {},
+): IssueTracking {
+  return {
+    id: 'jira-test',
+    userId: 'jira-test-user',
+    provider: IssueTrackingProvider.Jira,
+    accessToken: getRequiredEnvValue('VITEST_JIRA_ACCESS_TOKEN'),
+    baseUrl: getRequiredEnvValue('VITEST_JIRA_BASE_URL'),
+    name: 'Jira Test Account',
+    email: getRequiredEnvValue('VITEST_JIRA_EMAIL'),
+    targetBoard: getRequiredEnvValue('VITEST_JIRA_TARGET_BOARD'),
+    lastUsedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
 describe('JiraIssueTracker', () => {
   const invalidEnvironment = !hasRequiredEnvValues()
 
-  it.skipIf(invalidEnvironment)('check validates Jira PAT credentials', async () => {
-    const issueTracking: IssueTracking = {
-      id: 'jira-test',
-      userId: 'jira-test-user',
-      provider: IssueTrackingProvider.Jira,
-      accessToken: getRequiredEnvValue('VITEST_JIRA_ACCESS_TOKEN'),
-      baseUrl: getRequiredEnvValue('VITEST_JIRA_BASE_URL'),
-      name: 'Jira Test Account',
-      email: getRequiredEnvValue('VITEST_JIRA_EMAIL'),
-      targetBoard: getRequiredEnvValue('VITEST_JIRA_TARGET_BOARD'),
-      lastUsedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  beforeEach<Context>((context) => {
+    context.debugMock = vi.spyOn(console, 'debug').mockImplementation(() => {})
+  })
 
-    const tracker = new JiraIssueTracker(issueTracking)
+  afterEach<Context>((context) => {
+    context.debugMock.mockRestore()
+  })
+
+  it.skipIf(invalidEnvironment)('check validates Jira PAT credentials', async () => {
+    const tracker = new JiraIssueTracker(
+      buildIssueTracking(),
+    )
     const [ success, errorMessage ] = await tracker.check()
 
     expect(success, errorMessage).toBe(true)
@@ -52,24 +71,47 @@ describe('JiraIssueTracker', () => {
     const invalidEmail = getRequiredEnvValue('VITEST_JIRA_BAD_EMAIL')
       || 'invalid-email@example.invalid'
 
-    const issueTracking: IssueTracking = {
-      id: 'jira-test-bad-email',
-      userId: 'jira-test-user',
-      provider: IssueTrackingProvider.Jira,
-      accessToken: getRequiredEnvValue('VITEST_JIRA_ACCESS_TOKEN'),
-      baseUrl: getRequiredEnvValue('VITEST_JIRA_BASE_URL'),
-      name: 'Jira Test Account',
-      email: invalidEmail,
-      targetBoard: getRequiredEnvValue('VITEST_JIRA_TARGET_BOARD'),
-      lastUsedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    const tracker = new JiraIssueTracker(issueTracking)
+    const tracker = new JiraIssueTracker(
+      buildIssueTracking({
+        id: 'jira-test-bad-email',
+        email: invalidEmail,
+      }),
+    )
     const [ success, errorMessage ] = await tracker.check()
 
     expect(success).toBe(false)
     expect(errorMessage.toLowerCase()).toContain('email')
+  })
+
+  it.skipIf(invalidEnvironment)('check returns a friendly error for bad board IDs', async () => {
+    const invalidBoardId = getRequiredEnvValue('VITEST_JIRA_BAD_BOARD_ID')
+      || '9999999999'
+
+    const tracker = new JiraIssueTracker(
+      buildIssueTracking({
+        id: 'jira-test-bad-board-id',
+        targetBoard: invalidBoardId,
+      }),
+    )
+    const [ success, errorMessage ] = await tracker.check()
+
+    expect(success).toBe(false)
+    expect(errorMessage.toLowerCase()).toContain('board')
+  })
+
+  it.skipIf(invalidEnvironment)('check returns a friendly error for bad project keys', async () => {
+    const invalidProjectKey = getRequiredEnvValue('VITEST_JIRA_BAD_PROJECT_KEY')
+      || 'INVALID_PROJECT_KEY_DO_NOT_USE'
+
+    const tracker = new JiraIssueTracker(
+      buildIssueTracking({
+        id: 'jira-test-bad-project-key',
+        targetBoard: invalidProjectKey,
+      }),
+    )
+    const [ success, errorMessage ] = await tracker.check()
+
+    expect(success).toBe(false)
+    expect(errorMessage.toLowerCase()).toContain('project')
   })
 })
