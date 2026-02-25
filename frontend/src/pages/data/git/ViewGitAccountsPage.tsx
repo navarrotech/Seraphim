@@ -50,6 +50,7 @@ export function ViewGitAccountsPage(props: Props) {
   })
 
   useEffect(() => {
+    console.debug('Resetting form with inbound values from the form')
     form.reset({
       name: account?.name ?? '',
       gitUserName: account?.username ?? '',
@@ -59,12 +60,12 @@ export function ViewGitAccountsPage(props: Props) {
     })
   }, [ account ])
 
-  const onSave: () => void = useCallback(() => {
+  const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
-      return () => {}
+      return
     }
 
-    return form.handleSubmit(
+    await form.handleSubmit(
       (values) => upsertGitAccount(account?.id || '', values),
     )()
   }, [ account, form.formState.isDirty ])
@@ -162,8 +163,9 @@ export function ViewGitAccountsPage(props: Props) {
       <SaveButton
         onSave={onSave}
         isDirty={form.formState.isDirty}
-        isDisabled={form.formState.isSubmitting || !account?.id}
-        />
+        isDisabled={!account?.id}
+        isLoading={form.formState.isSubmitting}
+      />
     </div>
   </Card>
 }

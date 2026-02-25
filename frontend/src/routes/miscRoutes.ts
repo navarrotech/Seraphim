@@ -1,8 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
 
 // Core
-import { apiClient } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 export function pingApi() {
-  return apiClient.get(`ping`).text()
+  return frontendClient.get(`ping`).text()
 }

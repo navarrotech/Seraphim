@@ -5,6 +5,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
+import { isEqual } from 'lodash-es'
 
 type State = {
   items: AuthAccount[]
@@ -23,6 +24,11 @@ export const slice = createEnhancedSlice({
     },
     upsertAccount: (state, action: PayloadAction<AuthAccount>) => {
       const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
+
+      if (isEqual(asRecord[action.payload.id], action.payload)) {
+        return
+      }
+
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },

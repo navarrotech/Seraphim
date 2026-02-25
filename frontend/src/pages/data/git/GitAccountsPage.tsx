@@ -3,12 +3,10 @@
 import type { AuthAccount } from '@common/types'
 
 // Core
-import { useState, useCallback, ReactNode } from 'react'
+import { useState, useEffect, useCallback, ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
-
-// Redux
 import { useSelector } from '@frontend/framework/store'
 
 // Actions
@@ -26,6 +24,7 @@ import { SiGithub } from 'react-icons/si'
 import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 
 // Misc
+import { isEqual } from 'lodash-es'
 import { UrlTree } from '@common/urls'
 
 const IconByProvider = {
@@ -39,6 +38,25 @@ export function GitAccountsPage() {
 
   // State
   const [ selectedItem, select ] = useState<'new' | AuthAccount | null>(null)
+
+  // State maintenance
+  useEffect(() => {
+    if (!selectedItem || selectedItem === 'new') {
+      return
+    }
+
+    const latestItem = items.find((item) => item.id === selectedItem.id)
+    if (!latestItem) {
+      select(null)
+      return
+    }
+
+    if (isEqual(latestItem, selectedItem)) {
+      return
+    }
+
+    select(latestItem)
+  }, [ items ])
 
   // Actions
   const confirm = useConfirm()

@@ -2,6 +2,7 @@
 
 // Lib
 import { Octokit } from '@octokit/core'
+import { RequestError } from '@octokit/request-error'
 
 // Misc
 import {
@@ -141,6 +142,19 @@ export async function validateGithubToken(accessToken: string): Promise<GithubTo
     })
   }
   catch (error) {
+    if (error instanceof RequestError) {
+      if (error.status === 401) {
+        return {
+          isValid: false,
+          error: 'Bad credentials: GitHub token is invalid',
+          status: getErrorStatus(error),
+          grantedScopes: [],
+          acceptedScopes: [],
+          missingScopes: [ ...GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES ],
+        }
+      }
+    }
+
     console.debug('GitHub token validation request failed', { error })
 
     return {

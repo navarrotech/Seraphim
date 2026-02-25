@@ -4,7 +4,8 @@ import type { Message, Task } from '@common/types'
 import type { TaskCreateRequest, TaskUpdateRequest } from '@common/schema/task'
 
 // Core
-import { apiClient, parseRequestBeforeSend } from '@common/api'
+import { parseRequestBeforeSend } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 // Redux
 import { taskActions } from '@frontend/framework/redux/stores/tasks'
@@ -22,7 +23,7 @@ type ListTasksResponse = {
 }
 
 export async function listTasks() {
-  const response = await apiClient
+  const response = await frontendClient
     .get('v1/protected/tasks')
     .json<ListTasksResponse>()
 
@@ -42,7 +43,7 @@ type GetTaskResponse = {
 }
 
 export function getTask(taskId: string) {
-  return apiClient
+  return frontendClient
     .get(`v1/protected/tasks/${taskId}`)
     .json<GetTaskResponse>()
 }
@@ -58,7 +59,7 @@ type CreateTaskResponse = {
 export async function createTask(raw: TaskCreateRequest) {
   const json = parseRequestBeforeSend(taskCreateSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .post('v1/protected/tasks', { json })
     .json<CreateTaskResponse>()
 
@@ -80,7 +81,7 @@ type UpdateTaskResponse = {
 export async function updateTask(taskId: string, raw: TaskUpdateRequest) {
   const json = parseRequestBeforeSend(taskUpdateSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .patch(`v1/protected/tasks/${taskId}`, { json })
     .json<UpdateTaskResponse>()
 
@@ -105,7 +106,7 @@ type DeleteTaskResponse = {
 }
 
 export async function deleteTask(request: DeleteTaskRequest) {
-  const response = await apiClient
+  const response = await frontendClient
     .delete(`v1/protected/tasks/${request.id}`)
     .json<DeleteTaskResponse>()
 
@@ -125,7 +126,7 @@ type TaskGitActionResponse = {
 }
 
 function postTaskGitAction(taskId: string, actionPath: string) {
-  return apiClient
+  return frontendClient
     .post(`v1/protected/tasks/${taskId}/git/${actionPath}`)
     .json<TaskGitActionResponse>()
 }

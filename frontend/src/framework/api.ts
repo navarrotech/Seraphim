@@ -5,6 +5,11 @@ import { apiClient } from '@common/api'
 import { safeParseJson } from '@common/json'
 import { doToast } from './toast'
 
+type Payload = {
+  error?: string
+  message?: string
+}
+
 export const frontendClient = apiClient.extend({
   hooks: {
     afterResponse: [
@@ -12,15 +17,15 @@ export const frontendClient = apiClient.extend({
         if (!response.ok) {
           try {
             const asText = await response.text()
-            const payload = safeParseJson<{ message?: string }>(asText)
+            const payload = safeParseJson<Payload>(asText)
 
-            if (payload.message) {
-              doToast({
-                title: 'Request failed',
-                description: payload.message,
-                color: 'danger',
-              })
-            }
+            const description = payload.error || payload.message || 'An unknown error occurred'
+
+            doToast({
+              title: 'Request failed',
+              description,
+              color: 'danger',
+            })
 
             // @ts-ignore
             response.json = () => Promise.resolve(payload)

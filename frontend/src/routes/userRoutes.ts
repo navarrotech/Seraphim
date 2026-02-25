@@ -4,7 +4,8 @@ import type { UserSettings, UserWithSettings } from '@common/types'
 import type { UserSettingsUpdateRequest } from '@common/schema/userSettings'
 
 // Core
-import { apiClient, parseRequestBeforeSend } from '@common/api'
+import { parseRequestBeforeSend } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 // Redux
 import { settingsActions } from '@frontend/framework/redux/stores/settings'
@@ -18,7 +19,7 @@ type GetCurrentUserResponse = {
 }
 
 export async function getCurrentUser() {
-  const response = await apiClient
+  const response = await frontendClient
     .get('v1/protected/users/me')
     .json<GetCurrentUserResponse>()
 
@@ -36,7 +37,7 @@ type UpdateCurrentUserSettingsResponse = {
 export async function updateCurrentUserSettings(raw: UserSettingsUpdateRequest) {
   const json = parseRequestBeforeSend(userSettingsUpdateSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .patch('v1/protected/users/me/settings', { json })
     .json<UpdateCurrentUserSettingsResponse>()
 

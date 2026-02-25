@@ -4,7 +4,8 @@ import type { Llm, LlmWithRateLimits } from '@common/types'
 import type { CreateLlmRequest, UpdateLlmRequest } from '@common/schema/llm'
 
 // Core
-import { apiClient, parseRequestBeforeSend } from '@common/api'
+import { parseRequestBeforeSend } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 // Redux
 import { llmActions } from '@frontend/framework/redux/stores/llms'
@@ -23,7 +24,7 @@ type ListLlmsResponse = {
 
 // This route intentionally has no pagination
 export async function listLlms() {
-  const response = await apiClient
+  const response = await frontendClient
     .get('v1/protected/llms')
     .json<ListLlmsResponse>()
 
@@ -45,7 +46,7 @@ type CreateLlmResponse = {
 export async function createOpenAILlm(data: CreateLlmRequest) {
   const json = parseRequestBeforeSend(createLlmSchema, data)
 
-  const response = await apiClient
+  const response = await frontendClient
     .post('v1/protected/llms', { json })
     .json<CreateLlmResponse>()
 
@@ -67,7 +68,7 @@ type UpdateLlmResponse = {
 export async function updateLlm(id: string, raw: UpdateLlmRequest) {
   const json = parseRequestBeforeSend(updateLlmSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .patch(`v1/protected/llms/${id}`, { json })
     .json<UpdateLlmResponse>()
 
@@ -85,7 +86,7 @@ export async function updateLlm(id: string, raw: UpdateLlmRequest) {
 type DeleteLlmRequest = Llm
 
 export async function deleteLlm(llm: DeleteLlmRequest) {
-  const response = await apiClient
+  const response = await frontendClient
     .delete(`v1/protected/llms/${llm.id}`)
 
   dispatch(

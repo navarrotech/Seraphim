@@ -4,7 +4,8 @@ import type { WorkspaceWithEnv } from '@common/types'
 import type { WorkspaceCreateRequest, WorkspaceUpdateRequest } from '@common/schema/workspace'
 
 // Core
-import { apiClient, parseRequestBeforeSend } from '@common/api'
+import { parseRequestBeforeSend } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 // Redux
 import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
@@ -22,7 +23,7 @@ type ListWorkspacesResponse = {
 }
 
 export async function listWorkspaces() {
-  const response = await apiClient
+  const response = await frontendClient
     .get('v1/protected/workspaces')
     .json<ListWorkspacesResponse>()
 
@@ -46,7 +47,7 @@ export const createWorkspaceSchema = workspaceCreateSchema
 export async function createWorkspace(raw: WorkspaceCreateRequest) {
   const json = parseRequestBeforeSend(workspaceCreateSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .post('v1/protected/workspaces', { json })
     .json<CreateWorkspaceResponse>()
 
@@ -68,7 +69,7 @@ type UpdateWorkspaceResponse = {
 export async function updateWorkspace(workspaceId: string, raw: WorkspaceUpdateRequest) {
   const json = parseRequestBeforeSend(workspaceUpdateSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .patch(`v1/protected/workspaces/${workspaceId}`, { json })
     .json<UpdateWorkspaceResponse>()
 
@@ -93,7 +94,7 @@ type DeleteWorkspaceResponse = {
 }
 
 export async function deleteWorkspace(request: DeleteWorkspaceRequest) {
-  const response = await apiClient
+  const response = await frontendClient
     .delete(`v1/protected/workspaces/${request.id}`)
     .json<DeleteWorkspaceResponse>()
 

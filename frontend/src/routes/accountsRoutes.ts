@@ -11,7 +11,8 @@ import type {
 import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
-import { apiClient, buildUrlParams, parseRequestBeforeSend } from '@common/api'
+import { buildUrlParams, parseRequestBeforeSend } from '@common/api'
+import { frontendClient } from '@frontend/framework/api'
 
 // Redux
 import { accountActions } from '@frontend/framework/redux/stores/accounts'
@@ -30,7 +31,7 @@ type ListAccountsResponse = {
 
 // This route intentionally has no pagination
 export async function listAccounts(): Promise<ListAccountsResponse> {
-  const response = await apiClient
+  const response = await frontendClient
     .get('v1/protected/accounts')
     .json<ListAccountsResponse>()
 
@@ -63,7 +64,7 @@ type ListReposResponse = StandardPaginatedResponseData & {
 }
 
 export function listRepos(request: ListReposRequest) {
-  return apiClient
+  return frontendClient
     .get('v1/protected/accounts/repos', {
       searchParams: buildUrlParams(request),
     })
@@ -88,7 +89,7 @@ type ListBranchesResponse = StandardPaginatedResponseData & {
 }
 
 export function listBranches(request: ListBranchesRequest) {
-  return apiClient
+  return frontendClient
     .get('v1/protected/accounts/branches', {
       searchParams: buildUrlParams(request),
     })
@@ -114,7 +115,7 @@ type UpsertAccountResponse = {
 export async function upsertGitAccount(accountId: string = '', raw: UpsertAccountRequest) {
   const json = parseRequestBeforeSend(upsertAccountSchema, raw)
 
-  const response = await apiClient
+  const response = await frontendClient
     .post(`v1/protected/accounts/upsert/${accountId}`, { json })
     .json<UpsertAccountResponse>()
 
@@ -140,7 +141,7 @@ type RemoveAccountResponse = {
 }
 
 export async function removeAccount(json: RemoveAccountRequest) {
-  const response = await apiClient
+  const response = await frontendClient
     .delete('v1/protected/accounts', { json })
     .json<RemoveAccountResponse>()
 
