@@ -4,24 +4,10 @@
 import { z } from 'zod'
 import { environmentEntrySchema } from './common'
 
-export const workspaceCreateSchema = z
+export const upsertWorkspaceSchema = z
   .object({
     name: z.string().trim().min(1),
     sourceRepoUrl: z.string().trim().min(1),
-    gitBranchTemplate: z.string().trim().optional().default(''),
-    customDockerfileCommands: z.string().trim().optional().default(''),
-    description: z.string().trim().optional().default(''),
-    setupScript: z.string().trim().optional().default(''),
-    postScript: z.string().trim().optional().default(''),
-    cacheFiles: z.array(z.string().trim()).optional().default([]),
-    envEntries: z.array(environmentEntrySchema).optional().default([{ key: '', value: '' }]),
-  })
-  .strict()
-
-export const workspaceUpdateSchema = z
-  .object({
-    name: z.string().trim().min(1).optional(),
-    sourceRepoUrl: z.string().trim().min(1).optional(),
     gitBranchTemplate: z.string().trim().optional(),
     customDockerfileCommands: z.string().trim().optional(),
     description: z.string().trim().optional(),
@@ -30,11 +16,16 @@ export const workspaceUpdateSchema = z
     cacheFiles: z.array(z.string().trim()).optional(),
     envEntries: z.array(environmentEntrySchema).optional(),
   })
-  .strict()
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    { message: 'No valid fields provided for update' },
-  )
+  .partial({
+    name: true,
+    sourceRepoUrl: true,
+    gitBranchTemplate: true,
+    customDockerfileCommands: true,
+    description: true,
+    setupScript: true,
+    postScript: true,
+    cacheFiles: true,
+    envEntries: true,
+  })
 
-export type WorkspaceCreateRequest = z.infer<typeof workspaceCreateSchema>
-export type WorkspaceUpdateRequest = z.infer<typeof workspaceUpdateSchema>
+export type UpsertWorkspaceRequest = z.infer<typeof upsertWorkspaceSchema>

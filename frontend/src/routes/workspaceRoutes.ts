@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { WorkspaceWithEnv } from '@common/types'
-import type { WorkspaceCreateRequest, WorkspaceUpdateRequest } from '@common/schema/workspace'
+import type { UpsertWorkspaceRequest } from '@common/schema/workspace'
 
 // Core
 import { parseRequestBeforeSend } from '@common/api'
@@ -12,7 +12,7 @@ import { workspaceActions } from '@frontend/framework/redux/stores/workspaces'
 import { dispatch } from '@frontend/framework/store'
 
 // Schema
-import { workspaceCreateSchema, workspaceUpdateSchema } from '@common/schema/workspace'
+import { upsertWorkspaceSchema } from '@common/schema/workspace'
 
 // /////////////////////////////// //
 //         List Workspaces         //
@@ -35,43 +35,22 @@ export async function listWorkspaces() {
 }
 
 // /////////////////////////////// //
-//         Create Workspace        //
+//         Upsert Workspace        //
 // /////////////////////////////// //
 
-type CreateWorkspaceResponse = {
+type UpsertWorkspaceResponse = {
   workspace: WorkspaceWithEnv
 }
 
-export const createWorkspaceSchema = workspaceCreateSchema
-
-export async function createWorkspace(raw: WorkspaceCreateRequest) {
-  const json = parseRequestBeforeSend(workspaceCreateSchema, raw)
-
-  const response = await frontendClient
-    .post('v1/protected/workspaces', { json })
-    .json<CreateWorkspaceResponse>()
-
-  dispatch(
-    workspaceActions.upsertWorkspace(response.workspace),
-  )
-
-  return response
-}
-
-// /////////////////////////////// //
-//         Update Workspace        //
-// /////////////////////////////// //
-
-type UpdateWorkspaceResponse = {
-  workspace: WorkspaceWithEnv
-}
-
-export async function updateWorkspace(workspaceId: string, raw: WorkspaceUpdateRequest) {
-  const json = parseRequestBeforeSend(workspaceUpdateSchema, raw)
+export async function upsertWorkspace(
+  workspaceId: string = '',
+  raw: UpsertWorkspaceRequest,
+) {
+  const json = parseRequestBeforeSend(upsertWorkspaceSchema, raw)
 
   const response = await frontendClient
-    .patch(`v1/protected/workspaces/${workspaceId}`, { json })
-    .json<UpdateWorkspaceResponse>()
+    .post(`v1/protected/workspaces/${workspaceId}`, { json })
+    .json<UpsertWorkspaceResponse>()
 
   dispatch(
     workspaceActions.upsertWorkspace(response.workspace),

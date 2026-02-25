@@ -1,9 +1,9 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@common/types'
+import type { WorkspaceWithEnv } from '@common/types'
 
 // Core
-import { useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
@@ -11,16 +11,30 @@ import { useConfirm } from '@frontend/hooks/useConfirm'
 // Redux
 import { useSelector } from '@frontend/framework/store'
 
-// Actions
-import { deleteWorkspace } from '@frontend/routes/workspaceRoutes'
-
 // User Interface
 import { ViewWorkspacePage } from './ViewWorkspacePage'
 import { Card } from '@frontend/elements/Card'
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
-import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from '@heroui/react'
+import {
+  PlusIcon,
+  EllipsisIcon,
+  DeleteIcon,
+  EditIcon,
+} from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+
+// Utility
+import { isEqual } from 'lodash-es'
+
+// Misc
+import { deleteWorkspace } from '@frontend/routes/workspaceRoutes'
 import { UrlTree } from '@common/urls'
 
 export function WorkspacesPage() {
@@ -29,7 +43,30 @@ export function WorkspacesPage() {
   const items = useSelector((state) => state.workspaces.items)
 
   // State
-  const [ selectedItem, select ] = useState<'new' | Workspace | null>(null)
+  const [ selectedItem, select ] = useState<'new' | WorkspaceWithEnv | null>(null)
+
+  // State maintenance
+  useEffect(() => {
+    if (!selectedItem || selectedItem === 'new') {
+      return
+    }
+
+    const latestItem = items.find((item) => item.id === selectedItem.id)
+    if (!latestItem) {
+      console.debug(
+        'WorkspacesPage selected item no longer exists, clearing selection',
+        { selectedItem },
+      )
+      select(null)
+      return
+    }
+
+    if (isEqual(latestItem, selectedItem)) {
+      return
+    }
+
+    select(latestItem)
+  }, [ items, selectedItem ])
 
   // Actions
   const confirm = useConfirm()
@@ -40,7 +77,7 @@ export function WorkspacesPage() {
     }
 
     navigate(UrlTree.tasks)
-  }, [ selectedItem ])
+  }, [ navigate, selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, {
@@ -62,7 +99,7 @@ export function WorkspacesPage() {
         </Button>
       </div>
     </header>
-    <section className='level-centered gap-6'>
+    <section className='level-centered items-start gap-6'>
       <Card>{
         !items?.length
           ? <EmptyData message='No workspaces yet.' />
@@ -135,9 +172,13 @@ export function WorkspacesPage() {
           </>
       }</Card>
       { selectedItem
-        ? selectedItem === 'new'
-          ? <ViewWorkspacePage />
-          : <ViewWorkspacePage workspace={selectedItem} />
+        ? <ViewWorkspacePage
+          workspace={typeof selectedItem !== 'string'
+            ? selectedItem
+            : undefined
+          }
+          close={() => select(null)}
+        />
         : <></>
       }
     </section>
