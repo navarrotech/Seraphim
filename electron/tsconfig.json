@@ -22,9 +22,6 @@
     "composite": false
   },
   "include": [
-    "src",
-    "../common/src",
-    "../frontend/src/http",
-    "../frontend/src/routes"
+    "src"
   ]
 }

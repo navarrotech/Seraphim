@@ -117,7 +117,7 @@ type SsePayloadByKind = {
   accounts: AuthAccount
   issueTracking: IssueTracking
   settings: UserSettings
-  workspaces: Workspace
+  workspaces: WorkspaceWithEnv
   tasks: Task
   llms: LlmWithRateLimits
   usage: LlmUsage
