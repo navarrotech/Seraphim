@@ -19,15 +19,5 @@ export const upsertIssueTrackingSchema = z
     accessToken: true,
     targetBoard: true,
   })
-  .refine(
-    (payload) => Boolean(
-      payload.name
-      || payload.baseUrl
-      || payload.email
-      || payload.accessToken
-      || payload.targetBoard,
-    ),
-    { message: 'At least one editable issue tracking field is required' },
-  )
 
 export type UpsertIssueTrackingRequest = z.infer<typeof upsertIssueTrackingSchema>

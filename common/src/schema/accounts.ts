@@ -13,14 +13,5 @@ export const upsertAccountSchema = z
     gitUserEmail: z.string().trim().email(),
   })
   .partial()
-  .refine(
-    (payload) => Boolean(
-      payload.name
-      || payload.accessToken
-      || payload.gitUserName
-      || payload.gitUserEmail,
-    ),
-    { message: 'At least one editable account field is required' },
-  )
 
 export type UpsertAccountRequest = z.infer<typeof upsertAccountSchema>
