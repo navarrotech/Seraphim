@@ -6,10 +6,9 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
-import { handleCreateIssueTrackingRequest } from './issueTracking/createIssueTrackingRoute'
 import { handleDeleteIssueTrackingRequest } from './issueTracking/deleteIssueTrackingRoute'
 import { handleListIssueTrackingRequest } from './issueTracking/listIssueTrackingRoute'
-import { handleUpdateIssueTrackingRequest } from './issueTracking/updateIssueTrackingRoute'
+import { handleUpsertIssueTrackingRequest } from './issueTracking/upsertIssueTrackingRoute'
 
 export function createIssueTrackingRouter(): Router {
   const issueTrackingRouter = createRouter()
@@ -17,7 +16,7 @@ export function createIssueTrackingRouter(): Router {
   // /api/v1/protected/issue-tracking
   issueTrackingRouter.post(
     '/',
-    handleCreateIssueTrackingRequest,
+    handleUpsertIssueTrackingRequest,
   )
 
   // /api/v1/protected/issue-tracking
@@ -29,7 +28,7 @@ export function createIssueTrackingRouter(): Router {
   // /api/v1/protected/issue-tracking/:issueTrackingId
   issueTrackingRouter.patch(
     '/:issueTrackingId',
-    handleUpdateIssueTrackingRequest,
+    handleUpsertIssueTrackingRequest,
   )
 
   // /api/v1/protected/issue-tracking/:issueTrackingId

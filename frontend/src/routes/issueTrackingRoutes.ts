@@ -1,10 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { IssueTracking } from '@common/types'
-import type {
-  CreateIssueTrackingRequest,
-  UpdateIssueTrackingRequest,
-} from '@common/schema/issueTracking'
+import type { UpsertIssueTrackingRequest } from '@common/schema/issueTracking'
 
 // Core
 import { parseRequestBeforeSend } from '@common/api'
@@ -15,10 +12,7 @@ import { issueTrackingActions } from '@frontend/framework/redux/stores/issueTrac
 import { dispatch } from '@frontend/framework/store'
 
 // Schema
-import {
-  createIssueTrackingSchema,
-  updateIssueTrackingSchema,
-} from '@common/schema/issueTracking'
+import { upsertIssueTrackingSchema } from '@common/schema/issueTracking'
 
 // /////////////////////////////// //
 //     List Issue Tracking Accounts //
@@ -42,47 +36,22 @@ export async function listIssueTracking(): Promise<ListIssueTrackingResponse> {
 }
 
 // /////////////////////////////// //
-//      Create Issue Tracking       //
+//      Upsert Issue Tracking       //
 // /////////////////////////////// //
 
-type CreateIssueTrackingResponse = {
+type UpsertIssueTrackingResponse = {
   issueTracking: IssueTracking
 }
 
-export async function createIssueTracking(raw: CreateIssueTrackingRequest) {
-  const json = parseRequestBeforeSend(createIssueTrackingSchema, raw)
-
-  const response = await frontendClient
-    .post('v1/protected/issue-tracking', { json })
-    .json<CreateIssueTrackingResponse>()
-
-  dispatch(
-    issueTrackingActions.upsertIssueTracking(response.issueTracking),
-  )
-
-  return response
-}
-
-// /////////////////////////////// //
-//      Update Issue Tracking       //
-// /////////////////////////////// //
-
-type UpdateIssueTrackingResponse = {
-  issueTracking: IssueTracking
-}
-
-export async function updateIssueTracking(
-  issueTrackingId: string,
-  raw: UpdateIssueTrackingRequest,
+export async function upsertIssueTracking(
+  issueTrackingId: string = '',
+  raw: UpsertIssueTrackingRequest,
 ) {
-  const json = parseRequestBeforeSend(updateIssueTrackingSchema, raw)
+  const json = parseRequestBeforeSend(upsertIssueTrackingSchema, raw)
 
   const response = await frontendClient
-    .patch(
-      `v1/protected/issue-tracking/${issueTrackingId}`,
-      { json },
-    )
-    .json<UpdateIssueTrackingResponse>()
+    .post(`v1/protected/issue-tracking/${issueTrackingId}`, { json })
+    .json<UpsertIssueTrackingResponse>()
 
   dispatch(
     issueTrackingActions.upsertIssueTracking(response.issueTracking),

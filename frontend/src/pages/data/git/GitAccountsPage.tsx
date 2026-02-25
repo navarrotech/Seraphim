@@ -180,6 +180,7 @@ export function GitAccountsPage() {
       }</Card>
       { selectedItem
         ? <ViewGitAccountsPage
+          provider='GITHUB'
           account={typeof selectedItem !== 'string'
             ? selectedItem
             : null
