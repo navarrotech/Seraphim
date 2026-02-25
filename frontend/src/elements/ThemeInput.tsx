@@ -5,6 +5,7 @@ import type { Selection } from '@react-types/shared'
 
 // User interface
 import { Select, SelectItem } from '@heroui/react'
+import { FaPalette } from 'react-icons/fa'
 
 type Props = {
   value: ThemePreference
@@ -19,7 +20,10 @@ const themeOptions = [
   { key: 'system', label: 'System' },
   { key: 'light', label: 'Light' },
   { key: 'dark', label: 'Dark' },
-] as const satisfies ReadonlyArray<{ key: ThemePreference, label: string }>
+] as const satisfies ReadonlyArray<{
+  key: ThemePreference,
+  label: string,
+}>
 
 export function ThemeInput(themeInputProps: Props) {
   const {
@@ -54,11 +58,12 @@ export function ThemeInput(themeInputProps: Props) {
   }
 
   return <Select
-    id='theme-changer'
+    id='theme'
     className={className}
     description={description}
     isDisabled={isDisabled}
     label={label}
+    startContent={<FaPalette className='opacity-60' />}
     selectedKeys={[ value ]}
     disallowEmptySelection
     onSelectionChange={handleSelectionChange}

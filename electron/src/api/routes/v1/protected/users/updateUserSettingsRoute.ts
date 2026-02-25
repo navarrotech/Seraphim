@@ -13,6 +13,7 @@ import { userSettingsUpdateSchema } from '@common/schema/userSettings'
 // Misc
 import { requireDatabaseClient } from '@electron/database'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
+import { UserSettings } from '@common/types'
 
 export type RequestBody = UserSettingsUpdateRequest
 
@@ -133,7 +134,7 @@ export async function handleUpdateUserSettingsRequest(
           ...settingsUpdateData,
         },
       })
-    })
+    }) as UserSettings
 
     broadcastSseChange({
       type: 'update',

@@ -16,6 +16,7 @@ import { updateCurrentUserSettings } from '@frontend/routes/userRoutes'
 import { Card } from '@frontend/elements/Card'
 import { ThemeInput } from '@frontend/elements/ThemeInput'
 import { Button } from '@heroui/react'
+import { LanguageInput } from '@frontend/elements/LanguageInput'
 
 const resolvedForm = zodResolver(userSettingsUpdateFieldsSchema)
 
@@ -58,12 +59,22 @@ export function GeneralSettingsPage() {
       </div>
     </div>
     <Card>
-      <ThemeInput
-        value={form.watch('theme')}
-        onChange={(value) => {
-          form.setValue('theme', value, { shouldDirty: true })
-        }}
-      />
+      <div className='level-centered'>
+        <ThemeInput
+          className='w-full'
+          value={form.watch('theme')}
+          onChange={(value) => {
+            form.setValue('theme', value, { shouldDirty: true })
+          }}
+        />
+        <LanguageInput
+          className='w-full'
+          value={form.watch('language')}
+          onChange={(value) => {
+            form.setValue('language', value, { shouldDirty: true })
+          }}
+        />
+      </div>
     </Card>
   </article>
 }
