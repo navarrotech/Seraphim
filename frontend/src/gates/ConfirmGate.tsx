@@ -79,8 +79,14 @@ export function ConfirmGate(props: Props) {
     await options?.onCancel?.()
   }, [ isOpen, options, handleClose ])
 
-  useHotkey([ 'Enter' ], handleConfirm, { preventDefault: isOpen })
-  useHotkey([ 'Escape' ], handleCancel, { preventDefault: isOpen })
+  useHotkey([ 'Enter' ], handleConfirm, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
+  useHotkey([ 'Escape' ], handleCancel, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
 
   return <ConfirmContext.Provider value={openConfirm}>
     { props.children }

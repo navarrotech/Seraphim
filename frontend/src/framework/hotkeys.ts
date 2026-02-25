@@ -14,6 +14,7 @@ export type HotkeyOptions = {
   preventDefault?: boolean
   stopPropagation?: boolean
   blockOtherHotkeys?: boolean
+  enabled?: boolean
 }
 
 type HotkeySubscription = {

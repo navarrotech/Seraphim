@@ -42,13 +42,17 @@ export function IssueTrackingPage() {
   const deselectAll = useCallback(() => {
     if (selectedItem) {
       select(null)
+      return
     }
 
     navigate(UrlTree.tasks)
   }, [ selectedItem ])
 
   // Hotkeys
-  useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })
+  useHotkey([ 'Escape' ], deselectAll, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+  })
 
   return <article className='relaxed'>
     <header className='compact level'>

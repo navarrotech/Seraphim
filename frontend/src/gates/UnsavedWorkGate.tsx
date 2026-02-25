@@ -114,8 +114,14 @@ export function UnsavedWorkGate(props: Props) {
     await options?.onCancel?.()
   }, [ isOpen, options, handleClose ])
 
-  useHotkey([ 'Enter' ], handleSave, { preventDefault: isOpen })
-  useHotkey([ 'Escape' ], handleCancel, { preventDefault: isOpen })
+  useHotkey([ 'Enter' ], handleSave, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
+  useHotkey([ 'Escape' ], handleCancel, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
 
   return <UnsavedWorkContext.Provider value={openPrompt}>
     { props.children }

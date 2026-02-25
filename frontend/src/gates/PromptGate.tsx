@@ -111,8 +111,14 @@ export function PromptGate(props: Props) {
     }
   }, [ options?.defaultValue ])
 
-  useHotkey([ 'Enter' ], handleConfirm, { preventDefault: isOpen })
-  useHotkey([ 'Escape' ], handleCancel, { preventDefault: isOpen })
+  useHotkey([ 'Enter' ], handleConfirm, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
+  useHotkey([ 'Escape' ], handleCancel, {
+    preventDefault: isOpen,
+    enabled: isOpen,
+  })
 
   return <PromptContext.Provider value={openPrompt}>
     { props.children }

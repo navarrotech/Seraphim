@@ -23,6 +23,8 @@ import { SiOpenai } from 'react-icons/si'
 import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+
+// Misc
 import { UrlTree } from '@common/urls'
 
 const IconByType = {
@@ -43,13 +45,17 @@ export function LLMsPage() {
   const deselectAll = useCallback(() => {
     if (selectedItem) {
       select(null)
+      return
     }
 
     navigate(UrlTree.tasks)
   }, [ selectedItem ])
 
   // Hotkeys
-  useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })
+  useHotkey([ 'Escape' ], deselectAll, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+  })
 
   return <article className='relaxed'>
     <header className='compact level'>

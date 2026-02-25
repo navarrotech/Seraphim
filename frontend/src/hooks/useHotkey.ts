@@ -13,10 +13,15 @@ export function useHotkey(
   options?: HotkeyOptions,
 ) {
   useEffect(() => {
+    if (options?.enabled === false) {
+      return () => {}
+    }
+
     return subscribeHotkey(keys, callback, options)
   }, [
     ...keys,
     callback,
+    options?.enabled,
     options?.preventDefault,
     options?.stopPropagation,
     options?.blockOtherHotkeys,
