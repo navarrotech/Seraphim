@@ -116,7 +116,7 @@ export async function addAccount(raw: AddAccountRequest) {
   const json = parseRequestBeforeSend(addAccountSchema, raw)
 
   const response = await apiClient
-    .post('v1/protected/accounts/add', { json })
+    .post('v1/protected/accounts/upsert', { json })
     .json<AddAccountResponse>()
 
   dispatch(
@@ -134,11 +134,11 @@ type UpdateAccountResponse = {
   account: AuthAccount
 }
 
-export async function updateConnectedAccount(accountId: string, raw: UpdateAccountRequest) {
+export async function upsertConnectedAccount(accountId: string = '', raw: UpdateAccountRequest) {
   const json = parseRequestBeforeSend(updateAccountSchema, raw)
 
   const response = await apiClient
-    .patch(`v1/protected/accounts/${accountId}`, { json })
+    .post(`v1/protected/accounts/upsert/${accountId}`, { json })
     .json<UpdateAccountResponse>()
 
   dispatch(

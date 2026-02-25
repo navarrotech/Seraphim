@@ -2,10 +2,13 @@
 
 import type { IssueTracking } from '@common/types'
 
+// UI
+import { Card } from '@frontend/elements/Card'
+
 type Props = {
   issueTracking?: IssueTracking
 }
 
 export function ViewIssueTrackingPage(props: Props) {
-  return <>NEW</>
+  return <Card>NEW</Card>
 }

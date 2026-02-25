@@ -12,14 +12,10 @@ export const UrlTree = {
   generalSettings: '/settings/general',
   promptSettings: '/settings/prompts',
 
-  repos: '/settings/repos',
-  viewRepo: '/settings/repos/:repoId',
+  gitAccounts: '/settings/git',
   workspaces: '/settings/workspaces',
-  viewWorkspace: '/settings/workspaces/:workspaceId',
   llms: '/settings/llms',
-  viewLlm: '/settings/llms/:llmId',
   issueTracking: '/settings/issue-tracking',
-  viewIssueTracking: '/settings/issue-tracking/:issueTrackingId',
 } as const
 export type UrlValue = typeof UrlTree[keyof typeof UrlTree]
 

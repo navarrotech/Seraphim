@@ -18,8 +18,8 @@ export function SettingsSidebar() {
       </NavLink>
     </Card>
     <Card className='relaxed' label='Data'>
-      <NavLink to={UrlTree.repos} className={navlinkClass}>
-        <span>Repos</span>
+      <NavLink to={UrlTree.gitAccounts} className={navlinkClass}>
+        <span>Git</span>
       </NavLink>
       <NavLink to={UrlTree.llms} className={navlinkClass}>
         <span>LLMs</span>

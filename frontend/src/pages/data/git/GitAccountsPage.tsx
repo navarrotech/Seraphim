@@ -15,7 +15,7 @@ import { useSelector } from '@frontend/framework/store'
 import { removeAccount } from '@frontend/routes/accountsRoutes'
 
 // User Interface
-import { ViewRepoPage } from './ViewRepoPage'
+import { ViewGitAccountsPage } from './ViewGitAccountsPage'
 import { Card } from '@frontend/elements/Card'
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
 import { ListItem } from '../ListItem'
@@ -32,7 +32,7 @@ const IconByProvider = {
   GITHUB: <SiGithub className='icon' size={38} />,
 } as const satisfies Record<AuthAccount['provider'], ReactNode>
 
-export function ReposPage() {
+export function GitAccountsPage() {
   // Input
   const navigate = useNavigate()
   const items = useSelector((state) => state.accounts.items)
@@ -90,7 +90,7 @@ export function ReposPage() {
         </Dropdown>
       </div>
     </header>
-    <section className='level-centered gap-6'>
+    <section className='level-centered items-start gap-6'>
       <Card>{
         !items?.length
           ? <EmptyData message='No repositories connected yet.' />
@@ -162,8 +162,8 @@ export function ReposPage() {
       }</Card>
       { selectedItem
         ? selectedItem === 'new'
-          ? <ViewRepoPage />
-          : <ViewRepoPage account={selectedItem} />
+          ? <ViewGitAccountsPage />
+          : <ViewGitAccountsPage account={selectedItem} />
         : <></>
       }
     </section>

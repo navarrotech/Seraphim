@@ -14,14 +14,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { updateCurrentUserSettings } from '@frontend/routes/userRoutes'
 
 // UI
-import { Button, Tooltip } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
 import { ThemeInput } from '@frontend/elements/ThemeInput'
 import { LanguageInput } from '@frontend/elements/LanguageInput'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
-
-// Iconography
-import { ResetIcon } from '@frontend/elements/graphics/IconNexus'
+import { SaveButton } from '@frontend/elements/SaveButton'
+import { ResetButton } from '@frontend/elements/ResetButton'
 
 const resolvedForm = zodResolver(userSettingsUpdateFieldsSchema)
 
@@ -53,33 +51,16 @@ export function GeneralSettingsPage() {
     <header className='compact level'>
       <h1 className='text-2xl font-bold'>General settings</h1>
       <div className='level-right'>
-        <Tooltip content='Undo your unsaved changes'>
-          <Button
-            id='reset'
-            isDisabled={!form.formState.isDirty}
-            onPress={() => form.reset(currentSettings)}
-          >
-            <span className='icon'>
-              <ResetIcon />
-            </span>
-            <span>Reset</span>
-          </Button>
-        </Tooltip>
-        <Tooltip content={form.formState.isDirty
-            ? 'Save your changes'
-            : 'No unsaved changes to save'
-          }>
-          <div>
-            <Button
-              id='save'
-              color='primary'
-              isDisabled={!form.formState.isDirty}
-              onPress={() => onSave()}
-            >
-              <span>Save</span>
-            </Button>
-          </div>
-        </Tooltip>
+        <ResetButton
+          onReset={() => form.reset(currentSettings)}
+          isDirty={form.formState.isDirty}
+          isDisabled={form.formState.isSubmitting}
+        />
+        <SaveButton
+          onSave={onSave}
+          isDirty={form.formState.isDirty}
+          isDisabled={form.formState.isSubmitting}
+        />
       </div>
     </header>
     <DisplayErrors
