@@ -21,11 +21,11 @@ export function SettingsSidebar() {
       <NavLink to={UrlTree.repos} className={navlinkClass}>
         <span>Repos</span>
       </NavLink>
-      <NavLink to={UrlTree.workspaces} className={navlinkClass}>
-        <span>Workspaces</span>
-      </NavLink>
       <NavLink to={UrlTree.llms} className={navlinkClass}>
         <span>LLMs</span>
+      </NavLink>
+      <NavLink to={UrlTree.workspaces} className={navlinkClass}>
+        <span>Workspaces</span>
       </NavLink>
       <NavLink to={UrlTree.issueTracking} className={navlinkClass}>
         <span>Issue tracking</span>

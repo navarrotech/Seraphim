@@ -5,7 +5,9 @@ type Props = {
 }
 
 export function EmptyData(props: Props) {
-  return <p className='opacity-70'>{
-    props.message
-  }</p>
+  return <section className='text-center w-full p-12'>
+    <p className='text-xl'>{
+      props.message
+    }</p>
+  </section>
 }
