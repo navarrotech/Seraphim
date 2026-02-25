@@ -22,7 +22,7 @@ import { useSelector } from '@frontend/framework/store'
  * @return {Theme} Returns the current theme, either 'dark' or 'light'.
  */
 export function useSystemTheme(): Theme {
-  const themePreference = useSelector((state) => state.settings?.value.theme) as ThemePreference | undefined
+  const themePreference = useSelector((state) => state.settings?.current.theme) as ThemePreference | undefined
   const [ theme, setTheme ] = useState<Theme>(() => resolveTheme(themePreference))
 
   useEffect(() => {

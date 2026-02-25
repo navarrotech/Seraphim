@@ -7,13 +7,11 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createEnhancedSlice } from '../createEnhancedSlice'
 
 type State = {
-  value: UserSettings | null
-  hasLoaded: boolean
+  current: UserSettings | null
 }
 
 const initialState: State = {
-  value: null,
-  hasLoaded: false,
+  current: null,
 } as const
 
 export const slice = createEnhancedSlice({
@@ -21,8 +19,7 @@ export const slice = createEnhancedSlice({
   initialState,
   reducers: {
     setSettings: (state, action: PayloadAction<UserSettings | null>) => {
-      state.value = action.payload
-      state.hasLoaded = true
+      state.current = action.payload
     },
   },
 })

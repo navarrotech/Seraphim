@@ -10,7 +10,7 @@ import type {
   Turn,
   Task,
   User,
-  UserSettings,
+  UserSettings as UserSettingsPrisma,
   Workspace,
   WorkspaceEnv,
 } from '@prisma/client'
@@ -44,9 +44,12 @@ export type {
   Turn,
   Task,
   User,
-  UserSettings,
   Workspace,
   WorkspaceEnv,
+}
+
+export type UserSettings = Omit<UserSettingsPrisma, 'theme'> & {
+  theme: ThemePreference
 }
 
 export type WorkspaceWithEnv = Workspace & {
