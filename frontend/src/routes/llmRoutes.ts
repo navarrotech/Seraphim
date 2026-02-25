@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Llm, LlmWithRateLimits } from '@common/types'
-import type { CreateLlmRequest, UpdateLlmRequest } from '@common/schema/llm'
+import type { UpsertLlmRequest } from '@common/schema/llm'
 
 // Core
 import { parseRequestBeforeSend } from '@common/api'
@@ -12,7 +12,7 @@ import { llmActions } from '@frontend/framework/redux/stores/llms'
 import { dispatch } from '@frontend/framework/store'
 
 // Schema
-import { createLlmSchema, updateLlmSchema } from '@common/schema/llm'
+import { upsertLlmSchema } from '@common/schema/llm'
 
 // /////////////////////////////// //
 //            List LLMs            //
@@ -36,41 +36,19 @@ export async function listLlms() {
 }
 
 // /////////////////////////////// //
-//           Create LLM            //
+//           Upsert LLM            //
 // /////////////////////////////// //
 
-type CreateLlmResponse = {
+type UpsertLlmResponse = {
   llm: LlmWithRateLimits
 }
 
-export async function createOpenAILlm(data: CreateLlmRequest) {
-  const json = parseRequestBeforeSend(createLlmSchema, data)
+export async function upsertLlm(id: string = '', raw: UpsertLlmRequest) {
+  const json = parseRequestBeforeSend(upsertLlmSchema, raw)
 
   const response = await frontendClient
-    .post('v1/protected/llms', { json })
-    .json<CreateLlmResponse>()
-
-  dispatch(
-    llmActions.upsertLlm(response.llm),
-  )
-
-  return response
-}
-
-// /////////////////////////////// //
-//           Update LLM            //
-// /////////////////////////////// //
-
-type UpdateLlmResponse = {
-  llm: LlmWithRateLimits
-}
-
-export async function updateLlm(id: string, raw: UpdateLlmRequest) {
-  const json = parseRequestBeforeSend(updateLlmSchema, raw)
-
-  const response = await frontendClient
-    .patch(`v1/protected/llms/${id}`, { json })
-    .json<UpdateLlmResponse>()
+    .post(`v1/protected/llms/${id}`, { json })
+    .json<UpsertLlmResponse>()
 
   dispatch(
     llmActions.upsertLlm(response.llm),

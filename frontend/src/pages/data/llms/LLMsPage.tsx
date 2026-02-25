@@ -1,10 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { ReactNode } from 'react'
 import type { LlmWithRateLimits } from '@common/types'
+import type { ReactNode } from 'react'
 
 // Core
-import { useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
@@ -12,19 +12,31 @@ import { useConfirm } from '@frontend/hooks/useConfirm'
 // Redux
 import { useSelector } from '@frontend/framework/store'
 
-// Actions
-import { deleteLlm } from '@frontend/routes/llmRoutes'
-
 // User Interface
 import { ViewLLMPage } from './ViewLLMPage'
 import { Card } from '@frontend/elements/Card'
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from '@heroui/react'
 import { SiOpenai } from 'react-icons/si'
-import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
+import {
+  PlusIcon,
+  EllipsisIcon,
+  DeleteIcon,
+  EditIcon,
+} from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
 
+// Utility
+import { isEqual } from 'lodash-es'
+
 // Misc
+import { deleteLlm } from '@frontend/routes/llmRoutes'
 import { UrlTree } from '@common/urls'
 
 const IconByType = {
@@ -38,7 +50,32 @@ export function LLMsPage() {
   const items = useSelector((state) => state.llms.items)
 
   // State
-  const [ selectedItem, select ] = useState<'new' | LlmWithRateLimits | null>(null)
+  const [ selectedItem, select ] = useState<
+    'new' | LlmWithRateLimits | null
+  >(null)
+
+  // State maintenance
+  useEffect(() => {
+    if (!selectedItem || selectedItem === 'new') {
+      return
+    }
+
+    const latestItem = items.find((item) => item.id === selectedItem.id)
+    if (!latestItem) {
+      console.debug(
+        'LLMsPage selected item no longer exists, clearing selection',
+        { selectedItem },
+      )
+      select(null)
+      return
+    }
+
+    if (isEqual(latestItem, selectedItem)) {
+      return
+    }
+
+    select(latestItem)
+  }, [ items, selectedItem ])
 
   // Actions
   const confirm = useConfirm()
@@ -49,7 +86,7 @@ export function LLMsPage() {
     }
 
     navigate(UrlTree.tasks)
-  }, [ selectedItem ])
+  }, [ navigate, selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, {
@@ -90,7 +127,7 @@ export function LLMsPage() {
         </Dropdown>
       </div>
     </header>
-    <section className='level-centered gap-6'>
+    <section className='level-centered items-start gap-6'>
       <Card>{
         !items?.length
           ? <EmptyData message='No LLMs configured yet.' />
@@ -169,9 +206,17 @@ export function LLMsPage() {
           </>
       }</Card>
       { selectedItem
-        ? selectedItem === 'new'
-          ? <ViewLLMPage />
-          : <ViewLLMPage languageModel={selectedItem} />
+        ? <ViewLLMPage
+          languageModel={typeof selectedItem !== 'string'
+            ? selectedItem
+            : undefined
+          }
+          type={selectedItem === 'new'
+            ? 'OPENAI_API_KEY'
+            : selectedItem.type
+          }
+          close={() => select(null)}
+        />
         : <></>
       }
     </section>

@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { LlmType } from '@prisma/client'
 
-export const createLlmSchema = z
+export const upsertLlmSchema = z
   .object({
     name: z.string().trim().min(1),
     type: z.nativeEnum(LlmType),
@@ -12,12 +12,12 @@ export const createLlmSchema = z
     tokenLimit: z.number().int().nonnegative().optional().default(0),
     isDefault: z.boolean().optional().default(false),
   })
-  .strict()
-export type CreateLlmRequest = z.infer<typeof createLlmSchema>
-
-export const updateLlmSchema = createLlmSchema
-  .partial()
-  .refine((data) => Object.keys(data).length > 0, {
-    message: 'No valid fields provided for update',
+  .partial({
+    name: true,
+    preferredModel: true,
+    apiKey: true,
+    tokenLimit: true,
+    isDefault: true,
   })
-export type UpdateLlmRequest = z.infer<typeof updateLlmSchema>
+
+export type UpsertLlmRequest = z.infer<typeof upsertLlmSchema>

@@ -26,7 +26,7 @@ export function createIssueTrackingRouter(): Router {
   )
 
   // /api/v1/protected/issue-tracking/:issueTrackingId
-  issueTrackingRouter.patch(
+  issueTrackingRouter.post(
     '/:issueTrackingId',
     handleUpsertIssueTrackingRequest,
   )

@@ -7,16 +7,17 @@ import { Router as createRouter } from 'express'
 
 // Misc
 import { handleListLlmsRequest } from './llms/listLlmsRoute'
-import { handleUpdateLlmRequest } from './llms/updateLlmRoute'
 import { handleDeleteLlmRequest } from './llms/deleteLlmRoute'
+import { handleUpsertLlmRequest } from './llms/upsertLlmRoute'
 
 export function createLlmsRouter(): Router {
   const llmsRouter = createRouter()
 
   // /api/v1/protected/llms
   llmsRouter.get('/', handleListLlmsRequest)
+  llmsRouter.post('/', handleUpsertLlmRequest)
   // /api/v1/protected/llms/:llmId
-  llmsRouter.patch('/:llmId', handleUpdateLlmRequest)
+  llmsRouter.post('/:llmId', handleUpsertLlmRequest)
   // /api/v1/protected/llms/:llmId
   llmsRouter.delete('/:llmId', handleDeleteLlmRequest)
 
