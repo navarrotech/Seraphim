@@ -13,7 +13,6 @@ import { NewTaskPage } from './pages/tasks/NewTaskPage'
 import { ViewTaskPage } from './pages/tasks/ViewTaskPage'
 
 import { GeneralSettingsPage } from './pages/settings/GeneralSettingsPage'
-import { UserSettingsPage } from './pages/settings/UserSettingsPage'
 import { PromptSettingsPage } from './pages/settings/PromptSettingsPage'
 
 import { ReposPage } from './pages/data/repos/ReposPage'
@@ -40,7 +39,6 @@ export function Router() {
         <Route path={UrlTree.settings} element={<SettingsOutlet />}>
 
           <Route path={UrlTree.generalSettings} element={<GeneralSettingsPage />} />
-          <Route path={UrlTree.userSettings} element={<UserSettingsPage />} />
           <Route path={UrlTree.promptSettings} element={<PromptSettingsPage />} />
 
           <Route path={UrlTree.repos} element={<ReposPage />} />

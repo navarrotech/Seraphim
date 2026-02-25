@@ -10,7 +10,6 @@ export const UrlTree = {
 
   settings: '/settings',
   generalSettings: '/settings/general',
-  userSettings: '/settings/user',
   promptSettings: '/settings/prompts',
 
   repos: '/settings/repos',

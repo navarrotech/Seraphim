@@ -16,9 +16,6 @@ export function SettingsSidebar() {
       <NavLink to={UrlTree.promptSettings} className={navlinkClass}>
         <span>Prompt engineering</span>
       </NavLink>
-      <NavLink to={UrlTree.userSettings} className={navlinkClass}>
-        <span>User settings</span>
-      </NavLink>
     </Card>
     <Card className='relaxed' label='Data'>
       <NavLink to={UrlTree.repos} className={navlinkClass}>
