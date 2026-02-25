@@ -26,4 +26,5 @@ $null
 electron/out/
 electron/public/browser/
 frontend/dist/
+frontend/storybook-static/
 dev.log

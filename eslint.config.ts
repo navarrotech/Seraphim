@@ -12,6 +12,15 @@ export default defineConfig([{
     'common/src/vendor/**',
   ]),
   {
+  files: [
+    '**/*.stories.@(ts|tsx)',
+    'frontend/.storybook/**/*.{ts,tsx}',
+  ],
+  rules: {
+    'import/no-default-export': 'off',
+  },
+},
+  {
   rules: {
     'react-hooks/exhaustive-deps': 'off',
     'license-header/header': [

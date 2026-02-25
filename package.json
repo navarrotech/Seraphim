@@ -22,7 +22,8 @@
   ],
   "scripts": {
     "dev": "concurrently --kill-others \"yarn --cwd frontend dev\" \"yarn --cwd electron dev\"",
-    "generate": "yarn prisma generate && yarn codex app-server generate-ts --out ./common/src/vendor/codex-protocol && tsx ./scripts/buildkit-proto.ts",
+    "storybook": "yarn --cwd frontend storybook",
+    "generate": "yarn prisma generate && yarn codex app-server generate-ts --out ./common/src/vendor/codex-protocol && tsx ./scripts/buildkit-proto.ts && yarn --cwd frontend storybook:build",
     "db": "yarn prisma db push",
     "build": "yarn workspaces foreach -Apt run build",
     "typecheck": "yarn workspaces foreach -Apt run typecheck",
@@ -83,3 +84,4 @@
     "vitest": "^3.2.4"
   }
 }
+
