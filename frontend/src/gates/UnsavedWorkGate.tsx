@@ -20,7 +20,7 @@ import {
   Button,
   Tooltip,
 } from '@heroui/react'
-import { WarningIcon } from '@frontend/elements/IconNexus'
+import { WarningIcon } from '@frontend/elements/graphics/IconNexus'
 
 export type UnsavedWorkOptions = {
   title?: string | ReactNode

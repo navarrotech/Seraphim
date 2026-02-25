@@ -148,7 +148,7 @@ export function PromptGate(props: Props) {
         </ModalBody>
         <ModalFooter>
           <Button
-            color={options?.cancelColor ?? 'default'}
+            color={options?.cancelColor ?? 'secondary'}
             isDisabled={isIntermittent}
             onPress={handleCancel}
           >{

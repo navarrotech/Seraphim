@@ -69,8 +69,8 @@ export default {
               foreground: '#111111',
             },
             'secondary': {
-              DEFAULT: '#F2EEEB',
-              foreground: '#020202',
+              DEFAULT: '#000000',
+              foreground: '#ffffff',
             },
             'background': '#F2EEEB',
 
@@ -94,15 +94,15 @@ export default {
             'primary': {
               ...generateTailwindScale(theme.Primary),
               DEFAULT: theme.Primary,
-              foreground: '#000000',
+              foreground: '#ffffff',
             },
             'default': {
               DEFAULT: '#2A2A29',
               foreground: '#ffffff',
             },
             'secondary': {
-              DEFAULT: theme.Secondary,
-              foreground: '#FFFFFF',
+              DEFAULT: '#ffffff',
+              foreground: '#000000',
             },
             'background': '#020202',
 

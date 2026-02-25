@@ -91,4 +91,13 @@ html, body, #root {
     justify-content: flex-end;
     gap: 0.6em;
   }
+
+  .hide-until-hover-parent .hide-until-hover {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  .hide-until-hover-parent:hover .hide-until-hover {
+    opacity: 1;
+  }
 }

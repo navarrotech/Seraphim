@@ -13,7 +13,7 @@ import {
   useDisclosure,
 } from '@heroui/react'
 import { BulkEditModal } from './BulkEditModal'
-import { DeleteIcon, EditBulkIcon, PlusIcon } from '@frontend/elements/IconNexus'
+import { DeleteIcon, EditIcon, PlusIcon } from '@frontend/elements/graphics/IconNexus'
 import { DisplayErrors } from '../DisplayErrors'
 
 type Props = {
@@ -129,7 +129,7 @@ export function EnvironmentInputs(props: Props) {
         isDisabled={isDisabled}
       >
         <span className='icon'>
-          <EditBulkIcon />
+          <EditIcon />
         </span>
         <span>Bulk Edit</span>
       </Button>
