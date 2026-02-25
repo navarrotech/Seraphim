@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest'
 
 // Lib to test
-import { validAbsoluteLinuxFilePathRegex } from './regex'
+import { validAbsoluteLinuxFilePathRegex, dotEnvEntryRegex } from './regex'
 
 // We list these statically so if one of them fails we can see the exact line that failed.
 
@@ -69,5 +69,25 @@ describe('validAbsoluteLinuxFilePathRegex', () => {
 
   it('should be fine on an empty string', () => {
     expect(validAbsoluteLinuxFilePathRegex.test('')).toBe(true)
+  })
+})
+
+describe('dotEnvEntryRegex', () => {
+  it('At least one "=" that is NOT inside single or double quotes', () => {
+    expect(dotEnvEntryRegex.test('KEY=value')).toBe(true)
+    expect(dotEnvEntryRegex.test('KEY="value"')).toBe(true)
+    expect(dotEnvEntryRegex.test('KEY=\'value\'')).toBe(true)
+    expect(dotEnvEntryRegex.test('KEY="="')).toBe(true)
+    expect(dotEnvEntryRegex.test('KEY=\'=\'')).toBe(true)
+    expect(dotEnvEntryRegex.test('KEY:"="')).toBe(false)
+    expect(dotEnvEntryRegex.test('KEY:\'=\'')).toBe(false)
+    expect(dotEnvEntryRegex.test('KEY: "="')).toBe(false)
+    expect(dotEnvEntryRegex.test('KEY: \'=\'')).toBe(false)
+    expect(dotEnvEntryRegex.test('"="')).toBe(false)
+    expect(dotEnvEntryRegex.test('\'=\'')).toBe(false)
+    expect(dotEnvEntryRegex.test('=')).toBe(true)
+    expect(dotEnvEntryRegex.test('==')).toBe(true)
+    expect(dotEnvEntryRegex.test('===')).toBe(true)
+    expect(dotEnvEntryRegex.test('')).toBe(false)
   })
 })

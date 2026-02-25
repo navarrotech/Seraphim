@@ -5,19 +5,12 @@ import { IssueTrackingProvider } from '@prisma/client'
 
 export const upsertIssueTrackingSchema = z
   .object({
-    name: z.string().trim().min(1),
+    name: z.string().trim().min(1).optional(),
     provider: z.nativeEnum(IssueTrackingProvider),
     baseUrl: z.string().trim().url().optional(),
-    email: z.string().trim().email(),
-    accessToken: z.string().trim().min(1),
-    targetBoard: z.string().trim().min(1),
-  })
-  .partial({
-    name: true,
-    baseUrl: true,
-    email: true,
-    accessToken: true,
-    targetBoard: true,
+    email: z.string().trim().email().optional(),
+    accessToken: z.string().trim().min(1).optional(),
+    targetBoard: z.string().trim().min(1).optional(),
   })
 
 export type UpsertIssueTrackingRequest = z.infer<typeof upsertIssueTrackingSchema>

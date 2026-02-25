@@ -1,9 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { OnChange } from '@monaco-editor/react'
-import type { MonacoFileLanguages } from '@frontend/framework/monaco'
+import type { OnMount, OnChange } from '@monaco-editor/react'
+import type { Monaco, MonacoFileLanguages, MonacoContext } from '@frontend/framework/monaco'
 
 // Core
+import { useCallback } from 'react'
 import Editor from '@monaco-editor/react'
 
 // Theme
@@ -21,12 +22,26 @@ export type MonacoOptionalProps = {
   autoFocus?: boolean
   minimapOverride?: boolean
   readOnly?: boolean
+  getMonaco?: (context: MonacoContext) => void
 }
 
 export type MonacoProps = MonacoRequiredProps & MonacoOptionalProps
 
 export function Monaco(props: MonacoProps) {
   const theme = useSystemTheme()
+
+  const handleMount: OnMount = useCallback((editor, monaco) => {
+    if (props.autoFocus) {
+      editor.focus()
+    }
+
+    if (props.getMonaco) {
+      props.getMonaco({
+        editor,
+        monaco,
+      })
+    }
+  }, [])
 
   return <div className={props.readOnly ? 'opacity-70' : ''}>
     <Editor
@@ -42,11 +57,7 @@ export function Monaco(props: MonacoProps) {
         : SERAPHIM_LIGHT_THEME
       }
       loading={<></>}
-      onMount={(editor) => {
-        if (props.autoFocus) {
-          editor.focus()
-        }
-      }}
+      onMount={handleMount}
       options={{
         automaticLayout: true,
         minimap: {

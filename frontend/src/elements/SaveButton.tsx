@@ -4,6 +4,7 @@
 import { Button, Tooltip } from '@heroui/react'
 
 type Props = {
+  tooltip?: string
   isDirty?: boolean
   isDisabled?: boolean
   isLoading?: boolean
@@ -12,7 +13,10 @@ type Props = {
 
 export function SaveButton(props: Props) {
   let tooltip = 'Save your changes'
-  if (props.isLoading) {
+  if (props.tooltip) {
+    tooltip = props.tooltip
+  }
+  else if (props.isLoading) {
     tooltip = 'Saving changes...'
   }
   else if (props.isDisabled) {

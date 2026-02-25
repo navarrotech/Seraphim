@@ -17,6 +17,14 @@ import 'monaco-editor/esm/vs/basic-languages/dockerfile/dockerfile.contribution.
 import 'monaco-editor/esm/vs/basic-languages/shell/shell.contribution.d.ts'
 import 'monaco-editor/esm/vs/basic-languages/ini/ini.contribution.d.ts'
 
+export type Monaco = typeof monaco
+export type Marker = monaco.editor.IMarkerData
+export type IEditor = monaco.editor.IStandaloneCodeEditor
+export type MonacoContext = {
+  editor: IEditor,
+  monaco: Monaco,
+}
+
 self.MonacoEnvironment = {
   getWorker(_: unknown, label: string) {
     if (label === 'json') {

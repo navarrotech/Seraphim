@@ -5,3 +5,6 @@
 // Double slashes is fine.
 // Disallow: <>:"\|?*
 export const validAbsoluteLinuxFilePathRegex = /^(?:\/[^\0<>:"\\|?*]*|)$/u
+
+// At least one '=' that is NOT inside single or double quotes
+export const dotEnvEntryRegex = /=(?=(?:[^"']|"[^"]*"|'[^']*')*$)/

@@ -28,16 +28,21 @@ type Props = {
   invalidFields?: Record<string, string[]>
 }
 
+const defaultItems: Environment[] = [{ key: '', value: '' }]
+
 export function EnvironmentInputs(props: Props) {
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure()
 
   const {
-    entries,
     // onChange is very likely to not be memoized, it's not that important to be memoized
     // So don't use it in the deps array
     onEntriesChange,
     isDisabled = false,
   } = props
+
+  const entries = !props.entries?.length
+    ? defaultItems
+    : props.entries
 
   const onValue = useCallback((index: number, key: keyof Environment, value: string) => {
     const newEnv = [ ...entries ]
