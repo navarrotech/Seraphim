@@ -16,6 +16,7 @@ type Props = {
   onChange: (value: UserLanguage) => void
   className?: string
   description?: string
+  errorMessage?: string
   isDisabled?: boolean
   label?: string
 }
@@ -33,6 +34,7 @@ export function LanguageInput(languageInputProps: Props) {
     onChange,
     className,
     description,
+    errorMessage,
     isDisabled,
     label = 'Language',
   } = languageInputProps
@@ -58,7 +60,9 @@ export function LanguageInput(languageInputProps: Props) {
     id='language'
     className={className}
     description={description}
+    errorMessage={errorMessage}
     isDisabled={isDisabled}
+    isInvalid={Boolean(errorMessage)}
     label={label}
     startContent={<FaGlobeAmericas className='opacity-60' />}
     selectedKeys={[ value ]}

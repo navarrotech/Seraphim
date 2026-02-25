@@ -46,7 +46,6 @@ export const userSettingsUpdateFieldsSchema = z
     customAgentInstructions: z.string().optional(),
     customAgentsFile: z.string().nullable().optional(),
   })
-  .strict()
 
 export const userSettingsUpdateSchema = userSettingsUpdateFieldsSchema
   .extend({

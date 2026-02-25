@@ -4,6 +4,7 @@ import { GoPlusCircle } from 'react-icons/go'
 import { MdArchive, MdEditDocument, MdOutlineSettings, MdLogout } from 'react-icons/md'
 import { FaRegTrashAlt, FaRegUserCircle } from 'react-icons/fa'
 import { IoWarningOutline, IoEllipsisVerticalOutline } from 'react-icons/io5'
+import { RxReset } from 'react-icons/rx'
 import { FiEye } from 'react-icons/fi'
 
 export const WarningIcon = IoWarningOutline
@@ -16,3 +17,4 @@ export const SettingsIcon = MdOutlineSettings
 export const ExitIcon = MdLogout
 export const EllipsisIcon = IoEllipsisVerticalOutline
 export const ViewIcon = FiEye
+export const ResetIcon = RxReset

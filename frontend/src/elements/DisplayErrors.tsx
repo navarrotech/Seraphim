@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { Alert } from '@heroui/react'
 
 type Props = {
+  className?: string
   errors?: string | string[] | null
 }
 
@@ -28,6 +29,7 @@ export function DisplayErrors(props: Props) {
 
   return <Alert
     color='danger'
+    className={props.className}
     title={title}
   />
 }

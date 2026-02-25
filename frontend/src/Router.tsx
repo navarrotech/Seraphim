@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 // Core
-import { Navigate, Route, Routes } from 'react-router'
+import { createBrowserRouter, createRoutesFromElements, Navigate, Route } from 'react-router'
 
 // Outlets
 import { AppOutlet } from './pages/AppOutlet'
@@ -27,9 +27,10 @@ import { ViewIssueTrackingPage } from './pages/data/issueTracking/ViewIssueTrack
 // Misc
 import { UNKNOWN_ROUTE_REDIRECT_TO, UrlTree } from '@common/urls'
 
-export function Router() {
-  return <>
-    <Routes>
+
+export const Router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
       <Route path={UrlTree.root} element={<AppOutlet />}>
 
         <Route path={UrlTree.tasks} element={<ListTasksPage />} />
@@ -59,6 +60,6 @@ export function Router() {
       </Route>
 
       <Route path='*' element={<Navigate to={UNKNOWN_ROUTE_REDIRECT_TO} />} />
-    </Routes>
-  </>
-}
+    </>,
+  ),
+)

@@ -57,8 +57,9 @@ export function UnsavedWorkGate(props: Props) {
 
   const openPrompt = useCallback((options: UnsavedWorkOptions) => {
     setOptions({
-      title: 'files.unsaved-work.title',
-      message: 'files.unsaved-work.description',
+      title: 'Wait! You have unsaved changes',
+      message: 'You\'re about to leave the page with unsaved work, that will get lost if you leave the page.'
+        + ' Are you sure you want to leave the page without saving your changes first?',
       ...options,
     })
     onOpen()
@@ -148,7 +149,8 @@ export function UnsavedWorkGate(props: Props) {
           {/* Cancel, stay on the page */}
           <Tooltip content='Cancel and stay on the page'>
             <Button
-              color={options?.cancelColor ?? 'default'}
+              color={options?.cancelColor ?? 'secondary'}
+              variant='faded'
               isDisabled={isIntermittent}
               onPress={handleCancel}
             >{
@@ -159,6 +161,7 @@ export function UnsavedWorkGate(props: Props) {
           <Tooltip content='Leave without saving'>
             <Button
               color={options?.discardColor ?? 'danger'}
+              variant='faded'
               isLoading={isIntermittent}
               onPress={handleDiscard}
             >{

@@ -12,6 +12,7 @@ type Props = {
   onChange: (value: ThemePreference) => void
   className?: string
   description?: string
+  errorMessage?: string
   isDisabled?: boolean
   label?: string
 }
@@ -31,6 +32,7 @@ export function ThemeInput(themeInputProps: Props) {
     onChange,
     className,
     description,
+    errorMessage,
     isDisabled,
     label = 'Theme',
   } = themeInputProps
@@ -61,7 +63,9 @@ export function ThemeInput(themeInputProps: Props) {
     id='theme'
     className={className}
     description={description}
+    errorMessage={errorMessage}
     isDisabled={isDisabled}
+    isInvalid={Boolean(errorMessage)}
     label={label}
     startContent={<FaPalette className='opacity-60' />}
     selectedKeys={[ value ]}

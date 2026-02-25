@@ -5,6 +5,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
 import { createEnhancedSlice } from '../createEnhancedSlice'
+import { isEqual } from 'lodash-es'
 
 type State = {
   current: UserSettings | null
@@ -19,6 +20,10 @@ export const slice = createEnhancedSlice({
   initialState,
   reducers: {
     setSettings: (state, action: PayloadAction<UserSettings | null>) => {
+      if (isEqual(state.current, action.payload)) {
+        return
+      }
+
       state.current = action.payload
     },
   },
