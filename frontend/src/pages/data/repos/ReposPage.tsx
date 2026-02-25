@@ -4,6 +4,7 @@ import type { AuthAccount } from '@common/types'
 
 // Core
 import { useState, useCallback, ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
 
@@ -17,10 +18,15 @@ import { removeAccount } from '@frontend/routes/accountsRoutes'
 import { ViewRepoPage } from './ViewRepoPage'
 import { Card } from '@frontend/elements/Card'
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
-import { SiGithub } from 'react-icons/si'
-import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+
+// Iconography
+import { SiGithub } from 'react-icons/si'
+import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
+
+// Misc
+import { UrlTree } from '@common/urls'
 
 const IconByProvider = {
   GITHUB: <SiGithub className='icon' size={38} />,
@@ -28,6 +34,7 @@ const IconByProvider = {
 
 export function ReposPage() {
   // Input
+  const navigate = useNavigate()
   const items = useSelector((state) => state.accounts.items)
 
   // State
@@ -36,8 +43,12 @@ export function ReposPage() {
   // Actions
   const confirm = useConfirm()
   const deselectAll = useCallback(() => {
-    select(null)
-  }, [])
+    if (selectedItem) {
+      select(null)
+    }
+
+    navigate(UrlTree.tasks)
+  }, [ selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })

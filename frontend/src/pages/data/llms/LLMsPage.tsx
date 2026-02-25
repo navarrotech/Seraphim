@@ -5,6 +5,7 @@ import type { LlmWithRateLimits } from '@common/types'
 
 // Core
 import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
 
@@ -22,6 +23,7 @@ import { SiOpenai } from 'react-icons/si'
 import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+import { UrlTree } from '@common/urls'
 
 const IconByType = {
   OPENAI_API_KEY: <SiOpenai className='icon' size={38} />,
@@ -30,6 +32,7 @@ const IconByType = {
 
 export function LLMsPage() {
   // Input
+  const navigate = useNavigate()
   const items = useSelector((state) => state.llms.items)
 
   // State
@@ -38,8 +41,12 @@ export function LLMsPage() {
   // Actions
   const confirm = useConfirm()
   const deselectAll = useCallback(() => {
-    select(null)
-  }, [])
+    if (selectedItem) {
+      select(null)
+    }
+
+    navigate(UrlTree.tasks)
+  }, [ selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })

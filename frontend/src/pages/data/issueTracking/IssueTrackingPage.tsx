@@ -5,6 +5,7 @@ import type { IssueTracking } from '@common/types'
 
 // Core
 import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
 
@@ -22,6 +23,7 @@ import { SiJirasoftware } from 'react-icons/si'
 import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+import { UrlTree } from '@common/urls'
 
 const IconByProvider = {
   Jira: <SiJirasoftware className='icon' size={38} />,
@@ -29,6 +31,7 @@ const IconByProvider = {
 
 export function IssueTrackingPage() {
   // Input
+  const navigate = useNavigate()
   const items = useSelector((state) => state.issueTracking.items)
 
   // State
@@ -37,8 +40,12 @@ export function IssueTrackingPage() {
   // Actions
   const confirm = useConfirm()
   const deselectAll = useCallback(() => {
-    select(null)
-  }, [])
+    if (selectedItem) {
+      select(null)
+    }
+
+    navigate(UrlTree.tasks)
+  }, [ selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })

@@ -4,6 +4,7 @@ import type { Workspace } from '@common/types'
 
 // Core
 import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
 
@@ -20,9 +21,11 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@
 import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
+import { UrlTree } from '@common/urls'
 
 export function WorkspacesPage() {
   // Input
+  const navigate = useNavigate()
   const items = useSelector((state) => state.workspaces.items)
 
   // State
@@ -31,8 +34,12 @@ export function WorkspacesPage() {
   // Actions
   const confirm = useConfirm()
   const deselectAll = useCallback(() => {
-    select(null)
-  }, [])
+    if (selectedItem) {
+      select(null)
+    }
+
+    navigate(UrlTree.tasks)
+  }, [ selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })
