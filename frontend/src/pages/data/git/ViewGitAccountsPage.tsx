@@ -1,10 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { AuthAccount } from '@common/types'
-import type { UpdateAccountRequest } from '@common/schema/accounts'
+import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
+import { useHotkey } from '@frontend/hooks/useHotkey'
 
 // Lib
 import { useForm } from 'react-hook-form'
@@ -16,29 +17,33 @@ import { Card } from '@frontend/elements/Card'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
 import { SaveButton } from '@frontend/elements/SaveButton'
 import { ResetButton } from '@frontend/elements/ResetButton'
+import { CloseButton } from '@frontend/elements/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
 
 // Misc
-import { updateAccountSchema } from '@common/schema/accounts'
-import { upsertConnectedAccount } from '@frontend/routes/accountsRoutes'
+import { upsertAccountSchema } from '@common/schema/accounts'
+import { upsertGitAccount } from '@frontend/routes/accountsRoutes'
 
 type Props = {
   account?: AuthAccount
+  provider?: AuthAccount['provider']
+  close?: () => void
 }
 
-const resolvedForm = zodResolver(updateAccountSchema)
+const resolvedForm = zodResolver(upsertAccountSchema)
 
 export function ViewGitAccountsPage(props: Props) {
-  const { account } = props
+  const { account, provider } = props
 
-  const form = useForm<UpdateAccountRequest>({
+  const form = useForm<UpsertAccountRequest>({
     resolver: resolvedForm,
     defaultValues: {
       name: account?.name ?? '',
-      gitUserName: account?.name ?? '',
+      gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
+      provider: account.provider ?? provider,
       accessToken: '',
     },
     mode: 'onSubmit',
@@ -47,48 +52,52 @@ export function ViewGitAccountsPage(props: Props) {
   useEffect(() => {
     form.reset({
       name: account?.name ?? '',
-      gitUserName: account?.name ?? '',
+      gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
+      provider: account.provider ?? provider,
       accessToken: '',
     })
   }, [ account ])
 
-  const onSave = form.handleSubmit(
-    (values) => upsertConnectedAccount(account?.id || '', values),
-  )
+  const onSave: () => void = useCallback(() => {
+    if (!form.formState.isDirty) {
+      return () => {}
+    }
+
+    return form.handleSubmit(
+      (values) => upsertGitAccount(account?.id || '', values),
+    )()
+  }, [ account, form.formState.isDirty ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
-    onSave: () => onSave(),
+    onSave,
   })
 
-  return <article>
+  useHotkey([ 'Control', 's' ], onSave, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+  })
+
+  return <Card className='w-full'>
     <header className='compact level'>
       <h1 className='text-2xl font-bold'>
         Git Account
       </h1>
-      <div className='level-right'>
-        <ResetButton
-          onReset={() => form.reset()}
-          isDirty={form.formState.isDirty}
-          isDisabled={form.formState.isSubmitting}
-        />
-        <SaveButton
-          onSave={onSave}
-          isDirty={form.formState.isDirty}
-          isDisabled={form.formState.isSubmitting || !account?.id}
-         />
-      </div>
+      { props.close
+        ? <CloseButton onClose={props.close} />
+        : <></>
+      }
     </header>
     <DisplayErrors
       errors={form.formState.errors.root?.message}
       className='relaxed'
     />
-    <Card>
-      <div className='relaxed'>
+    <div className='relaxed'>
+      <div className='compact'>
         <Input
+          fullWidth
           label='Repository Name'
           placeholder='Seraphim Team'
-          className='w-full'
           isInvalid={Boolean(form.formState.errors.name)}
           errorMessage={form.formState.errors.name?.message}
           value={form.watch('name')}
@@ -97,10 +106,12 @@ export function ViewGitAccountsPage(props: Props) {
             form.setValue('name', value, { shouldDirty: true })
           }}
         />
+      </div>
+      <div className='compact'>
         <Input
-          label='Git user name'
+          fullWidth
+          label='Git real name'
           placeholder='Ada Lovelace'
-          className='w-full'
           isInvalid={Boolean(form.formState.errors.gitUserName)}
           errorMessage={form.formState.errors.gitUserName?.message}
           value={form.watch('gitUserName')}
@@ -109,10 +120,12 @@ export function ViewGitAccountsPage(props: Props) {
             form.setValue('gitUserName', value, { shouldDirty: true })
           }}
         />
+      </div>
+      <div className='compact'>
         <Input
-          label='Git user email'
+          fullWidth
+          label='Git real email'
           placeholder='ada@jalapenolabs.io'
-          className='w-full'
           isInvalid={Boolean(form.formState.errors.gitUserEmail)}
           errorMessage={form.formState.errors.gitUserEmail?.message}
           value={form.watch('gitUserEmail')}
@@ -121,12 +134,14 @@ export function ViewGitAccountsPage(props: Props) {
             form.setValue('gitUserEmail', value, { shouldDirty: true })
           }}
         />
+      </div>
+      <div className='compact'>
         <Input
           label='Access token'
           placeholder='ghp_***'
+          fullWidth
           type='password'
           autoComplete='off'
-          className='w-full'
           isInvalid={Boolean(form.formState.errors.accessToken)}
           errorMessage={form.formState.errors.accessToken?.message}
           value={form.watch('accessToken')}
@@ -135,7 +150,20 @@ export function ViewGitAccountsPage(props: Props) {
             form.setValue('accessToken', value, { shouldDirty: true })
           }}
         />
+        <p className='text-sm opacity-80'>(Leave blank for no change)</p>
       </div>
-    </Card>
-  </article>
+    </div>
+    <div className='level-centered'>
+      <ResetButton
+        onReset={() => form.reset()}
+        isDirty={form.formState.isDirty}
+        isDisabled={form.formState.isSubmitting}
+      />
+      <SaveButton
+        onSave={onSave}
+        isDirty={form.formState.isDirty}
+        isDisabled={form.formState.isSubmitting || !account?.id}
+        />
+    </div>
+  </Card>
 }

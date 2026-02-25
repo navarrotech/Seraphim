@@ -8,7 +8,7 @@ import type {
   StandardPaginatedResponseData,
   AuthProvider,
 } from '@common/types'
-import type { AddAccountRequest, UpdateAccountRequest } from '@common/schema/accounts'
+import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
 import { apiClient, buildUrlParams, parseRequestBeforeSend } from '@common/api'
@@ -18,7 +18,7 @@ import { accountActions } from '@frontend/framework/redux/stores/accounts'
 import { dispatch } from '@frontend/framework/store'
 
 // Schema
-import { addAccountSchema, updateAccountSchema } from '@common/schema/accounts'
+import { upsertAccountSchema } from '@common/schema/accounts'
 
 // /////////////////////////////// //
 //           List Accounts         //
@@ -95,51 +95,28 @@ export function listBranches(request: ListBranchesRequest) {
     .json<ListBranchesResponse>()
 }
 
-
-// /////////////////////////////// //
-//           Add Account           //
-// /////////////////////////////// //
-
-type AddAccountResponse = {
-  account: AuthAccount
-  gitUserName: string
-  gitUserEmail: string
-  githubIdentity: {
-    username: string
-    email: string | null
-  }
-  grantedScopes: string[]
-  acceptedScopes: string[]
-}
-
-export async function addAccount(raw: AddAccountRequest) {
-  const json = parseRequestBeforeSend(addAccountSchema, raw)
-
-  const response = await apiClient
-    .post('v1/protected/accounts/upsert', { json })
-    .json<AddAccountResponse>()
-
-  dispatch(
-    accountActions.upsertAccount(response.account),
-  )
-
-  return response
-}
-
 // /////////////////////////////// //
 //          Update Account         //
 // /////////////////////////////// //
 
-type UpdateAccountResponse = {
+type UpsertAccountResponse = {
   account: AuthAccount
+  gitUserName?: string
+  gitUserEmail?: string
+  githubIdentity?: {
+    username?: string
+    email?: string | null
+  }
+  grantedScopes?: string[]
+  acceptedScopes?: string[]
 }
 
-export async function upsertConnectedAccount(accountId: string = '', raw: UpdateAccountRequest) {
-  const json = parseRequestBeforeSend(updateAccountSchema, raw)
+export async function upsertGitAccount(accountId: string = '', raw: UpsertAccountRequest) {
+  const json = parseRequestBeforeSend(upsertAccountSchema, raw)
 
   const response = await apiClient
     .post(`v1/protected/accounts/upsert/${accountId}`, { json })
-    .json<UpdateAccountResponse>()
+    .json<UpsertAccountResponse>()
 
   dispatch(
     accountActions.upsertAccount(response.account),

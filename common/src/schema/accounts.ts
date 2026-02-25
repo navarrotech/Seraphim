@@ -1,27 +1,26 @@
 // Copyright © 2026 Jalapeno Labs
 
-import { z } from 'zod'
+// Lib
 import { AuthProvider } from '@prisma/client'
+import { z } from 'zod'
 
-export const addAccountSchema = z
+export const upsertAccountSchema = z
   .object({
     name: z.string().trim().min(1),
     provider: z.nativeEnum(AuthProvider),
-    accessToken: z.string().trim().min(1),
+    accessToken: z.string().trim().optional(),
     gitUserName: z.string().trim().min(1),
     gitUserEmail: z.string().trim().email(),
   })
-export type AddAccountRequest = z.infer<typeof addAccountSchema>
-
-export const updateAccountSchema = z
-  .object({
-    name: z.string().trim().min(1).optional(),
-    accessToken: z.string().trim().min(1).optional(),
-    gitUserName: z.string().trim().min(1).optional(),
-    gitUserEmail: z.string().trim().email().optional(),
-  })
+  .partial()
   .refine(
-    (payload) => Boolean(payload.name || payload.accessToken || payload.gitUserName || payload.gitUserEmail),
+    (payload) => Boolean(
+      payload.name
+      || payload.accessToken
+      || payload.gitUserName
+      || payload.gitUserEmail,
+    ),
     { message: 'At least one editable account field is required' },
   )
-export type UpdateAccountRequest = z.infer<typeof updateAccountSchema>
+
+export type UpsertAccountRequest = z.infer<typeof upsertAccountSchema>

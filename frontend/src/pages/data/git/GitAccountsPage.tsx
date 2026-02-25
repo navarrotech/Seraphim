@@ -161,9 +161,13 @@ export function GitAccountsPage() {
           </>
       }</Card>
       { selectedItem
-        ? selectedItem === 'new'
-          ? <ViewGitAccountsPage />
-          : <ViewGitAccountsPage account={selectedItem} />
+        ? <ViewGitAccountsPage
+          account={typeof selectedItem !== 'string'
+            ? selectedItem
+            : null
+          }
+          close={() => select(null)}
+        />
         : <></>
       }
     </section>
