@@ -21,7 +21,7 @@ export function Card(props: Props) {
 
   return <div className={'w-full ' + className}>
     { label
-      ? <h2 className='text-sm opacity-90 font-thin mb-1 block relative'>{
+      ? <h2 className='opacity-90 font-thin mb-1 block relative'>{
         label
       }</h2>
       : <></>

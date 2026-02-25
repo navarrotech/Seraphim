@@ -37,13 +37,13 @@ export function SettingsSidebar() {
   </aside>
 }
 
-const baseNavlinkClass = 'compact block text-lg'
+const baseNavlinkClass = 'block text-lg py-1.5 px-4 rounded mb-1'
 function navlinkClass(actions: { isActive: boolean }) {
   const { isActive } = actions
 
   if (isActive) {
-    return baseNavlinkClass + ' text-primary-500 font-bold'
+    return baseNavlinkClass + ' bg-primary-500 font-bold'
   }
 
-  return baseNavlinkClass + ' opacity-80 font-normal'
+  return baseNavlinkClass + ' opacity-80 font-normal hover:bg-black/20 hover:dark:bg-white/20'
 }

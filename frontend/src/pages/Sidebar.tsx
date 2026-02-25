@@ -21,8 +21,12 @@ export function Sidebar() {
       />
     </div>
     <div className='flex items-center justify-center'>
-      <Tooltip content='Settings'>
-        <NavLink to={UrlTree.settings} className='p-2 opacity-80'>
+      <Tooltip content='Settings' placement='right'>
+        <NavLink
+          to={UrlTree.settings}
+          className={({ isActive }) => 'p-2 rounded '
+            + (isActive ? 'bg-primary' : 'hover:bg-black/10 dark:hover:bg-white/10')}
+        >
           <SettingsIcon size={22} />
         </NavLink>
       </Tooltip>

@@ -1,20 +1,32 @@
 // Copyright © 2026 Jalapeno Labs
 
+import type { ReactNode } from 'react'
 import type { LlmWithRateLimits } from '@common/types'
 
 // Core
 import { useState, useCallback } from 'react'
 import { useHotkey } from '@frontend/hooks/useHotkey'
+import { useConfirm } from '@frontend/hooks/useConfirm'
 
 // Redux
 import { useSelector } from '@frontend/framework/store'
+
+// Actions
+import { deleteLlm } from '@frontend/routes/llmRoutes'
 
 // User Interface
 import { ViewLLMPage } from './ViewLLMPage'
 import { Card } from '@frontend/elements/Card'
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
 import { SiOpenai } from 'react-icons/si'
-import { PlusIcon } from '@frontend/elements/graphics/IconNexus'
+import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
+import { ListItem } from '../ListItem'
+import { EmptyData } from '../EmptyData'
+
+const IconByType = {
+  OPENAI_API_KEY: <SiOpenai className='icon' size={38} />,
+  OPENAI_LOGIN_TOKEN: <SiOpenai className='icon' size={38} />,
+} as const satisfies Record<LlmWithRateLimits['type'], ReactNode>
 
 export function LLMsPage() {
   // Input
@@ -24,6 +36,7 @@ export function LLMsPage() {
   const [ selectedItem, select ] = useState<'new' | LlmWithRateLimits | null>(null)
 
   // Actions
+  const confirm = useConfirm()
   const deselectAll = useCallback(() => {
     select(null)
   }, [])
@@ -32,16 +45,14 @@ export function LLMsPage() {
   useHotkey([ 'Escape' ], deselectAll, { preventDefault: true })
 
   return <article className='relaxed'>
-    <div className='compact level'>
+    <header className='compact level'>
       <div className='level-left'>
         <h1 className='text-2xl font-bold'>LLMs</h1>
       </div>
       <div className='level-right'>
         <Dropdown placement='bottom-end'>
           <DropdownTrigger>
-            <Button
-              color='primary'
-            >
+            <Button color='primary' className='font-semibold'>
               <span>Add LLM</span>
               <span className='icon'>
                 <PlusIcon />
@@ -65,84 +76,91 @@ export function LLMsPage() {
           </DropdownMenu>
         </Dropdown>
       </div>
-    </div>
-    <Card>{
-      !items?.length
-        ? <>
-          <p className='opacity-70'>No LLMs configured yet.</p>
-        </>
-        : <>
-          <div className='level-centered'>
+    </header>
+    <section className='level-centered gap-6'>
+      <Card>{
+        !items?.length
+          ? <EmptyData message='No LLMs configured yet.' />
+          : <>
             <ul className='flex-1'>{
-            items.map((languageModel) => (
-              <LanguageModelItem
-                key={languageModel.id}
-                languageModel={languageModel}
-                isSelected={languageModel.id === selectedItem}
-                onSelect={select}
-              />
-            ))
-          }</ul>
-          { selectedItem
-            ? selectedItem === 'new'
-              ? <ViewLLMPage />
-              : <ViewLLMPage languageModel={selectedItem} />
-            : <></>
-          }
-        </div>
-        </>
-    }</Card>
+              items.map((languageModel) => {
+                let isSelected = false
+                if (typeof selectedItem === 'object') {
+                  isSelected = languageModel.id === selectedItem?.id
+                }
+
+                let displayName = languageModel.name
+                if (!displayName) {
+                  displayName = languageModel.type
+                }
+
+                let modelDetails = languageModel.preferredModel
+                if (!modelDetails) {
+                  modelDetails = 'No preferred model set'
+                }
+
+                return <ListItem
+                  id={languageModel.id}
+                  key={languageModel.id}
+                  title={displayName}
+                  description={modelDetails}
+                  className='hide-until-hover-parent'
+                  isSelected={isSelected}
+                  onSelect={() => select(languageModel)}
+                  startContent={<div>{
+                    IconByType[languageModel.type]
+                  }</div>}
+                  endContent={<Dropdown placement='bottom-end' className='hide-until-hover'>
+                    <DropdownTrigger>
+                      <Button isIconOnly variant='light'>
+                        <span className='icon'>
+                          <EllipsisIcon />
+                        </span>
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label='Static Actions'>
+                      <DropdownItem key='edit' onPress={() => select(languageModel)}>
+                        <div className='level-left w-full'>
+                          <span className='icon'>
+                            <EditIcon className='icon' />
+                          </span>
+                          <span>Edit</span>
+                        </div>
+                      </DropdownItem>
+                      <DropdownItem
+                        key='delete'
+                        color='danger'
+                        onPress={() => confirm({
+                          title: 'Delete LLM',
+                          message: `Are you sure you want to delete '${displayName}'?`
+                            + ' This action cannot be undone.',
+                          confirmText: 'Delete',
+                          confirmColor: 'danger',
+                          onConfirm: async () => {
+                            await deleteLlm(languageModel)
+                          },
+                        })}
+                      >
+                        <div className='level-left w-full'>
+                          <span className='icon'>
+                            <DeleteIcon className='icon' />
+                          </span>
+                          <span>Delete</span>
+                        </div>
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>}
+                />
+              })
+            }</ul>
+          </>
+      }</Card>
+      { selectedItem
+        ? selectedItem === 'new'
+          ? <ViewLLMPage />
+          : <ViewLLMPage languageModel={selectedItem} />
+        : <></>
+      }
+    </section>
   </article>
-}
-
-type LanguageModelItemProps = {
-  languageModel: LlmWithRateLimits
-  isSelected: boolean
-  onSelect: (languageModel: LlmWithRateLimits) => void
-}
-
-function LanguageModelItem(props: LanguageModelItemProps) {
-  const { languageModel, isSelected, onSelect } = props
-
-  let displayName = languageModel.name
-  if (!displayName) {
-    displayName = languageModel.type
-  }
-
-  let modelDetails = 'No preferred model set'
-  if (languageModel.preferredModel) {
-    modelDetails = languageModel.preferredModel
-  }
-
-  let defaultLabelContent = null
-  if (languageModel.isDefault) {
-    defaultLabelContent = <div className='mt-2 text-xs opacity-70'>Default</div>
-  }
-
-  const className = [
-    'w-full rounded p-4 cursor-pointer transition border border-divider',
-    props.isSelected && 'border border-primary/60 ring-2 ring-primary/40',
-  ].filter(Boolean).join(' ')
-
-  return <li className='w-full'>
-    <button
-      id={languageModel.id}
-      className={className}
-      role='button'
-      tabIndex={0}
-      aria-pressed={isSelected}
-      onClick={() => {
-        onSelect(languageModel)
-      }}
-    >
-      <div className='level'>
-        <div>
-          <div className='text-lg font-semibold'>{displayName}</div>
-          <div className='opacity-70 text-sm'>{modelDetails}</div>
-        </div>
-        <div className='text-sm opacity-70'>{languageModel.type}</div>
-      </div>
-      {defaultLabelContent}
-    </button>
-  </li>
 }
