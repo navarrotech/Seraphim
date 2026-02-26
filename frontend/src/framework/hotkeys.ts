@@ -1,4 +1,4 @@
-// Copyright © 2026 Jalapeno Labs
+﻿// Copyright © 2026 Jalapeno Labs
 
 import type { LiteralUnion, Promisable } from 'type-fest'
 
@@ -18,7 +18,7 @@ export type HotkeyOptions = {
 }
 
 type HotkeySubscription = {
-  keys: ValidKeys[]
+  keys: EventKey[]
   callback: (event: KeyboardEvent) => Promisable<void>
   options?: HotkeyOptions
 }
@@ -31,43 +31,46 @@ const subscriptions: HotkeySubscription[] = []
 //         Events         //
 // ////////////////////// //
 
-window.addEventListener('keydown', async (event) => {
+window.addEventListener('keydown', handleKeydown)
+window.addEventListener('keyup', handleKeyup)
+window.addEventListener('blur', handleWindowBlur)
+document.addEventListener('visibilitychange', handleVisibilityChange)
+window.addEventListener('pagehide', handlePageHide)
+
+function handleKeydown(event: KeyboardEvent) {
   if (!validate(event) || event.repeat) {
     return
   }
 
-  const key = <EventKey>event.key.toLowerCase()
+  const key: EventKey = event.key.toLowerCase()
   keysDown.add(key)
 
-  await processHotkeySubscriptions(event)
-})
+  void processHotkeySubscriptions(event)
+}
 
-window.addEventListener('keyup', (event) => {
+function handleKeyup(event: KeyboardEvent) {
   if (!validate(event)) {
     return
   }
 
-  const key = <EventKey>event.key.toLowerCase()
+  const key: EventKey = event.key.toLowerCase()
   keysDown.delete(key)
-})
+}
 
-// When the window loses focus
-window.addEventListener('blur', () => {
+function handleWindowBlur() {
   keysDown.clear()
-})
+}
 
-// When the GUI is clicked off of
-document.addEventListener('visibilitychange', () => {
+function handleVisibilityChange() {
   if (!document.hidden) {
     return
   }
   keysDown.clear()
-})
+}
 
-// When the page navigates away
-window.addEventListener('pagehide', () => {
+function handlePageHide() {
   keysDown.clear()
-})
+}
 
 // ////////////////////// //
 //      Subscriptions     //
@@ -75,12 +78,16 @@ window.addEventListener('pagehide', () => {
 
 export function subscribeHotkey(
   keys: ValidKeys[],
-  callback: (event: KeyboardEvent) => void,
+  callback: (event: KeyboardEvent) => Promisable<void>,
   options?: HotkeyOptions,
 ): () => void {
-  keys = keys.map((key) => key.toLowerCase() as ValidKeys)
+  const normalizedKeys = keys.map(normalizeKey)
 
-  const subscription: HotkeySubscription = { keys, callback, options }
+  const subscription: HotkeySubscription = {
+    keys: normalizedKeys,
+    callback,
+    options,
+  }
   subscriptions.push(subscription)
 
   return function unsubscribeHotkey() {
@@ -94,6 +101,10 @@ export function subscribeHotkey(
 // ////////////////////// //
 //        Helpers         //
 // ////////////////////// //
+
+function normalizeKey(key: ValidKeys): EventKey {
+  return key.toLowerCase()
+}
 
 async function processHotkeySubscriptions(event: KeyboardEvent) {
   if (keysDown.size === 0) {
@@ -130,9 +141,12 @@ async function processHotkeySubscriptions(event: KeyboardEvent) {
 }
 
 function validate(event: KeyboardEvent): boolean {
-  const srcElement = event.target as HTMLElement
+  const srcElement = getEventTargetElement(event)
 
-  const isModifierKeyDown = event.shiftKey || event.ctrlKey || event.altKey || event.metaKey
+  const isModifierKeyDown = event.shiftKey
+    || event.ctrlKey
+    || event.altKey
+    || event.metaKey
   const isUserEditingSomething = srcElement?.tagName === 'INPUT'
     || srcElement?.tagName === 'TEXTAREA'
     || srcElement?.isContentEditable
@@ -144,4 +158,18 @@ function validate(event: KeyboardEvent): boolean {
   }
 
   return true
+}
+
+function getEventTargetElement(event: KeyboardEvent): HTMLElement | null {
+  if (event.target instanceof HTMLElement) {
+    return event.target
+  }
+
+  if (event.target) {
+    console.debug('Hotkey event target is not an HTMLElement', {
+      target: event.target,
+    })
+  }
+
+  return null
 }
