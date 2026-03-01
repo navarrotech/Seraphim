@@ -106,9 +106,21 @@ export async function handleUpsertAccountRequest(
     return
   }
 
+  if (validation.emails.includes(payload.gitUserEmail) === false) {
+    console.debug('Update account failed because token email changed', {
+      accountId,
+      payloadEmail: payload.gitUserEmail,
+      validationEmails: validation.emails,
+    })
+    response.status(400).json({
+      error: 'Token does not belong to this connected account email',
+    })
+    return
+  }
+
   const account = await prisma.authAccount.upsert({
     where: {
-      id: accountId,
+      id: accountId || 'foobar',
     },
     create: {
       provider: payload.provider,
@@ -151,6 +163,7 @@ export async function handleUpsertAccountRequest(
 
   response.json({
     account: sanitized,
+    type: validation.type,
     gitUserName: payload.gitUserName,
     gitUserEmail: payload.gitUserEmail,
     githubIdentity: {

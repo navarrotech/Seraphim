@@ -7,13 +7,13 @@ import { z } from 'zod'
 // Utility
 import { requireDatabaseClient } from '@electron/database'
 import { parseRequestBody } from '../../validation'
+import { accountSchema } from '@common/schema/accounts'
 
 // Misc
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 
 const removeAccountSchema = z.object({
-  provider: z.literal('GITHUB'),
-  id: z.string().trim().min(1),
+  authAccount: accountSchema,
 })
 type RemoveAccountPayload = z.infer<typeof removeAccountSchema>
 
@@ -36,22 +36,24 @@ export async function handleRemoveAccountRequest(
     return
   }
 
+  const { authAccount } = payload
+
   const databaseClient = requireDatabaseClient('Remove token account')
 
   const account = await databaseClient.authAccount.findUnique({
-    where: { id: payload.id },
+    where: { id: authAccount.id },
   })
 
   if (!account) {
-    console.debug('Remove requested for unknown account', { accountId: payload.id })
+    console.debug('Remove requested for unknown account', { accountId: authAccount.id })
     response.status(404).json({ error: 'Account not found' })
     return
   }
 
-  if (account.provider !== payload.provider) {
+  if (account.provider !== authAccount.provider) {
     console.debug('Remove requested with provider mismatch', {
-      accountId: payload.id,
-      provider: payload.provider,
+      accountId: authAccount.id,
+      provider: authAccount.provider,
       accountProvider: account.provider,
     })
     response.status(400).json({ error: 'Account provider mismatch' })
@@ -78,8 +80,8 @@ export async function handleRemoveAccountRequest(
   })
 
   response.status(200).json({
-    provider: payload.provider,
-    accountId: payload.id,
+    provider: authAccount.provider,
+    accountId: authAccount.id,
     revoked: true,
   })
 }

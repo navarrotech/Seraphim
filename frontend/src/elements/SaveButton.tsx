@@ -9,6 +9,7 @@ type Props = {
   isDisabled?: boolean
   isLoading?: boolean
   onSave: () => void
+  text?: string
 }
 
 export function SaveButton(props: Props) {
@@ -35,7 +36,7 @@ export function SaveButton(props: Props) {
         isDisabled={!props.isDirty || props.isDisabled}
         onPress={() => props.onSave()}
       >
-        <span>Save</span>
+        <span>{props.text ?? 'Save'}</span>
       </Button>
     </div>
   </Tooltip>

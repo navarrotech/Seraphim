@@ -14,6 +14,7 @@ export type RequestResult<Shape> = [
 export type GitTokenValidation = {
   isValid: boolean
   message?: string
+  type: 'Github classic' | 'Github fine-grained' | 'Unknown'
   username?: string
   emails?: string[]
   scopes: string[]

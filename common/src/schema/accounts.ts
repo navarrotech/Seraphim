@@ -13,4 +13,8 @@ export const upsertAccountSchema = z
     gitUserEmail: z.string().trim().email().optional(),
   })
 
+export const accountSchema = upsertAccountSchema.extend({
+  id: z.string().uuid(),
+})
+
 export type UpsertAccountRequest = z.infer<typeof upsertAccountSchema>

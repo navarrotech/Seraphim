@@ -20,6 +20,7 @@ export class GithubClassic extends BaseGit {
       return {
         isValid: false,
         message: errorMessage || 'GitHub token validation failed',
+        type: 'Github classic',
         scopes: [],
         acceptedScopes: [],
         missingScopes: [],
@@ -55,6 +56,7 @@ export class GithubClassic extends BaseGit {
       return {
         isValid: false,
         message: `GitHub token is missing required scopes: ${Array.from(missingScopes).join(', ')}`,
+        type: 'Github classic',
         username: response.data.login,
         emails: [ response.data.email ].filter(Boolean),
         scopes: Array.from(grantedScopeSet),
@@ -66,6 +68,7 @@ export class GithubClassic extends BaseGit {
     return {
       isValid: true,
       message: 'GitHub token is valid',
+      type: 'Github classic',
       username: response.data.login,
       emails: [ response.data.email ].filter(Boolean),
       scopes: Array.from(grantedScopeSet),

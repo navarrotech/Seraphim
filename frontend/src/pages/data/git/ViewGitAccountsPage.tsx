@@ -66,7 +66,15 @@ export function ViewGitAccountsPage(props: Props) {
     }
 
     await form.handleSubmit(
-      (values) => upsertGitAccount(account?.id || '', values),
+      async (values) => {
+        const result = await upsertGitAccount(account?.id || '', values)
+
+        if (result?.type) {
+          props.close?.()
+        }
+
+        return result
+      },
     )()
   }, [ account, form.formState.isDirty ])
 
@@ -78,6 +86,10 @@ export function ViewGitAccountsPage(props: Props) {
     preventDefault: true,
     blockOtherHotkeys: true,
   })
+
+  if (form.formState.errors || !form.formState.isValid) {
+    console.debug('Form validation errors', form.formState.errors, form.formState.isValid)
+  }
 
   return <Card className='w-full'>
     <header className='compact level'>
@@ -97,28 +109,28 @@ export function ViewGitAccountsPage(props: Props) {
       <div className='compact'>
         <Input
           fullWidth
-          label='Repository Name'
-          placeholder='Seraphim Team'
+          label='Friendly Name'
+          placeholder='My personal Github'
           isInvalid={Boolean(form.formState.errors.name)}
           errorMessage={form.formState.errors.name?.message}
           value={form.watch('name')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('name', value, { shouldDirty: true })
+            form.setValue('name', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
       <div className='compact'>
         <Input
           fullWidth
-          label='Git real name'
-          placeholder='Ada Lovelace'
+          label='Git username'
+          placeholder='anakin123'
           isInvalid={Boolean(form.formState.errors.gitUserName)}
           errorMessage={form.formState.errors.gitUserName?.message}
           value={form.watch('gitUserName')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('gitUserName', value, { shouldDirty: true })
+            form.setValue('gitUserName', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -126,13 +138,13 @@ export function ViewGitAccountsPage(props: Props) {
         <Input
           fullWidth
           label='Git real email'
-          placeholder='ada@jalapenolabs.io'
+          placeholder='anakin@jalapenolabs.io'
           isInvalid={Boolean(form.formState.errors.gitUserEmail)}
           errorMessage={form.formState.errors.gitUserEmail?.message}
           value={form.watch('gitUserEmail')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('gitUserEmail', value, { shouldDirty: true })
+            form.setValue('gitUserEmail', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -148,7 +160,7 @@ export function ViewGitAccountsPage(props: Props) {
           value={form.watch('accessToken')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('accessToken', value, { shouldDirty: true })
+            form.setValue('accessToken', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
         <p className='text-sm opacity-80'>(Leave blank for no change)</p>
@@ -163,8 +175,9 @@ export function ViewGitAccountsPage(props: Props) {
       <SaveButton
         onSave={onSave}
         isDirty={form.formState.isDirty}
-        isDisabled={!account?.id}
+        isDisabled={!form.formState.isValid}
         isLoading={form.formState.isSubmitting}
+        text={account?.id ? 'Save' : 'Create'}
       />
     </div>
   </Card>

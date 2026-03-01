@@ -101,6 +101,7 @@ export function listBranches(request: ListBranchesRequest) {
 
 type UpsertAccountResponse = {
   account: AuthAccount
+  type: 'Github classic' | 'Github fine-grained' | 'Unknown'
   gitUserName?: string
   gitUserEmail?: string
   githubIdentity?: {

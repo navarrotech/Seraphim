@@ -83,6 +83,7 @@ export class GithubFineGrained extends BaseGit {
       return {
         isValid: false,
         message: userError || 'GitHub fine-grained token validation failed',
+        type: 'Github fine-grained',
         scopes: [],
         acceptedScopes: [],
         missingScopes: [],
@@ -117,6 +118,7 @@ export class GithubFineGrained extends BaseGit {
       return {
         isValid: false,
         message: `GitHub fine-grained token is missing required permissions: ${Array.from(missingScopes).join(', ')}`,
+        type: 'Github fine-grained',
         username: userResponse.data.login,
         emails: emailsResponse?.data.map((e) => e.email) || [],
         scopes: Array.from(acceptedScopes),
@@ -128,6 +130,7 @@ export class GithubFineGrained extends BaseGit {
     return {
       isValid: true,
       message: 'GitHub fine-grained token is valid',
+      type: 'Github fine-grained',
       username: userResponse.data.login,
       emails: emailsResponse?.data.map((e) => e.email) || [],
       scopes: Array.from(acceptedScopes),
