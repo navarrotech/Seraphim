@@ -82,11 +82,6 @@ export const GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES = [
   'user:email',
 ] as const
 
-export const GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES = [
-  'read:user',
-  'user:email',
-] as const
-
 // Issue tracking
 export const DEFAULT_JIRA_CLOUD_BASE_URL = 'https://api.atlassian.com' as const
 export const JIRA_CLOUD_REQUIRED_SCOPES = [

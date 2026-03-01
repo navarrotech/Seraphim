@@ -1,12 +1,5 @@
 // Copyright © 2026 Jalapeno Labs
 
-// Misc
-import {
-  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES,
-  GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES,
-  SUPPORTED_MODELS_BY_LLM,
-} from '@common/constants'
-
 export const API_BASE_PATH = '/api/v1'
 export const API_DEFAULT_PORT = 9900
 
@@ -26,9 +19,3 @@ export const IPC_SIGNALS = {
   openFileBrowserTo: 'open-file-browser-to',
   openCodeEditorTo: 'open-code-editor-to',
 } as const
-
-export {
-  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES,
-  GITHUB_USER_ENDPOINT_ACCEPTED_SCOPES,
-  SUPPORTED_MODELS_BY_LLM,
-}

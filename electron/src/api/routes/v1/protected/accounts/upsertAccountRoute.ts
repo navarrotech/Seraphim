@@ -8,12 +8,12 @@ import type { UpsertAccountRequest } from '@common/schema/accounts'
 import { parseRequestBody, parseRequestParams } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
+import { createGitClient } from '@common/git/createGitClient'
 import { z } from 'zod'
 
 // Schema
 import { upsertAccountSchema } from '@common/schema/accounts'
 import { sanitizeAccount } from './utils.ts'
-import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
 
 const upsertAccountParamsSchema = z.object({
   accountId: z.string().trim().uuid().optional(),
@@ -81,13 +81,13 @@ export async function handleUpsertAccountRequest(
 
   // Must always validate on every run, otherwise upsert will fail
   // Prisma upsert requires scope to always exist
-  const validation = await validateGithubToken(payload.accessToken || existingAccount.accessToken)
+  const gitClient = createGitClient(payload.accessToken || existingAccount?.accessToken)
+  const validation = await gitClient.validateToken()
 
   if (validation.isValid === false) {
     response.status(400).json({
-      error: validation.error,
-      status: validation.status,
-      grantedScopes: validation.grantedScopes,
+      error: validation.message,
+      grantedScopes: validation.scopes,
       acceptedScopes: validation.acceptedScopes,
       missingScopes: validation.missingScopes,
     })
@@ -114,7 +114,7 @@ export async function handleUpsertAccountRequest(
       provider: payload.provider,
       name: payload.name,
       accessToken: payload.accessToken,
-      scope: validation.scope,
+      scope: validation.scopes,
       username: validation.username,
       email: payload.gitUserEmail,
       lastUsedAt: new Date(),
@@ -122,7 +122,7 @@ export async function handleUpsertAccountRequest(
     update: {
       name: payload.name,
       accessToken: payload.accessToken || existingAccount.accessToken,
-      scope: validation.scope,
+      scope: validation.scopes,
       email: payload.gitUserEmail,
       lastUsedAt: new Date(),
     },
@@ -155,9 +155,9 @@ export async function handleUpsertAccountRequest(
     gitUserEmail: payload.gitUserEmail,
     githubIdentity: {
       username: validation.username,
-      email: validation.email,
+      email: validation.emails,
     },
-    grantedScopes: validation.grantedScopes,
+    grantedScopes: validation.scopes,
     acceptedScopes: validation.acceptedScopes,
   })
 }

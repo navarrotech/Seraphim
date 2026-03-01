@@ -46,9 +46,8 @@ export async function listAccounts(): Promise<ListAccountsResponse> {
 //        List Account Repos       //
 // /////////////////////////////// //
 
-// TODO: API needs pagination!
-type ListReposRequest = StandardUrlParams
-type ListReposResponse = StandardPaginatedResponseData & {
+type ListReposRequest = {}
+type ListReposResponse = {
   results: {
     accountId: string
     username: string
@@ -106,7 +105,7 @@ type UpsertAccountResponse = {
   gitUserEmail?: string
   githubIdentity?: {
     username?: string
-    email?: string | null
+    emails?: string[] | null
   }
   grantedScopes?: string[]
   acceptedScopes?: string[]

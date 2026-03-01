@@ -210,7 +210,7 @@ model AuthAccount {
   // Provider
   provider    AuthProvider
   accessToken String       @map("access_token")
-  scope       String
+  scope       String[]
 
   // Auth identity
   name String
