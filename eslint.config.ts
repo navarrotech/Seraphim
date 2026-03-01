@@ -10,6 +10,7 @@ export default defineConfig([{
     '.yarn/**',
     '**/vite-env.d.ts',
     'common/src/vendor/**',
+    'frontend/storybook-static/**',
   ]),
   {
   files: [

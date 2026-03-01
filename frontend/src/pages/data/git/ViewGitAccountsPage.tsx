@@ -43,7 +43,7 @@ export function ViewGitAccountsPage(props: Props) {
       name: account?.name ?? '',
       gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
-      provider: account.provider ?? provider,
+      provider: account?.provider ?? provider,
       accessToken: '',
     },
     mode: 'onSubmit',
@@ -55,7 +55,7 @@ export function ViewGitAccountsPage(props: Props) {
       name: account?.name ?? '',
       gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
-      provider: account.provider ?? provider,
+      provider: account?.provider ?? provider,
       accessToken: '',
     })
   }, [ account ])
