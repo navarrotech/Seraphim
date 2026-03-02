@@ -1,9 +1,10 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { LlmWithRateLimits } from '@common/types'
+import type { CodexAuthJson, LlmWithRateLimits } from '@common/types'
+import type { ViewProps } from './types'
 
 // Core
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 
 // Lib
@@ -11,45 +12,39 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 // User Interface
-import { Input, Switch, Autocomplete, AutocompleteItem } from '@heroui/react'
+import { Input, Switch, Autocomplete, AutocompleteItem, Alert } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
+import { Monaco } from '@frontend/elements/Monaco'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
+import { Information } from '@frontend/elements/Information'
 import { SaveButton } from '@frontend/elements/SaveButton'
 import { ResetButton } from '@frontend/elements/ResetButton'
 import { CloseButton } from '@frontend/elements/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
+import { safeParseJson } from '@common/json'
 import { isEmpty } from 'lodash-es'
 
 // Misc
 import { upsertLlmSchema } from '@common/schema/llm'
 import { upsertLlm } from '@frontend/routes/llmRoutes'
 import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
-import { Information } from '@frontend/elements/Information'
-import { ExternalLink } from '@frontend/elements/ExternalLink'
-
-type Props = {
-  isFirst?: boolean
-  existingLLM?: LlmWithRateLimits
-  type: LlmWithRateLimits['type']
-  close?: () => void
-}
 
 const resolvedForm = zodResolver(upsertLlmSchema)
 
-export function ViewLLMPage(props: Props) {
-  const { existingLLM, type } = props
+export function ViewOpenAiLoginLLMPage(props: ViewProps) {
+  const { existingLLM } = props
 
   const form = useForm<LlmWithRateLimits>({
     resolver: resolvedForm,
     defaultValues: {
       id: existingLLM?.id ?? '',
       userId: existingLLM?.userId ?? '',
-      type: existingLLM?.type ?? type,
+      type: existingLLM?.type ?? 'OPENAI_LOGIN_TOKEN',
       name: existingLLM?.name ?? '',
       isDefault: existingLLM?.isDefault ?? props.isFirst ?? false,
-      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM[props.type]?.[0] ?? '',
+      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM.OPENAI_LOGIN_TOKEN[0] ?? '',
       apiKey: '',
       refreshToken: existingLLM?.refreshToken ?? '',
       expiresAt: existingLLM?.expiresAt ?? null,
@@ -68,10 +63,10 @@ export function ViewLLMPage(props: Props) {
     form.reset({
       id: existingLLM?.id ?? '',
       userId: existingLLM?.userId ?? '',
-      type: existingLLM?.type ?? type,
+      type: existingLLM?.type ?? 'OPENAI_LOGIN_TOKEN',
       name: existingLLM?.name ?? '',
       isDefault: existingLLM?.isDefault ?? props.isFirst ?? false,
-      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM[props.type]?.[0] ?? '',
+      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM.OPENAI_LOGIN_TOKEN[0] ?? '',
       apiKey: '',
       refreshToken: existingLLM?.refreshToken ?? '',
       expiresAt: existingLLM?.expiresAt ?? null,
@@ -82,7 +77,7 @@ export function ViewLLMPage(props: Props) {
       updatedAt: existingLLM?.updatedAt ?? new Date(0),
       rateLimits: existingLLM?.rateLimits ?? null,
     })
-  }, [ existingLLM, type ])
+  }, [ existingLLM ])
 
   useEffect(() => void form.trigger(), [])
 
@@ -96,7 +91,7 @@ export function ViewLLMPage(props: Props) {
       async (values) => {
         const result = await upsertLlm(existingLLM?.id || '', {
           ...values,
-          type,
+          type: 'OPENAI_LOGIN_TOKEN',
         })
 
         if (result?.llm) {
@@ -106,7 +101,7 @@ export function ViewLLMPage(props: Props) {
         return result
       },
     )()
-  }, [ form.formState.isDirty, existingLLM, type ])
+  }, [ form.formState.isDirty, existingLLM ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
     onSave,
@@ -117,6 +112,12 @@ export function ViewLLMPage(props: Props) {
     blockOtherHotkeys: true,
   })
 
+  const tokenErrorMessage = useJsonTokenValidityChecker(
+    form.watch('apiKey') || '',
+    form.formState.errors.apiKey?.message,
+    !Boolean(props.existingLLM?.id),
+  )
+
   if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
     console.debug('ViewLLMPage form is invalid', form.formState.errors, form.formState.isValid)
   }
@@ -124,7 +125,7 @@ export function ViewLLMPage(props: Props) {
   return <Card className='w-full'>
     <header className='compact level'>
       <h1 className='text-2xl font-bold'>
-        LLM
+        Codex Login Token
       </h1>
       { props.close
         ? <CloseButton onClose={props.close} />
@@ -162,7 +163,7 @@ export function ViewLLMPage(props: Props) {
           onSelectionChange={(value) => {
             form.setValue('preferredModel', value as string, { shouldDirty: true, shouldValidate: true })
           }}
-          >{ SUPPORTED_MODELS_BY_LLM[props.type]?.map((model) => (
+          >{ SUPPORTED_MODELS_BY_LLM.OPENAI_LOGIN_TOKEN.map((model) => (
             <AutocompleteItem key={model}>{
               model
             }</AutocompleteItem>
@@ -170,33 +171,38 @@ export function ViewLLMPage(props: Props) {
         }</Autocomplete>
       </div>
       <div className='compact'>
-        <Input
-          fullWidth
-          label='API key'
-          placeholder='sk-***'
-          type='password'
-          autoComplete='off'
-          isInvalid={Boolean(form.formState.errors.apiKey)}
-          errorMessage={form.formState.errors.apiKey?.message}
-          value={form.watch('apiKey') || ''}
-          onChange={(event) => {
-            const value = event.currentTarget.value
-            form.setValue('apiKey', value, { shouldDirty: true, shouldValidate: true })
-          }}
-        />
+        <div className='compact'>
+          <label>API Key</label>
+          <Monaco
+            height='200px'
+            fileLanguage='json'
+            minimapOverride={false}
+            value={form.watch('apiKey') || ''}
+            onChange={(value) => {
+              form.setValue('apiKey', value, { shouldDirty: true, shouldValidate: true })
+            }}
+            fontSize={12}
+          />
+        </div>
+        { tokenErrorMessage
+          ? <Alert
+            color='danger'
+            className='compact text-sm'
+          >{ tokenErrorMessage }</Alert>
+          : <></>
+        }
         <div className='compact level-left gap-1'>
           <Information
             title='Getting the correct scopes'
             content={() => <div className='text-sm'>
-              <ExternalLink href='https://platform.openai.com/account/api-keys'>
-                Get your OpenAI API key here
-              </ExternalLink>
               <div className='compact'>
-                <p className='block mb-2'>Requirements for OpenAI API keys:</p>
+                <p className='block mb-2'>Follow these instructions:</p>
                 <ul className='list-disc list-inside mb-2'>
-                  <li>List models - Read</li>
-                  <li>Responses - Write</li>
-                  <li>Images - Request</li>
+                  <li>Download the @openai/codex CLI</li>
+                  <li>Run it with the command `codex`</li>
+                  <li>Authenticate with OpenAI</li>
+                  <li>Copy the contents of ~/.codex/auth.json</li>
+                  <li>Paste that into this field</li>
                 </ul>
               </div>
               </div>
@@ -255,4 +261,36 @@ export function ViewLLMPage(props: Props) {
       />
     </div>
   </Card>
+}
+
+function useJsonTokenValidityChecker(
+  token: string,
+  otherError: string,
+  isTokenRequired: boolean,
+): string | null {
+  return useMemo(() => {
+    if (!isTokenRequired) {
+      return ''
+    }
+
+    if (!token) {
+      return 'Token is required'
+    }
+
+    if (otherError) {
+      return otherError
+    }
+
+    const asJson = safeParseJson<CodexAuthJson>(token)
+
+    if (!asJson) {
+      return 'Token is not a valid JSON string'
+    }
+
+    if (!asJson?.tokens?.access_token) {
+      return 'Token JSON must contain an tokens.access_token field'
+    }
+
+    return null
+  }, [ token, otherError, isTokenRequired ])
 }

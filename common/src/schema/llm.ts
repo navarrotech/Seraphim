@@ -8,7 +8,7 @@ export const upsertLlmSchema = z
     name: z.string().trim().min(1).optional(),
     type: z.nativeEnum(LlmType),
     preferredModel: z.string().trim().min(1).optional(),
-    apiKey: z.string().trim().min(1).optional(),
+    apiKey: z.string().trim().optional(),
     tokenLimit: z.number().int().nonnegative().optional().default(0),
     isDefault: z.boolean().optional().default(false),
   })

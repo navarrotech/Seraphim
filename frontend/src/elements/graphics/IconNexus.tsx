@@ -9,6 +9,11 @@ import { FiEye, FiExternalLink } from 'react-icons/fi'
 import { IoIosCheckmarkCircleOutline } from 'react-icons/io'
 import { AiTwotoneCloseCircle } from 'react-icons/ai'
 
+import CodexIcon from './icons/Codex.svg?react'
+
+export {
+  CodexIcon,
+}
 
 export const CheckIcon = IoIosCheckmarkCircleOutline
 export const WarningIcon = IoWarningOutline

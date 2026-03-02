@@ -1,7 +1,8 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { LlmWithRateLimits } from '@common/types'
-import type { ReactNode } from 'react'
+import type { ReactNode, ComponentType } from 'react'
+import type { ViewProps } from './types'
 
 // Core
 import { useCallback, useEffect, useState } from 'react'
@@ -13,7 +14,7 @@ import { useConfirm } from '@frontend/hooks/useConfirm'
 import { useSelector } from '@frontend/framework/store'
 
 // User Interface
-import { ViewLLMPage } from './ViewLLMPage'
+import { ViewOpenAIAPILLMPage } from './ViewOpenAIAPILLMPage'
 import { Card } from '@frontend/elements/Card'
 import {
   Button,
@@ -23,12 +24,8 @@ import {
   DropdownTrigger,
 } from '@heroui/react'
 import { SiOpenai } from 'react-icons/si'
-import {
-  PlusIcon,
-  EllipsisIcon,
-  DeleteIcon,
-  EditIcon,
-} from '@frontend/elements/graphics/IconNexus'
+import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon, CodexIcon } from '@frontend/elements/graphics/IconNexus'
+import { ViewOpenAiLoginLLMPage } from './ViewOpenAILoginLLMPage'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
 
@@ -41,7 +38,7 @@ import { UrlTree } from '@common/urls'
 
 const IconByType = {
   OPENAI_API_KEY: <SiOpenai className='icon' size={38} />,
-  OPENAI_LOGIN_TOKEN: <SiOpenai className='icon' size={38} />,
+  OPENAI_LOGIN_TOKEN: <CodexIcon className='icon' width={38} />,
 } as const satisfies Record<LlmWithRateLimits['type'], ReactNode>
 
 export function ListLLMsPage() {
@@ -51,12 +48,14 @@ export function ListLLMsPage() {
 
   // State
   const [ selectedItem, select ] = useState<
-    'new' | LlmWithRateLimits | null
+    | LlmWithRateLimits['type']
+    | LlmWithRateLimits
+    | null
   >(null)
 
   // State maintenance
   useEffect(() => {
-    if (!selectedItem || selectedItem === 'new') {
+    if (!selectedItem || typeof selectedItem === 'string') {
       return
     }
 
@@ -94,6 +93,18 @@ export function ListLLMsPage() {
     blockOtherHotkeys: true,
   })
 
+  let ViewPage: ComponentType<ViewProps> | null = null
+  const type = typeof selectedItem === 'string'
+    ? selectedItem
+    : (selectedItem as LlmWithRateLimits)?.type || null
+
+  if (type === 'OPENAI_API_KEY') {
+    ViewPage = ViewOpenAIAPILLMPage
+  }
+  else if (type === 'OPENAI_LOGIN_TOKEN') {
+    ViewPage = ViewOpenAiLoginLLMPage
+  }
+
   return <article className='relaxed'>
     <header className='compact level'>
       <div className='level-left'>
@@ -111,16 +122,29 @@ export function ListLLMsPage() {
           </DropdownTrigger>
           <DropdownMenu aria-label='Static Actions'>
             <DropdownItem
-              key='openai'
+              key='openai-api'
               onPress={() => {
-                select('new')
+                select('OPENAI_API_KEY')
               }}
             >
               <div className='level-left w-full'>
-                <span className='icon'>
-                  <SiOpenai className='icon' />
+                <span className='icon w-[18px] level-centered'>
+                  <SiOpenai />
                 </span>
-                <span>OpenAI</span>
+                <span>OpenAI API Key</span>
+              </div>
+            </DropdownItem>
+            <DropdownItem
+              key='openai-login'
+              onPress={() => {
+                select('OPENAI_LOGIN_TOKEN')
+              }}
+            >
+              <div className='level-left w-full'>
+                <span className='icon w-[18px]'>
+                  <CodexIcon width='18' />
+                </span>
+                <span>Codex Login Token</span>
               </div>
             </DropdownItem>
           </DropdownMenu>
@@ -205,20 +229,14 @@ export function ListLLMsPage() {
             }</ul>
           </>
       }</Card>
-      { selectedItem
-        ? <ViewLLMPage
-          isFirst={!items?.length}
-          existingLLM={typeof selectedItem !== 'string'
-            ? selectedItem
-            : undefined
-          }
-          type={selectedItem === 'new'
-            ? 'OPENAI_API_KEY'
-            : selectedItem.type
-          }
-          close={() => select(null)}
-        />
-        : <></>
+      { ViewPage && <ViewPage
+        isFirst={!items?.length}
+        existingLLM={typeof selectedItem !== 'string'
+          ? selectedItem
+          : undefined
+        }
+        close={() => select(null)}
+      ></ViewPage>
       }
     </section>
   </article>
