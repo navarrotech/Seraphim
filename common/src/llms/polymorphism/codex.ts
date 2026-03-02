@@ -11,14 +11,84 @@ import { Codex } from '@openai/codex-sdk'
 
 // Node.js
 import { tmpdir } from 'node:os'
-import { writeFile, mkdtemp, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { writeFile, mkdtemp, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 
 // Misc
 import { safeParseJson } from '@common/json'
 import { Timer } from '@common/timer'
 
 export class CallableCodex extends CallableLLM {
+  private getTargetTriple() {
+    if (process.platform === 'linux' || process.platform === 'android') {
+      if (process.arch === 'x64') {
+        return 'x86_64-unknown-linux-musl'
+      }
+
+      if (process.arch === 'arm64') {
+        return 'aarch64-unknown-linux-musl'
+      }
+    }
+
+    if (process.platform === 'darwin') {
+      if (process.arch === 'x64') {
+        return 'x86_64-apple-darwin'
+      }
+
+      if (process.arch === 'arm64') {
+        return 'aarch64-apple-darwin'
+      }
+    }
+
+    if (process.platform === 'win32') {
+      if (process.arch === 'x64') {
+        return 'x86_64-pc-windows-msvc'
+      }
+
+      if (process.arch === 'arm64') {
+        return 'aarch64-pc-windows-msvc'
+      }
+    }
+
+    throw new Error(`Unsupported platform: ${process.platform} (${process.arch})`)
+  }
+
+  private getCodexPathOverride(): string | undefined {
+    const codexBinaryName = process.platform === 'win32' ? 'codex.exe' : 'codex'
+    const targetTriple = this.getTargetTriple()
+
+    // `@openai/codex-sdk` does not export package.json, so probe workspace roots directly.
+    const candidateWorkspaceRoots = [
+      process.cwd(),
+      resolve(process.cwd(), '..'),
+    ]
+
+    for (const workspaceRoot of candidateWorkspaceRoots) {
+      const codexBinaryPath = resolve(
+        workspaceRoot,
+        'node_modules',
+        '@openai',
+        'codex-sdk',
+        'vendor',
+        targetTriple,
+        'codex',
+        codexBinaryName,
+      )
+
+      if (existsSync(codexBinaryPath)) {
+        return codexBinaryPath
+      }
+    }
+
+    console.warn('Codex binary path override could not be resolved from known node_modules locations', {
+      cwd: process.cwd(),
+      targetTriple,
+    })
+
+    return undefined
+  }
+
   private async getCodex(): Promise<[ Codex, string ]> {
     let contextDirectory: string | null = null
 
@@ -41,6 +111,7 @@ export class CallableCodex extends CallableLLM {
     ])
 
     const client = new Codex({
+      codexPathOverride: this.getCodexPathOverride(),
       env: {
         CODEX_HOME: contextDirectory,
       },
