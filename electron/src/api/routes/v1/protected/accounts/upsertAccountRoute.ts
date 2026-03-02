@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { AuthAccount } from '@prisma/client'
+import type { GitAccount } from '@prisma/client'
 import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
@@ -60,9 +60,9 @@ export async function handleUpsertAccountRequest(
 
   const prisma = requireDatabaseClient('Upsert git account')
 
-  let existingAccount: AuthAccount | null = null
+  let existingAccount: GitAccount | null = null
   if (accountId) {
-    existingAccount = await prisma.authAccount.findUnique({
+    existingAccount = await prisma.gitAccount.findUnique({
       where: {
         id: accountId,
       },
@@ -118,7 +118,7 @@ export async function handleUpsertAccountRequest(
     return
   }
 
-  const account = await prisma.authAccount.upsert({
+  const account = await prisma.gitAccount.upsert({
     where: {
       id: accountId || 'foobar',
     },
@@ -145,7 +145,7 @@ export async function handleUpsertAccountRequest(
   if (accountId) {
     broadcastSseChange({
       type: 'update',
-      kind: 'accounts',
+      kind: 'gitAccounts',
       data: sanitized,
     })
 
@@ -154,7 +154,7 @@ export async function handleUpsertAccountRequest(
   else {
     broadcastSseChange({
       type: 'create',
-      kind: 'accounts',
+      kind: 'gitAccounts',
       data: sanitized,
     })
 

@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@common/types'
+import type { GitAccount } from '@common/types'
 
 // Core
 import { useState, useEffect, useCallback, ReactNode } from 'react'
@@ -29,7 +29,7 @@ import { UrlTree } from '@common/urls'
 
 const IconByProvider = {
   GITHUB: <SiGithub className='icon' size={38} />,
-} as const satisfies Record<AuthAccount['provider'], ReactNode>
+} as const satisfies Record<GitAccount['provider'], ReactNode>
 
 export function ListGitAccountsPage() {
   // Input
@@ -37,7 +37,7 @@ export function ListGitAccountsPage() {
   const items = useSelector((state) => state.accounts.items)
 
   // State
-  const [ selectedItem, select ] = useState<'new' | AuthAccount | null>(null)
+  const [ selectedItem, select ] = useState<'new' | GitAccount | null>(null)
 
   // State maintenance
   useEffect(() => {
@@ -114,7 +114,7 @@ export function ListGitAccountsPage() {
           ? <EmptyData message='No repositories connected yet.' />
           : <>
             <ul className='flex-1'>{
-              items.map((account) => {
+              items.map((account: GitAccount) => {
                 let isSelected = false
                 if (typeof selectedItem === 'object') {
                   isSelected = account.id === selectedItem?.id
@@ -159,7 +159,7 @@ export function ListGitAccountsPage() {
                           confirmColor: 'danger',
                           onConfirm: async () => {
                             await removeAccount({
-                              authAccount: account,
+                              gitAccount: account,
                             })
                           },
                         })}

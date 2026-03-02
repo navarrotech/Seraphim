@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client'
 
 export const selectTaskWithFullContext = {
   llm: true,
-  authAccount: true,
+  gitAccount: true,
   turns: {
     include: {
       messages: true,

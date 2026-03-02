@@ -1,7 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type {
-  AuthAccount,
+  GitAccount,
   AuthProvider,
   IssueTracking,
   IssueTrackingProvider,
@@ -36,7 +36,7 @@ export type StandardFilePointer = string | string[]
 // ////////////////////////// //
 
 export type {
-  AuthAccount,
+  GitAccount,
   AuthProvider,
   IssueTracking,
   IssueTrackingProvider,
@@ -64,7 +64,7 @@ export type TurnWithMessages = Turn & {
 
 export type TaskWithFullContext = Task & {
   llm: Llm
-  authAccount: AuthAccount
+  gitAccount: GitAccount
   turns: TurnWithMessages[]
   user: User
   workspace: WorkspaceWithEnv
@@ -114,7 +114,7 @@ export type GithubBranchSummary = {
 export type SseChangeType = 'create' | 'update' | 'delete'
 
 type SsePayloadByKind = {
-  accounts: AuthAccount
+  gitAccounts: GitAccount
   issueTracking: IssueTracking
   settings: UserSettings
   workspaces: WorkspaceWithEnv

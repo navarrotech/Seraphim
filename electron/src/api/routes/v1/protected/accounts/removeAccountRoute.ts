@@ -13,7 +13,7 @@ import { accountSchema } from '@common/schema/accounts'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 
 const removeAccountSchema = z.object({
-  authAccount: accountSchema,
+  gitAccount: accountSchema,
 })
 type RemoveAccountPayload = z.infer<typeof removeAccountSchema>
 
@@ -36,24 +36,24 @@ export async function handleRemoveAccountRequest(
     return
   }
 
-  const { authAccount } = payload
+  const { gitAccount } = payload
 
   const databaseClient = requireDatabaseClient('Remove token account')
 
-  const account = await databaseClient.authAccount.findUnique({
-    where: { id: authAccount.id },
+  const account = await databaseClient.gitAccount.findUnique({
+    where: { id: gitAccount.id },
   })
 
   if (!account) {
-    console.debug('Remove requested for unknown account', { accountId: authAccount.id })
+    console.debug('Remove requested for unknown account', { accountId: gitAccount.id })
     response.status(404).json({ error: 'Account not found' })
     return
   }
 
-  if (account.provider !== authAccount.provider) {
+  if (account.provider !== gitAccount.provider) {
     console.debug('Remove requested with provider mismatch', {
-      accountId: authAccount.id,
-      provider: authAccount.provider,
+      accountId: gitAccount.id,
+      provider: gitAccount.provider,
       accountProvider: account.provider,
     })
     response.status(400).json({ error: 'Account provider mismatch' })
@@ -61,7 +61,7 @@ export async function handleRemoveAccountRequest(
   }
 
   try {
-    await databaseClient.authAccount.delete({
+    await databaseClient.gitAccount.delete({
       where: { id: account.id },
     })
   }
@@ -75,13 +75,13 @@ export async function handleRemoveAccountRequest(
 
   broadcastSseChange({
     type: 'delete',
-    kind: 'accounts',
+    kind: 'gitAccounts',
     data: account,
   })
 
   response.status(200).json({
-    provider: authAccount.provider,
-    accountId: authAccount.id,
+    provider: gitAccount.provider,
+    accountId: gitAccount.id,
     revoked: true,
   })
 }

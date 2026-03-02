@@ -1,11 +1,11 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@prisma/client'
+import type { GitAccount } from '@prisma/client'
 
 // Utility
 import { maskToken } from '@common/maskToken'
 
-export function sanitizeAccount(account: AuthAccount): AuthAccount {
+export function sanitizeAccount(account: GitAccount): GitAccount {
   return {
     id: account.id,
     provider: account.provider,

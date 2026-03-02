@@ -1,44 +1,44 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@prisma/client'
+import type { GitAccount } from '@prisma/client'
 import type { Request, Response } from 'express'
 
 // Utility
 import { requireDatabaseClient } from '@electron/database'
 import { sanitizeAccount } from './utils.ts'
 
-type ListAccountsResponse = {
-  accounts: AuthAccount[]
+type ListGitAccountsResponse = {
+  gitAccounts: GitAccount[]
 }
 
-export async function handleListAccountsRequest(
+export async function handleListGitAccountsRequest(
   request: Request,
-  response: Response<ListAccountsResponse>,
+  response: Response<ListGitAccountsResponse>,
 ): Promise<void> {
   void request
 
-  const databaseClient = requireDatabaseClient('List token accounts')
+  const databaseClient = requireDatabaseClient('List git accounts')
 
-  let accounts: AuthAccount[] = []
+  let gitAccounts: GitAccount[] = []
 
   try {
-    const accountRecords = await databaseClient.authAccount.findMany({
+    const accountRecords = await databaseClient.gitAccount.findMany({
       orderBy: { createdAt: 'desc' },
     })
 
-    accounts = accountRecords.map(function mapAccount(account) {
+    gitAccounts = accountRecords.map(function mapAccount(account) {
       return sanitizeAccount(account)
     })
   }
   catch (error) {
-    console.error('Failed to list token accounts', error)
+    console.error('Failed to list git accounts', error)
     if (!response.headersSent) {
       response.status(500).json({
-        accounts: [],
+        gitAccounts: [],
       })
     }
     return
   }
 
-  response.status(200).json({ accounts })
+  response.status(200).json({ gitAccounts })
 }

@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@common/types'
+import type { GitAccount } from '@common/types'
 import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
@@ -31,8 +31,8 @@ import { GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES } from '@common/constants'
 import { ExternalLink } from '@frontend/elements/ExternalLink'
 
 type Props = {
-  account?: AuthAccount
-  provider?: AuthAccount['provider']
+  account?: GitAccount
+  provider?: GitAccount['provider']
   close?: () => void
 }
 

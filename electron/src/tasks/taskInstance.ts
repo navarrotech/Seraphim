@@ -154,7 +154,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
 
       const {
         workspace,
-        authAccount,
+        gitAccount,
       } = this.task
 
       const sourceRepoUrl = workspace.sourceRepoUrl?.trim()
@@ -183,9 +183,9 @@ export class TaskInstance extends EventEmitter<EventMap> {
       this.task.turns.push(initialTurn)
 
       const cloner = getCloner(
-        authAccount.provider,
+        gitAccount.provider,
         sourceRepoUrl,
-        authAccount.accessToken,
+        gitAccount.accessToken,
       )
 
       const canClone = await cloner.checkIfCanClone()
@@ -193,7 +193,7 @@ export class TaskInstance extends EventEmitter<EventMap> {
       if (!canClone) {
         console.error('Cannot clone repository with provided URL and credentials', {
           repository: workspace.sourceRepoUrl,
-          authProvider: authAccount.provider,
+          authProvider: gitAccount.provider,
         })
         throw new Error('Cannot clone repository with provided URL and credentials')
       }

@@ -7,7 +7,7 @@ export const taskCreateSchema = z
   .object({
     userId: z.string().trim().min(1),
     workspaceId: z.string().trim().min(1),
-    authAccountId: z.string().trim().min(1),
+    gitAccountId: z.string().trim().min(1),
     llmId: z.string().trim().min(1),
     message: z.string().trim().min(1),
     branch: z.string().trim().min(1),

@@ -68,11 +68,11 @@ export async function buildImage(
     //          SETUP INFO         //
     // /////////////////////////// //
 
-    if (!cloner && task?.authAccount) {
+    if (!cloner && task?.gitAccount) {
       cloner = getCloner(
-        task.authAccount.provider,
+        task.gitAccount.provider,
         workspace.sourceRepoUrl || '',
-        task.authAccount.accessToken,
+        task.gitAccount.accessToken,
       )
     }
 
