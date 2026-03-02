@@ -93,7 +93,7 @@ export async function handleUpsertLlmRequest(
     const resolvedPreferredModel = body.preferredModel
       ?? existingLlm?.preferredModel
       ?? ''
-    const resolvedApiKey = body.apiKey ?? existingLlm?.apiKey ?? ''
+    const resolvedApiKey = body.apiKey || existingLlm?.apiKey || ''
     const resolvedTokenLimit = body.tokenLimit ?? existingLlm?.tokenLimit ?? 0
     const resolvedIsDefault = body.isDefault ?? existingLlm?.isDefault ?? false
     const resolvedUserId = existingLlm?.userId ?? user.id
