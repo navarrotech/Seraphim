@@ -44,7 +44,7 @@ const IconByType = {
   OPENAI_LOGIN_TOKEN: <SiOpenai className='icon' size={38} />,
 } as const satisfies Record<LlmWithRateLimits['type'], ReactNode>
 
-export function LLMsPage() {
+export function ListLLMsPage() {
   // Input
   const navigate = useNavigate()
   const items = useSelector((state) => state.llms.items)

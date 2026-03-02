@@ -1,43 +1,55 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@common/types'
+import type { IssueTracking } from '@common/types'
+import type { ReactNode } from 'react'
 
 // Core
-import { useState, useEffect, useCallback, ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useHotkey } from '@frontend/hooks/useHotkey'
 import { useConfirm } from '@frontend/hooks/useConfirm'
+
+// Redux
 import { useSelector } from '@frontend/framework/store'
 
-// Actions
-import { removeAccount } from '@frontend/routes/accountsRoutes'
-
 // User Interface
-import { ViewGitAccountsPage } from './ViewGitAccountsPage'
+import { ViewIssueTrackingPage } from './ViewIssueTrackingPage'
 import { Card } from '@frontend/elements/Card'
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@heroui/react'
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from '@heroui/react'
+import { SiJirasoftware } from 'react-icons/si'
+import {
+  PlusIcon,
+  EllipsisIcon,
+  DeleteIcon,
+  EditIcon,
+} from '@frontend/elements/graphics/IconNexus'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
 
-// Iconography
-import { SiGithub } from 'react-icons/si'
-import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon } from '@frontend/elements/graphics/IconNexus'
+// Utility
+import { isEqual } from 'lodash-es'
 
 // Misc
-import { isEqual } from 'lodash-es'
+import { deleteIssueTracking } from '@frontend/routes/issueTrackingRoutes'
 import { UrlTree } from '@common/urls'
 
 const IconByProvider = {
-  GITHUB: <SiGithub className='icon' size={38} />,
-} as const satisfies Record<AuthAccount['provider'], ReactNode>
+  Jira: <SiJirasoftware className='icon' size={38} />,
+} as const satisfies Record<IssueTracking['provider'], ReactNode>
 
-export function GitAccountsPage() {
+export function ListIssueTrackingPage() {
   // Input
   const navigate = useNavigate()
-  const items = useSelector((state) => state.accounts.items)
+  const items = useSelector((state) => state.issueTracking.items)
 
   // State
-  const [ selectedItem, select ] = useState<'new' | AuthAccount | null>(null)
+  const [ selectedItem, select ] = useState<'new' | IssueTracking | null>(null)
 
   // State maintenance
   useEffect(() => {
@@ -47,6 +59,9 @@ export function GitAccountsPage() {
 
     const latestItem = items.find((item) => item.id === selectedItem.id)
     if (!latestItem) {
+      console.debug('IssueTrackingPage selected item no longer exists, clearing selection', {
+        selectedItem,
+      })
       select(null)
       return
     }
@@ -56,7 +71,7 @@ export function GitAccountsPage() {
     }
 
     select(latestItem)
-  }, [ items ])
+  }, [ items, selectedItem ])
 
   // Actions
   const confirm = useConfirm()
@@ -67,7 +82,7 @@ export function GitAccountsPage() {
     }
 
     navigate(UrlTree.tasks)
-  }, [ selectedItem ])
+  }, [ navigate, selectedItem ])
 
   // Hotkeys
   useHotkey([ 'Escape' ], deselectAll, {
@@ -78,7 +93,7 @@ export function GitAccountsPage() {
   return <article className='relaxed'>
     <header className='compact level'>
       <div className='level-left'>
-        <h1 className='text-2xl font-bold'>Repositories</h1>
+        <h1 className='text-2xl font-bold'>Issue tracking</h1>
       </div>
       <div className='level-right'>
         <Dropdown placement='bottom-end'>
@@ -92,16 +107,16 @@ export function GitAccountsPage() {
           </DropdownTrigger>
           <DropdownMenu aria-label='Static Actions'>
             <DropdownItem
-              key='github'
+              key='jira'
               onPress={() => {
                 select('new')
               }}
             >
               <div className='level-left w-full'>
                 <span className='icon'>
-                  <SiGithub className='icon' />
+                  <SiJirasoftware className='icon' />
                 </span>
-                <span>GitHub</span>
+                <span>Jira</span>
               </div>
             </DropdownItem>
           </DropdownMenu>
@@ -111,25 +126,27 @@ export function GitAccountsPage() {
     <section className='level-centered items-start gap-6'>
       <Card>{
         !items?.length
-          ? <EmptyData message='No repositories connected yet.' />
+          ? <EmptyData message='No issue tracking connections yet.' />
           : <>
             <ul className='flex-1'>{
-              items.map((account) => {
+              items.map((issueTracking) => {
                 let isSelected = false
                 if (typeof selectedItem === 'object') {
-                  isSelected = account.id === selectedItem?.id
+                  isSelected = issueTracking.id === selectedItem?.id
                 }
 
+                const description = `${issueTracking.email} • ${issueTracking.targetBoard}`
+
                 return <ListItem
-                  id={account.id}
-                  key={account.id}
-                  title={account.name}
-                  description={'@' + account.username}
+                  id={issueTracking.id}
+                  key={issueTracking.id}
+                  title={issueTracking.name}
+                  description={description}
                   className='hide-until-hover-parent'
                   isSelected={isSelected}
-                  onSelect={() => select(account)}
+                  onSelect={() => select(issueTracking)}
                   startContent={<div>{
-                    IconByProvider[account.provider]
+                    IconByProvider[issueTracking.provider]
                   }</div>}
                   endContent={<Dropdown placement='bottom-end' className='hide-until-hover'>
                     <DropdownTrigger>
@@ -140,7 +157,7 @@ export function GitAccountsPage() {
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu aria-label='Static Actions'>
-                      <DropdownItem key='edit' onPress={() => select(account)}>
+                      <DropdownItem key='edit' onPress={() => select(issueTracking)}>
                         <div className='level-left w-full'>
                           <span className='icon'>
                             <EditIcon className='icon' />
@@ -152,15 +169,13 @@ export function GitAccountsPage() {
                         key='delete'
                         color='danger'
                         onPress={() => confirm({
-                          title: 'Delete repository',
-                          message: `Are you sure you want to delete the repository connection for '${account.name}'?`
+                          title: 'Delete issue tracking account',
+                          message: `Are you sure you want to delete '${issueTracking.name}'?`
                             + ' This action cannot be undone.',
                           confirmText: 'Delete',
                           confirmColor: 'danger',
                           onConfirm: async () => {
-                            await removeAccount({
-                              authAccount: account,
-                            })
+                            await deleteIssueTracking(issueTracking)
                           },
                         })}
                       >
@@ -179,11 +194,14 @@ export function GitAccountsPage() {
           </>
       }</Card>
       { selectedItem
-        ? <ViewGitAccountsPage
-          provider='GITHUB'
-          account={typeof selectedItem !== 'string'
+        ? <ViewIssueTrackingPage
+          issueTracking={typeof selectedItem !== 'string'
             ? selectedItem
-            : null
+            : undefined
+          }
+          provider={selectedItem === 'new'
+            ? 'Jira'
+            : selectedItem.provider
           }
           close={() => select(null)}
         />
