@@ -207,7 +207,8 @@ export function LLMsPage() {
       }</Card>
       { selectedItem
         ? <ViewLLMPage
-          languageModel={typeof selectedItem !== 'string'
+          isFirst={!items?.length}
+          existingLLM={typeof selectedItem !== 'string'
             ? selectedItem
             : undefined
           }

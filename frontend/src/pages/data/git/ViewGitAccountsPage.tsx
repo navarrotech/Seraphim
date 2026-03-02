@@ -15,16 +15,20 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Input } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
+import { Information } from '@frontend/elements/Information'
 import { SaveButton } from '@frontend/elements/SaveButton'
 import { ResetButton } from '@frontend/elements/ResetButton'
 import { CloseButton } from '@frontend/elements/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
+import { isEmpty } from 'lodash-es'
 
 // Misc
 import { upsertAccountSchema } from '@common/schema/accounts'
 import { upsertGitAccount } from '@frontend/routes/accountsRoutes'
+import { GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES } from '@common/constants'
+import { ExternalLink } from '@frontend/elements/ExternalLink'
 
 type Props = {
   account?: AuthAccount
@@ -60,6 +64,8 @@ export function ViewGitAccountsPage(props: Props) {
     })
   }, [ account ])
 
+  useEffect(() => void form.trigger(), [])
+
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
       return
@@ -87,7 +93,7 @@ export function ViewGitAccountsPage(props: Props) {
     blockOtherHotkeys: true,
   })
 
-  if (form.formState.errors || !form.formState.isValid) {
+  if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
     console.debug('Form validation errors', form.formState.errors, form.formState.isValid)
   }
 
@@ -155,6 +161,7 @@ export function ViewGitAccountsPage(props: Props) {
           fullWidth
           type='password'
           autoComplete='off'
+          className='compact'
           isInvalid={Boolean(form.formState.errors.accessToken)}
           errorMessage={form.formState.errors.accessToken?.message}
           value={form.watch('accessToken')}
@@ -163,6 +170,33 @@ export function ViewGitAccountsPage(props: Props) {
             form.setValue('accessToken', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
+        <div className='compact level-left gap-1'>
+          <Information
+            title='Getting the correct scopes'
+            content={() => <div className='text-sm'>
+              <ExternalLink href='https://github.com/settings/personal-access-tokens'>
+                Get your access token here
+              </ExternalLink>
+              <div className='compact'>
+                <p className='block mb-2'>Requirements for Github classic PAT tokens:</p>
+                <ul className='list-disc list-inside mb-2'>{
+                  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES.map((scope) => <li key={scope}>{ scope }</li>)
+                }</ul>
+              </div>
+              <div className='compact'>
+                <p className='block mb-2'>Requirements for Github fine grained PAT tokens:</p>
+                <ul className='list-disc list-inside mb-2'>
+                  <li>Metadata:read</li>
+                  <li>Email addresses:read</li>
+                  <li>Content:read-write</li>
+                </ul>
+              </div>
+              </div>
+            }
+            size={18}
+          />
+          <p className='text-sm'>Ensure you have the correct scopes</p>
+        </div>
         <p className='text-sm opacity-80'>(Leave blank for no change)</p>
       </div>
     </div>
