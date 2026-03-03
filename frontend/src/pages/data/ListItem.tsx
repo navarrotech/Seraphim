@@ -23,7 +23,7 @@ export function ListItem(props: Props) {
     props.className,
   ].filter(Boolean).join(' ')
 
-  return <li className='w-full'>
+  return <li className='compact w-full'>
     <div
       id={props.id}
       className={className}

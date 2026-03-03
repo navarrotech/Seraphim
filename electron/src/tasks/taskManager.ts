@@ -147,7 +147,7 @@ class TaskManager {
         userId: request.userId,
         workspaceId: request.workspaceId,
         llmId: request.llmId,
-        authAccountId: request.authAccountId,
+        gitAccountId: request.gitAccountId,
         name: taskName,
         sourceGitBranch: request.branch,
         workGitBranch: gitWorkBranchName,

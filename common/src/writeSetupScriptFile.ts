@@ -27,8 +27,8 @@ export async function writeSetupScriptFile(
 ) {
   const gitCloneUrl = cloner.getCloneUrl()
 
-  const gitUserName = task.authAccount?.name || 'codex'
-  const gitUserEmail = task.authAccount?.email || 'codex@jalapenolabs.io'
+  const gitUserName = task.gitAccount?.name || 'codex'
+  const gitUserEmail = task.gitAccount?.email || 'codex@jalapenolabs.io'
   const gitSourceBranch = task.sourceGitBranch || 'main'
   const gitWorkBranchName = `seraphim-work`
 

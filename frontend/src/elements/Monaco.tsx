@@ -23,6 +23,7 @@ export type MonacoOptionalProps = {
   minimapOverride?: boolean
   readOnly?: boolean
   getMonaco?: (context: MonacoContext) => void
+  fontSize?: number
 }
 
 export type MonacoProps = MonacoRequiredProps & MonacoOptionalProps
@@ -65,6 +66,7 @@ export function Monaco(props: MonacoProps) {
         },
         scrollBeyondLastLine: true,
         readOnly: props.readOnly ?? false,
+        fontSize: props.fontSize,
       }}
     />
   </div>

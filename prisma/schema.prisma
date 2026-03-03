@@ -111,8 +111,8 @@ model Task {
   llmId String @map("llm_id")
   llm   Llm    @relation(fields: [llmId], references: [id])
 
-  authAccountId String
-  authAccount   AuthAccount @relation(fields: [authAccountId], references: [id])
+  gitAccountId String
+  gitAccount   GitAccount @relation(fields: [gitAccountId], references: [id])
 
   turns    Turn[]
   messages Message[]
@@ -204,13 +204,13 @@ model Llm {
   @@map("llms")
 }
 
-model AuthAccount {
+model GitAccount {
   id String @id @default(uuid())
 
   // Provider
   provider    AuthProvider
   accessToken String       @map("access_token")
-  scope       String
+  scope       String[]
 
   // Auth identity
   name String
@@ -227,7 +227,7 @@ model AuthAccount {
   tasks Task[]
 
   @@unique([provider, username])
-  @@map("auth_accounts")
+  @@map("git_accounts")
 }
 
 model IssueTracking {

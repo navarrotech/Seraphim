@@ -15,10 +15,10 @@ import { ViewTaskPage } from './pages/tasks/ViewTaskPage'
 import { GeneralSettingsPage } from './pages/settings/GeneralSettingsPage'
 import { PromptSettingsPage } from './pages/settings/PromptSettingsPage'
 
-import { GitAccountsPage } from './pages/data/git/GitAccountsPage'
-import { WorkspacesPage } from './pages/data/workspaces/WorkspacesPage'
-import { LLMsPage } from './pages/data/llms/LLMsPage'
-import { IssueTrackingPage } from './pages/data/issueTracking/IssueTrackingPage'
+import { ListGitAccountsPage } from './pages/data/git/ListGitAccountsPage'
+import { ListWorkspacesPage } from './pages/data/workspaces/ListWorkspacesPage'
+import { ListLLMsPage } from './pages/data/llms/ListLLMsPage'
+import { ListIssueTrackingPage } from './pages/data/issueTracking/ListIssueTrackingPage'
 
 // Misc
 import { UNKNOWN_ROUTE_REDIRECT_TO, UrlTree } from '@common/urls'
@@ -38,10 +38,10 @@ export const Router = createBrowserRouter(
           <Route path={UrlTree.generalSettings} element={<GeneralSettingsPage />} />
           <Route path={UrlTree.promptSettings} element={<PromptSettingsPage />} />
 
-          <Route path={UrlTree.gitAccounts} element={<GitAccountsPage />} />
-          <Route path={UrlTree.workspaces} element={<WorkspacesPage />} />
-          <Route path={UrlTree.llms} element={<LLMsPage />} />
-          <Route path={UrlTree.issueTracking} element={<IssueTrackingPage />} />
+          <Route path={UrlTree.gitAccounts} element={<ListGitAccountsPage />} />
+          <Route path={UrlTree.workspaces} element={<ListWorkspacesPage />} />
+          <Route path={UrlTree.llms} element={<ListLLMsPage />} />
+          <Route path={UrlTree.issueTracking} element={<ListIssueTrackingPage />} />
 
           <Route path={UrlTree.settings} element={<Navigate to={UrlTree.generalSettings} />} />
           <Route path='*' element={<Navigate to={UrlTree.generalSettings} />} />

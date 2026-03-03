@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 Jalapeno Labs
 
 import type {
-  AuthAccount,
+  GitAccount,
   StandardUrlParams,
   GithubRepoSummary,
   GithubBranchSummary,
@@ -26,17 +26,17 @@ import { upsertAccountSchema } from '@common/schema/accounts'
 // /////////////////////////////// //
 
 type ListAccountsResponse = {
-  accounts: AuthAccount[]
+  gitAccounts: GitAccount[]
 }
 
 // This route intentionally has no pagination
 export async function listAccounts(): Promise<ListAccountsResponse> {
   const response = await frontendClient
-    .get('v1/protected/accounts')
+    .get('v1/protected/git-accounts')
     .json<ListAccountsResponse>()
 
   dispatch(
-    accountActions.setAccounts(response.accounts),
+    accountActions.setAccounts(response.gitAccounts),
   )
 
   return response
@@ -46,9 +46,8 @@ export async function listAccounts(): Promise<ListAccountsResponse> {
 //        List Account Repos       //
 // /////////////////////////////// //
 
-// TODO: API needs pagination!
-type ListReposRequest = StandardUrlParams
-type ListReposResponse = StandardPaginatedResponseData & {
+type ListReposRequest = {}
+type ListReposResponse = {
   results: {
     accountId: string
     username: string
@@ -65,7 +64,7 @@ type ListReposResponse = StandardPaginatedResponseData & {
 
 export function listRepos(request: ListReposRequest) {
   return frontendClient
-    .get('v1/protected/accounts/repos', {
+    .get('v1/protected/git-accounts/repos', {
       searchParams: buildUrlParams(request),
     })
     .json<ListReposResponse>()
@@ -77,12 +76,12 @@ export function listRepos(request: ListReposRequest) {
 
 type ListBranchesRequest = StandardUrlParams & {
   workspaceId: string
-  authAccountId: string
+  gitAccountId: string
 }
 
 type ListBranchesResponse = StandardPaginatedResponseData & {
   workspaceId: string
-  authAccountId: string
+  gitAccountId: string
   repoPath: string
   defaultBranch: string | null
   branches: GithubBranchSummary[]
@@ -90,7 +89,7 @@ type ListBranchesResponse = StandardPaginatedResponseData & {
 
 export function listBranches(request: ListBranchesRequest) {
   return frontendClient
-    .get('v1/protected/accounts/branches', {
+    .get('v1/protected/git-accounts/branches', {
       searchParams: buildUrlParams(request),
     })
     .json<ListBranchesResponse>()
@@ -101,12 +100,13 @@ export function listBranches(request: ListBranchesRequest) {
 // /////////////////////////////// //
 
 type UpsertAccountResponse = {
-  account: AuthAccount
+  account: GitAccount
+  type: 'Github classic' | 'Github fine-grained' | 'Unknown'
   gitUserName?: string
   gitUserEmail?: string
   githubIdentity?: {
     username?: string
-    email?: string | null
+    emails?: string[] | null
   }
   grantedScopes?: string[]
   acceptedScopes?: string[]
@@ -116,7 +116,7 @@ export async function upsertGitAccount(accountId: string = '', raw: UpsertAccoun
   const json = parseRequestBeforeSend(upsertAccountSchema, raw)
 
   const response = await frontendClient
-    .post(`v1/protected/accounts/upsert/${accountId}`, { json })
+    .post(`v1/protected/git-accounts/upsert/${accountId}`, { json })
     .json<UpsertAccountResponse>()
 
   dispatch(
@@ -131,7 +131,7 @@ export async function upsertGitAccount(accountId: string = '', raw: UpsertAccoun
 // /////////////////////////////// //
 
 type RemoveAccountRequest = {
-  authAccount: AuthAccount
+  gitAccount: GitAccount
 }
 
 type RemoveAccountResponse = {
@@ -142,11 +142,11 @@ type RemoveAccountResponse = {
 
 export async function removeAccount(json: RemoveAccountRequest) {
   const response = await frontendClient
-    .delete('v1/protected/accounts', { json })
+    .delete('v1/protected/git-accounts', { json })
     .json<RemoveAccountResponse>()
 
   dispatch(
-    accountActions.removeAccount(json.authAccount),
+    accountActions.removeAccount(json.gitAccount),
   )
 
   return response

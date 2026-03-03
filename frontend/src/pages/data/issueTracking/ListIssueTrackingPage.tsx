@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { WorkspaceWithEnv } from '@common/types'
+import type { IssueTracking } from '@common/types'
+import type { ReactNode } from 'react'
 
 // Core
 import { useCallback, useEffect, useState } from 'react'
@@ -12,7 +13,7 @@ import { useConfirm } from '@frontend/hooks/useConfirm'
 import { useSelector } from '@frontend/framework/store'
 
 // User Interface
-import { ViewWorkspacePage } from './ViewWorkspacePage'
+import { ViewIssueTrackingPage } from './ViewIssueTrackingPage'
 import { Card } from '@frontend/elements/Card'
 import {
   Button,
@@ -21,6 +22,7 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from '@heroui/react'
+import { SiJirasoftware } from 'react-icons/si'
 import {
   PlusIcon,
   EllipsisIcon,
@@ -34,16 +36,20 @@ import { EmptyData } from '../EmptyData'
 import { isEqual } from 'lodash-es'
 
 // Misc
-import { deleteWorkspace } from '@frontend/routes/workspaceRoutes'
+import { deleteIssueTracking } from '@frontend/routes/issueTrackingRoutes'
 import { UrlTree } from '@common/urls'
 
-export function WorkspacesPage() {
+const IconByProvider = {
+  Jira: <SiJirasoftware className='icon' size={38} />,
+} as const satisfies Record<IssueTracking['provider'], ReactNode>
+
+export function ListIssueTrackingPage() {
   // Input
   const navigate = useNavigate()
-  const items = useSelector((state) => state.workspaces.items)
+  const items = useSelector((state) => state.issueTracking.items)
 
   // State
-  const [ selectedItem, select ] = useState<'new' | WorkspaceWithEnv | null>(null)
+  const [ selectedItem, select ] = useState<'new' | IssueTracking | null>(null)
 
   // State maintenance
   useEffect(() => {
@@ -53,10 +59,9 @@ export function WorkspacesPage() {
 
     const latestItem = items.find((item) => item.id === selectedItem.id)
     if (!latestItem) {
-      console.debug(
-        'WorkspacesPage selected item no longer exists, clearing selection',
-        { selectedItem },
-      )
+      console.debug('IssueTrackingPage selected item no longer exists, clearing selection', {
+        selectedItem,
+      })
       select(null)
       return
     }
@@ -88,42 +93,61 @@ export function WorkspacesPage() {
   return <article className='relaxed'>
     <header className='compact level'>
       <div className='level-left'>
-        <h1 className='text-2xl font-bold'>Workspaces</h1>
+        <h1 className='text-2xl font-bold'>Issue tracking</h1>
       </div>
       <div className='level-right'>
-        <Button color='primary' className='font-semibold' onPress={() => select('new')}>
-          <span>New Workspace</span>
-          <span className='icon'>
-            <PlusIcon />
-          </span>
-        </Button>
+        <Dropdown placement='bottom-end'>
+          <DropdownTrigger>
+            <Button color='primary' className='font-semibold'>
+              <span>Link New</span>
+              <span className='icon'>
+                <PlusIcon />
+              </span>
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu aria-label='Static Actions'>
+            <DropdownItem
+              key='jira'
+              onPress={() => {
+                select('new')
+              }}
+            >
+              <div className='level-left w-full'>
+                <span className='icon'>
+                  <SiJirasoftware className='icon' />
+                </span>
+                <span>Jira</span>
+              </div>
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
       </div>
     </header>
     <section className='level-centered items-start gap-6'>
       <Card>{
         !items?.length
-          ? <EmptyData message='No workspaces yet.' />
+          ? <EmptyData message='No issue tracking connections yet.' />
           : <>
             <ul className='flex-1'>{
-              items.map((workspace) => {
+              items.map((issueTracking) => {
                 let isSelected = false
                 if (typeof selectedItem === 'object') {
-                  isSelected = workspace.id === selectedItem?.id
+                  isSelected = issueTracking.id === selectedItem?.id
                 }
 
-                let description = workspace.description
-                if (!description) {
-                  description = 'No description yet'
-                }
+                const description = `${issueTracking.email} • ${issueTracking.targetBoard}`
 
                 return <ListItem
-                  id={workspace.id}
-                  key={workspace.id}
-                  title={workspace.name}
+                  id={issueTracking.id}
+                  key={issueTracking.id}
+                  title={issueTracking.name}
                   description={description}
                   className='hide-until-hover-parent'
                   isSelected={isSelected}
-                  onSelect={() => select(workspace)}
+                  onSelect={() => select(issueTracking)}
+                  startContent={<div>{
+                    IconByProvider[issueTracking.provider]
+                  }</div>}
                   endContent={<Dropdown placement='bottom-end' className='hide-until-hover'>
                     <DropdownTrigger>
                       <Button isIconOnly variant='light'>
@@ -133,7 +157,7 @@ export function WorkspacesPage() {
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu aria-label='Static Actions'>
-                      <DropdownItem key='edit' onPress={() => select(workspace)}>
+                      <DropdownItem key='edit' onPress={() => select(issueTracking)}>
                         <div className='level-left w-full'>
                           <span className='icon'>
                             <EditIcon className='icon' />
@@ -145,15 +169,13 @@ export function WorkspacesPage() {
                         key='delete'
                         color='danger'
                         onPress={() => confirm({
-                          title: 'Delete workspace',
-                          message: `Are you sure you want to delete '${workspace.name}'?`
+                          title: 'Delete issue tracking account',
+                          message: `Are you sure you want to delete '${issueTracking.name}'?`
                             + ' This action cannot be undone.',
                           confirmText: 'Delete',
                           confirmColor: 'danger',
                           onConfirm: async () => {
-                            await deleteWorkspace({
-                              id: workspace.id,
-                            })
+                            await deleteIssueTracking(issueTracking)
                           },
                         })}
                       >
@@ -172,10 +194,14 @@ export function WorkspacesPage() {
           </>
       }</Card>
       { selectedItem
-        ? <ViewWorkspacePage
-          workspace={typeof selectedItem !== 'string'
+        ? <ViewIssueTrackingPage
+          issueTracking={typeof selectedItem !== 'string'
             ? selectedItem
             : undefined
+          }
+          provider={selectedItem === 'new'
+            ? 'Jira'
+            : selectedItem.provider
           }
           close={() => select(null)}
         />

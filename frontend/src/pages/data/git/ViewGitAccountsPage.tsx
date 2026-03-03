@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@common/types'
+import type { GitAccount } from '@common/types'
 import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
@@ -15,20 +15,24 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Input } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
+import { Information } from '@frontend/elements/Information'
 import { SaveButton } from '@frontend/elements/SaveButton'
 import { ResetButton } from '@frontend/elements/ResetButton'
 import { CloseButton } from '@frontend/elements/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
+import { isEmpty } from 'lodash-es'
 
 // Misc
 import { upsertAccountSchema } from '@common/schema/accounts'
 import { upsertGitAccount } from '@frontend/routes/accountsRoutes'
+import { GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES } from '@common/constants'
+import { ExternalLink } from '@frontend/elements/ExternalLink'
 
 type Props = {
-  account?: AuthAccount
-  provider?: AuthAccount['provider']
+  account?: GitAccount
+  provider?: GitAccount['provider']
   close?: () => void
 }
 
@@ -43,7 +47,7 @@ export function ViewGitAccountsPage(props: Props) {
       name: account?.name ?? '',
       gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
-      provider: account.provider ?? provider,
+      provider: account?.provider ?? provider,
       accessToken: '',
     },
     mode: 'onSubmit',
@@ -55,10 +59,12 @@ export function ViewGitAccountsPage(props: Props) {
       name: account?.name ?? '',
       gitUserName: account?.username ?? '',
       gitUserEmail: account?.email ?? '',
-      provider: account.provider ?? provider,
+      provider: account?.provider ?? provider,
       accessToken: '',
     })
   }, [ account ])
+
+  useEffect(() => void form.trigger(), [])
 
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
@@ -66,7 +72,15 @@ export function ViewGitAccountsPage(props: Props) {
     }
 
     await form.handleSubmit(
-      (values) => upsertGitAccount(account?.id || '', values),
+      async (values) => {
+        const result = await upsertGitAccount(account?.id || '', values)
+
+        if (result?.type) {
+          props.close?.()
+        }
+
+        return result
+      },
     )()
   }, [ account, form.formState.isDirty ])
 
@@ -78,6 +92,10 @@ export function ViewGitAccountsPage(props: Props) {
     preventDefault: true,
     blockOtherHotkeys: true,
   })
+
+  if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
+    console.debug('Form validation errors', form.formState.errors, form.formState.isValid)
+  }
 
   return <Card className='w-full'>
     <header className='compact level'>
@@ -97,28 +115,28 @@ export function ViewGitAccountsPage(props: Props) {
       <div className='compact'>
         <Input
           fullWidth
-          label='Repository Name'
-          placeholder='Seraphim Team'
+          label='Friendly Name'
+          placeholder='My personal Github'
           isInvalid={Boolean(form.formState.errors.name)}
           errorMessage={form.formState.errors.name?.message}
           value={form.watch('name')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('name', value, { shouldDirty: true })
+            form.setValue('name', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
       <div className='compact'>
         <Input
           fullWidth
-          label='Git real name'
-          placeholder='Ada Lovelace'
+          label='Git username'
+          placeholder='anakin123'
           isInvalid={Boolean(form.formState.errors.gitUserName)}
           errorMessage={form.formState.errors.gitUserName?.message}
           value={form.watch('gitUserName')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('gitUserName', value, { shouldDirty: true })
+            form.setValue('gitUserName', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -126,13 +144,13 @@ export function ViewGitAccountsPage(props: Props) {
         <Input
           fullWidth
           label='Git real email'
-          placeholder='ada@jalapenolabs.io'
+          placeholder='anakin@jalapenolabs.io'
           isInvalid={Boolean(form.formState.errors.gitUserEmail)}
           errorMessage={form.formState.errors.gitUserEmail?.message}
           value={form.watch('gitUserEmail')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('gitUserEmail', value, { shouldDirty: true })
+            form.setValue('gitUserEmail', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -143,14 +161,42 @@ export function ViewGitAccountsPage(props: Props) {
           fullWidth
           type='password'
           autoComplete='off'
+          className='compact'
           isInvalid={Boolean(form.formState.errors.accessToken)}
           errorMessage={form.formState.errors.accessToken?.message}
           value={form.watch('accessToken')}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('accessToken', value, { shouldDirty: true })
+            form.setValue('accessToken', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
+        <div className='compact level-left gap-1'>
+          <Information
+            title='Getting the correct scopes'
+            content={() => <div className='text-sm'>
+              <ExternalLink href='https://github.com/settings/personal-access-tokens'>
+                Get your access token here
+              </ExternalLink>
+              <div className='compact'>
+                <p className='block mb-2'>Requirements for Github classic PAT tokens:</p>
+                <ul className='list-disc list-inside mb-2'>{
+                  GITHUB_AUTH_PROVIDER_REQUIRED_SCOPES.map((scope) => <li key={scope}>{ scope }</li>)
+                }</ul>
+              </div>
+              <div className='compact'>
+                <p className='block mb-2'>Requirements for Github fine grained PAT tokens:</p>
+                <ul className='list-disc list-inside mb-2'>
+                  <li>Metadata:read</li>
+                  <li>Email addresses:read</li>
+                  <li>Content:read-write</li>
+                </ul>
+              </div>
+              </div>
+            }
+            size={18}
+          />
+          <p className='text-sm'>Ensure you have the correct scopes</p>
+        </div>
         <p className='text-sm opacity-80'>(Leave blank for no change)</p>
       </div>
     </div>
@@ -163,8 +209,9 @@ export function ViewGitAccountsPage(props: Props) {
       <SaveButton
         onSave={onSave}
         isDirty={form.formState.isDirty}
-        isDisabled={!account?.id}
+        isDisabled={!form.formState.isValid}
         isLoading={form.formState.isSubmitting}
+        text={account?.id ? 'Save' : 'Create'}
       />
     </div>
   </Card>

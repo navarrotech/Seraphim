@@ -9,8 +9,8 @@ import { STANDARD_SECRET_WORDS } from '@common/constants'
 export async function getSecrets(): Promise<string[]> {
   const prisma = requireDatabaseClient('getSecrets')
 
-  const [ authAccounts, llms ] = await Promise.all([
-    prisma.authAccount.findMany({
+  const [ gitAccounts, llms ] = await Promise.all([
+    prisma.gitAccount.findMany({
       select: {
         id: true,
         accessToken: true,
@@ -28,9 +28,9 @@ export async function getSecrets(): Promise<string[]> {
     ...STANDARD_SECRET_WORDS,
   ]
 
-  for (const authAccount of authAccounts) {
-    if (authAccount.accessToken) {
-      secrets.push(authAccount.accessToken)
+  for (const gitAccount of gitAccounts) {
+    if (gitAccount.accessToken) {
+      secrets.push(gitAccount.accessToken)
     }
   }
 

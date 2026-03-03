@@ -13,7 +13,7 @@ import { resolveSearchQuery } from '../../utils/searchQuery'
 
 const branchQuerySchema = z.object({
   workspaceId: z.string().trim().min(1),
-  authAccountId: z.string().trim().min(1),
+  gitAccountId: z.string().trim().min(1),
   q: z.string().trim().optional(),
   search: z.string().trim().optional(),
   page: z.string().trim().optional(),
@@ -83,18 +83,18 @@ export async function handleListBranchesRequest(
 
   const databaseClient = requireDatabaseClient('List Github branches')
 
-  const authAccount = await databaseClient.authAccount.findFirst({
+  const gitAccount = await databaseClient.gitAccount.findFirst({
     where: {
-      id: query.authAccountId,
+      id: query.gitAccountId,
       provider: 'GITHUB',
     },
   })
 
-  if (!authAccount) {
-    console.debug('List Github branches could not find github auth account', {
-      authAccountId: query.authAccountId,
+  if (!gitAccount) {
+    console.debug('List Github branches could not find git account', {
+      gitAccountId: query.gitAccountId,
     })
-    response.status(404).json({ error: 'Auth account not found' })
+    response.status(404).json({ error: 'Git account not found' })
     return
   }
 
@@ -122,7 +122,7 @@ export async function handleListBranchesRequest(
   const searchQuery = resolveSearchQuery(query)
 
   const branchResponse = await fetchGithubBranchesForRepo(
-    authAccount.accessToken,
+    gitAccount.accessToken,
     sourceRepoUrl,
     {
       searchQuery,
@@ -134,7 +134,7 @@ export async function handleListBranchesRequest(
   if (!branchResponse) {
     console.debug('List Github branches failed to fetch branch data', {
       workspaceId: workspace.id,
-      authAccountId: authAccount.id,
+      gitAccountId: gitAccount.id,
       sourceRepoUrl,
     })
     response.status(502).json({ error: 'Failed to fetch branches from GitHub' })
@@ -143,7 +143,7 @@ export async function handleListBranchesRequest(
 
   response.status(200).json({
     workspaceId: workspace.id,
-    authAccountId: authAccount.id,
+    gitAccountId: gitAccount.id,
     repoPath: sourceRepoUrl,
     defaultBranch: branchResponse.defaultBranch,
     branches: branchResponse.branches,

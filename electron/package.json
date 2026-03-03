@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@octokit/core": "^7.0.6",
+    "@openai/codex-sdk": "^0.98.0",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "@reduxjs/toolkit": "^2.8.2",

@@ -6,7 +6,7 @@ import type { Router } from 'express'
 import { Router as createRouter } from 'express'
 
 // Misc
-import { createAccountsRouter } from './accountsRouter'
+import { createGitAccountsRouter } from './accountsRouter'
 import { createIssueTrackingRouter } from './issueTrackingRouter'
 import { createLlmsRouter } from './llmsRouter'
 import { createDockerRouter } from './docker/dockerRouter'
@@ -17,7 +17,7 @@ import { createWorkspacesRouter } from './workspacesRouter'
 export function createProtectedRouter(): Router {
   const protectedRouter = createRouter()
 
-  protectedRouter.use('/accounts', createAccountsRouter())
+  protectedRouter.use('/git-accounts', createGitAccountsRouter())
   protectedRouter.use('/issue-tracking', createIssueTrackingRouter())
   protectedRouter.use('/llms', createLlmsRouter())
   protectedRouter.use('/docker', createDockerRouter())

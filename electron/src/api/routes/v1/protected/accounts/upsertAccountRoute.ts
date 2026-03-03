@@ -1,19 +1,19 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { Request, Response } from 'express'
-import type { AuthAccount } from '@prisma/client'
+import type { GitAccount } from '@prisma/client'
 import type { UpsertAccountRequest } from '@common/schema/accounts'
 
 // Core
 import { parseRequestBody, parseRequestParams } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
+import { createGitClient } from '@common/git/createGitClient'
 import { z } from 'zod'
 
 // Schema
 import { upsertAccountSchema } from '@common/schema/accounts'
 import { sanitizeAccount } from './utils.ts'
-import { validateGithubToken } from '@electron/api/oauth/githubTokenService'
 
 const upsertAccountParamsSchema = z.object({
   accountId: z.string().trim().uuid().optional(),
@@ -60,9 +60,9 @@ export async function handleUpsertAccountRequest(
 
   const prisma = requireDatabaseClient('Upsert git account')
 
-  let existingAccount: AuthAccount | null = null
+  let existingAccount: GitAccount | null = null
   if (accountId) {
-    existingAccount = await prisma.authAccount.findUnique({
+    existingAccount = await prisma.gitAccount.findUnique({
       where: {
         id: accountId,
       },
@@ -81,13 +81,13 @@ export async function handleUpsertAccountRequest(
 
   // Must always validate on every run, otherwise upsert will fail
   // Prisma upsert requires scope to always exist
-  const validation = await validateGithubToken(payload.accessToken || existingAccount.accessToken)
+  const gitClient = createGitClient(payload.accessToken || existingAccount?.accessToken)
+  const validation = await gitClient.validateToken()
 
   if (validation.isValid === false) {
     response.status(400).json({
-      error: validation.error,
-      status: validation.status,
-      grantedScopes: validation.grantedScopes,
+      error: validation.message,
+      grantedScopes: validation.scopes,
       acceptedScopes: validation.acceptedScopes,
       missingScopes: validation.missingScopes,
     })
@@ -106,15 +106,27 @@ export async function handleUpsertAccountRequest(
     return
   }
 
-  const account = await prisma.authAccount.upsert({
+  if (validation.emails.includes(payload.gitUserEmail) === false) {
+    console.debug('Update account failed because token email changed', {
+      accountId,
+      payloadEmail: payload.gitUserEmail,
+      validationEmails: validation.emails,
+    })
+    response.status(400).json({
+      error: 'Token does not belong to this connected account email',
+    })
+    return
+  }
+
+  const account = await prisma.gitAccount.upsert({
     where: {
-      id: accountId,
+      id: accountId || 'foobar',
     },
     create: {
       provider: payload.provider,
       name: payload.name,
       accessToken: payload.accessToken,
-      scope: validation.scope,
+      scope: validation.scopes,
       username: validation.username,
       email: payload.gitUserEmail,
       lastUsedAt: new Date(),
@@ -122,7 +134,7 @@ export async function handleUpsertAccountRequest(
     update: {
       name: payload.name,
       accessToken: payload.accessToken || existingAccount.accessToken,
-      scope: validation.scope,
+      scope: validation.scopes,
       email: payload.gitUserEmail,
       lastUsedAt: new Date(),
     },
@@ -133,7 +145,7 @@ export async function handleUpsertAccountRequest(
   if (accountId) {
     broadcastSseChange({
       type: 'update',
-      kind: 'accounts',
+      kind: 'gitAccounts',
       data: sanitized,
     })
 
@@ -142,7 +154,7 @@ export async function handleUpsertAccountRequest(
   else {
     broadcastSseChange({
       type: 'create',
-      kind: 'accounts',
+      kind: 'gitAccounts',
       data: sanitized,
     })
 
@@ -151,13 +163,14 @@ export async function handleUpsertAccountRequest(
 
   response.json({
     account: sanitized,
+    type: validation.type,
     gitUserName: payload.gitUserName,
     gitUserEmail: payload.gitUserEmail,
     githubIdentity: {
       username: validation.username,
-      email: validation.email,
+      email: validation.emails,
     },
-    grantedScopes: validation.grantedScopes,
+    grantedScopes: validation.scopes,
     acceptedScopes: validation.acceptedScopes,
   })
 }

@@ -92,9 +92,9 @@ export async function handleListReposRequest(
 
   const databaseClient = requireDatabaseClient('List Github repos')
 
-  let accounts
+  let gitAccounts
   if (params) {
-    accounts = await databaseClient.authAccount.findMany({
+    gitAccounts = await databaseClient.gitAccount.findMany({
       where: {
         provider: 'GITHUB',
         username: params.githubUsername,
@@ -102,17 +102,17 @@ export async function handleListReposRequest(
     })
   }
   else {
-    accounts = await databaseClient.authAccount.findMany({
+    gitAccounts = await databaseClient.gitAccount.findMany({
       where: { provider: 'GITHUB' },
       orderBy: { createdAt: 'asc' },
     })
   }
 
-  if (!accounts || accounts.length === 0) {
-    console.debug('No Github accounts available for repo listing', {
+  if (!gitAccounts || gitAccounts.length === 0) {
+    console.debug('No git accounts available for repo listing', {
       username: params?.githubUsername ?? null,
     })
-    response.status(404).json({ error: 'No Github accounts available' })
+    response.status(404).json({ error: 'No git accounts available' })
     return
   }
 
@@ -128,7 +128,7 @@ export async function handleListReposRequest(
   const results: RepoAccountResult[] = []
   const failures: RepoAccountFailure[] = []
 
-  for (const account of accounts) {
+  for (const account of gitAccounts) {
     const repos = await fetchGithubReposForAccount(account.accessToken, {
       searchQuery,
       visibility,

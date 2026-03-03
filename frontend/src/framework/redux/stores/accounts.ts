@@ -1,6 +1,6 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { AuthAccount } from '@common/types'
+import type { GitAccount } from '@common/types'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 // Core
@@ -8,7 +8,7 @@ import { createEnhancedSlice } from '../createEnhancedSlice'
 import { isEqual } from 'lodash-es'
 
 type State = {
-  items: AuthAccount[]
+  items: GitAccount[]
 }
 
 const initialState: State = {
@@ -19,10 +19,10 @@ export const slice = createEnhancedSlice({
   name: 'accounts',
   initialState,
   reducers: {
-    setAccounts: (state, action: PayloadAction<AuthAccount[]>) => {
+    setAccounts: (state, action: PayloadAction<GitAccount[]>) => {
       state.items = action.payload
     },
-    upsertAccount: (state, action: PayloadAction<AuthAccount>) => {
+    upsertAccount: (state, action: PayloadAction<GitAccount>) => {
       const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
 
       if (isEqual(asRecord[action.payload.id], action.payload)) {
@@ -32,7 +32,7 @@ export const slice = createEnhancedSlice({
       asRecord[action.payload.id] = action.payload
       state.items = Object.values(asRecord)
     },
-    removeAccount: (state, action: PayloadAction<AuthAccount>) => {
+    removeAccount: (state, action: PayloadAction<GitAccount>) => {
       state.items = state.items.filter((account) => account.id !== action.payload.id)
     },
   },

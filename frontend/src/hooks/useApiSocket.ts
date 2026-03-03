@@ -38,7 +38,7 @@ const actions: SseActionMap = {
   create: {
     tasks: [ taskActions.upsertTask ],
     settings: [ settingsActions.setSettings ],
-    accounts: [ accountActions.upsertAccount ],
+    gitAccounts: [ accountActions.upsertAccount ],
     issueTracking: [ issueTrackingActions.upsertIssueTracking ],
     llms: [ llmActions.upsertLlm ],
     workspaces: [ workspaceActions.upsertWorkspace ],
@@ -47,7 +47,7 @@ const actions: SseActionMap = {
   update: {
     tasks: [ taskActions.upsertTask ],
     settings: [ settingsActions.setSettings ],
-    accounts: [ accountActions.upsertAccount ],
+    gitAccounts: [ accountActions.upsertAccount ],
     issueTracking: [ issueTrackingActions.upsertIssueTracking ],
     llms: [ llmActions.upsertLlm ],
     workspaces: [ workspaceActions.upsertWorkspace ],
@@ -56,7 +56,7 @@ const actions: SseActionMap = {
   delete: {
     tasks: [ taskActions.removeTask ],
     settings: [],
-    accounts: [ accountActions.removeAccount ],
+    gitAccounts: [ accountActions.removeAccount ],
     issueTracking: [ issueTrackingActions.removeIssueTracking ],
     llms: [ llmActions.removeLlm ],
     workspaces: [ workspaceActions.removeWorkspace ],

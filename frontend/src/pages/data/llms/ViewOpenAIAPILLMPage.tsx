@@ -1,6 +1,7 @@
 // Copyright © 2026 Jalapeno Labs
 
 import type { LlmWithRateLimits } from '@common/types'
+import type { ViewProps } from './types'
 
 // Core
 import { useCallback, useEffect } from 'react'
@@ -11,49 +12,47 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 // User Interface
-import { Input, Switch } from '@heroui/react'
+import { Input, Switch, Autocomplete, AutocompleteItem } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
 import { DisplayErrors } from '@frontend/elements/DisplayErrors'
+import { Information } from '@frontend/elements/Information'
+import { ExternalLink } from '@frontend/elements/ExternalLink'
 import { SaveButton } from '@frontend/elements/SaveButton'
 import { ResetButton } from '@frontend/elements/ResetButton'
 import { CloseButton } from '@frontend/elements/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
+import { isEmpty } from 'lodash-es'
 
 // Misc
 import { upsertLlmSchema } from '@common/schema/llm'
 import { upsertLlm } from '@frontend/routes/llmRoutes'
-
-type Props = {
-  languageModel?: LlmWithRateLimits
-  type: LlmWithRateLimits['type']
-  close?: () => void
-}
+import { SUPPORTED_MODELS_BY_LLM } from '@common/constants'
 
 const resolvedForm = zodResolver(upsertLlmSchema)
 
-export function ViewLLMPage(props: Props) {
-  const { languageModel, type } = props
+export function ViewOpenAIAPILLMPage(props: ViewProps) {
+  const { existingLLM } = props
 
   const form = useForm<LlmWithRateLimits>({
     resolver: resolvedForm,
     defaultValues: {
-      id: languageModel?.id ?? '',
-      userId: languageModel?.userId ?? '',
-      type: languageModel?.type ?? type,
-      name: languageModel?.name ?? '',
-      isDefault: languageModel?.isDefault ?? false,
-      preferredModel: languageModel?.preferredModel ?? '',
+      id: existingLLM?.id ?? '',
+      userId: existingLLM?.userId ?? '',
+      type: existingLLM?.type ?? 'OPENAI_API_KEY',
+      name: existingLLM?.name ?? '',
+      isDefault: existingLLM?.isDefault ?? props.isFirst ?? false,
+      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY[0] ?? '',
       apiKey: '',
-      refreshToken: languageModel?.refreshToken ?? '',
-      expiresAt: languageModel?.expiresAt ?? null,
-      tokensUsed: languageModel?.tokensUsed ?? 0,
-      tokenLimit: languageModel?.tokenLimit ?? 0,
-      lastUsedAt: languageModel?.lastUsedAt ?? null,
-      createdAt: languageModel?.createdAt ?? new Date(0),
-      updatedAt: languageModel?.updatedAt ?? new Date(0),
-      rateLimits: languageModel?.rateLimits ?? null,
+      refreshToken: existingLLM?.refreshToken ?? '',
+      expiresAt: existingLLM?.expiresAt ?? null,
+      tokensUsed: existingLLM?.tokensUsed ?? 0,
+      tokenLimit: existingLLM?.tokenLimit ?? 0,
+      lastUsedAt: existingLLM?.lastUsedAt ?? null,
+      createdAt: existingLLM?.createdAt ?? new Date(0),
+      updatedAt: existingLLM?.updatedAt ?? new Date(0),
+      rateLimits: existingLLM?.rateLimits ?? null,
     },
     mode: 'onSubmit',
   })
@@ -61,23 +60,25 @@ export function ViewLLMPage(props: Props) {
   useEffect(() => {
     console.debug('Resetting LLM form with inbound values')
     form.reset({
-      id: languageModel?.id ?? '',
-      userId: languageModel?.userId ?? '',
-      type: languageModel?.type ?? type,
-      name: languageModel?.name ?? '',
-      isDefault: languageModel?.isDefault ?? false,
-      preferredModel: languageModel?.preferredModel ?? '',
+      id: existingLLM?.id ?? '',
+      userId: existingLLM?.userId ?? '',
+      type: existingLLM?.type ?? 'OPENAI_API_KEY',
+      name: existingLLM?.name ?? '',
+      isDefault: existingLLM?.isDefault ?? props.isFirst ?? false,
+      preferredModel: existingLLM?.preferredModel ?? SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY[0] ?? '',
       apiKey: '',
-      refreshToken: languageModel?.refreshToken ?? '',
-      expiresAt: languageModel?.expiresAt ?? null,
-      tokensUsed: languageModel?.tokensUsed ?? 0,
-      tokenLimit: languageModel?.tokenLimit ?? 0,
-      lastUsedAt: languageModel?.lastUsedAt ?? null,
-      createdAt: languageModel?.createdAt ?? new Date(0),
-      updatedAt: languageModel?.updatedAt ?? new Date(0),
-      rateLimits: languageModel?.rateLimits ?? null,
+      refreshToken: existingLLM?.refreshToken ?? '',
+      expiresAt: existingLLM?.expiresAt ?? null,
+      tokensUsed: existingLLM?.tokensUsed ?? 0,
+      tokenLimit: existingLLM?.tokenLimit ?? 0,
+      lastUsedAt: existingLLM?.lastUsedAt ?? null,
+      createdAt: existingLLM?.createdAt ?? new Date(0),
+      updatedAt: existingLLM?.updatedAt ?? new Date(0),
+      rateLimits: existingLLM?.rateLimits ?? null,
     })
-  }, [ languageModel, type ])
+  }, [ existingLLM ])
+
+  useEffect(() => void form.trigger(), [])
 
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
@@ -86,12 +87,20 @@ export function ViewLLMPage(props: Props) {
     }
 
     await form.handleSubmit(
-      (values) => upsertLlm(languageModel?.id || '', {
-        ...values,
-        type,
-      }),
+      async (values) => {
+        const result = await upsertLlm(existingLLM?.id || '', {
+          ...values,
+          type: 'OPENAI_API_KEY',
+        })
+
+        if (result?.llm) {
+          props.close?.()
+        }
+
+        return result
+      },
     )()
-  }, [ form.formState.isDirty, languageModel, type ])
+  }, [ form.formState.isDirty, existingLLM ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
     onSave,
@@ -102,10 +111,14 @@ export function ViewLLMPage(props: Props) {
     blockOtherHotkeys: true,
   })
 
+  if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
+    console.debug('ViewLLMPage form is invalid', form.formState.errors, form.formState.isValid)
+  }
+
   return <Card className='w-full'>
     <header className='compact level'>
       <h1 className='text-2xl font-bold'>
-        LLM
+        OpenAI API Key
       </h1>
       { props.close
         ? <CloseButton onClose={props.close} />
@@ -120,30 +133,35 @@ export function ViewLLMPage(props: Props) {
       <div className='compact'>
         <Input
           fullWidth
-          label='Display name'
+          label='Friendly name'
           placeholder='OpenAI Primary'
           isInvalid={Boolean(form.formState.errors.name)}
           errorMessage={form.formState.errors.name?.message}
           value={form.watch('name') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('name', value, { shouldDirty: true })
+            form.setValue('name', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
       <div className='compact'>
-        <Input
+        <Autocomplete
           fullWidth
+          allowsCustomValue
           label='Preferred model'
           placeholder='gpt-4o-mini'
           isInvalid={Boolean(form.formState.errors.preferredModel)}
           errorMessage={form.formState.errors.preferredModel?.message}
-          value={form.watch('preferredModel') || ''}
-          onChange={(event) => {
-            const value = event.currentTarget.value
-            form.setValue('preferredModel', value, { shouldDirty: true })
+          selectedKey={form.watch('preferredModel') || ''}
+          onSelectionChange={(value) => {
+            form.setValue('preferredModel', value as string, { shouldDirty: true, shouldValidate: true })
           }}
-        />
+          >{ SUPPORTED_MODELS_BY_LLM.OPENAI_API_KEY.map((model) => (
+            <AutocompleteItem key={model}>{
+              model
+            }</AutocompleteItem>
+          ))
+        }</Autocomplete>
       </div>
       <div className='compact'>
         <Input
@@ -152,14 +170,36 @@ export function ViewLLMPage(props: Props) {
           placeholder='sk-***'
           type='password'
           autoComplete='off'
+          className='compact'
           isInvalid={Boolean(form.formState.errors.apiKey)}
           errorMessage={form.formState.errors.apiKey?.message}
           value={form.watch('apiKey') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('apiKey', value, { shouldDirty: true })
+            form.setValue('apiKey', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
+        <div className='compact level-left gap-1'>
+          <Information
+            title='Getting the correct scopes'
+            content={() => <div className='text-sm'>
+              <ExternalLink href='https://platform.openai.com/account/api-keys'>
+                Get your OpenAI API key here
+              </ExternalLink>
+              <div className='compact'>
+                <p className='block mb-2'>Requirements for OpenAI API keys:</p>
+                <ul className='list-disc list-inside mb-2'>
+                  <li>List models - Read</li>
+                  <li>Responses - Write</li>
+                  <li>Images - Request</li>
+                </ul>
+              </div>
+              </div>
+            }
+            size={18}
+          />
+          <p className='text-sm'>Ensure you have the correct scopes</p>
+        </div>
         <p className='text-sm opacity-80'>(Leave blank for no change)</p>
       </div>
       <div className='compact'>
@@ -178,10 +218,10 @@ export function ViewLLMPage(props: Props) {
                 'ViewLLMPage tokenLimit is not a number, defaulting to 0',
                 { value: event.currentTarget.value },
               )
-              form.setValue('tokenLimit', 0, { shouldDirty: true })
+              form.setValue('tokenLimit', 0, { shouldDirty: true, shouldValidate: true })
               return
             }
-            form.setValue('tokenLimit', value, { shouldDirty: true })
+            form.setValue('tokenLimit', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -189,7 +229,7 @@ export function ViewLLMPage(props: Props) {
         <Switch
           isSelected={Boolean(form.watch('isDefault'))}
           onValueChange={(value) => {
-            form.setValue('isDefault', value, { shouldDirty: true })
+            form.setValue('isDefault', value, { shouldDirty: true, shouldValidate: true })
           }}
         >
           Set as default LLM
@@ -206,6 +246,7 @@ export function ViewLLMPage(props: Props) {
         onSave={onSave}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
+        isDisabled={!form.formState.isValid}
       />
     </div>
   </Card>
