@@ -9,7 +9,7 @@ export const upsertIssueTrackingSchema = z
     provider: z.nativeEnum(IssueTrackingProvider),
     baseUrl: z.string().trim().url().optional(),
     email: z.string().trim().email().optional(),
-    accessToken: z.string().trim().min(1).optional(),
+    accessToken: z.string().trim().optional(),
     targetBoard: z.string().trim().min(1).optional(),
   })
 

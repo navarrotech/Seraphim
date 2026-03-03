@@ -78,10 +78,18 @@ export function ViewIssueTrackingPage(props: Props) {
     }
 
     await form.handleSubmit(
-      (values) => upsertIssueTracking(issueTracking?.id || '', {
-        ...values,
-        provider,
-      }),
+      async (values) => {
+        const response = await upsertIssueTracking(issueTracking?.id || '', {
+          ...values,
+          provider,
+        })
+
+        if (response?.issueTracking?.id) {
+          props.close?.()
+        }
+
+        return response
+      },
     )()
   }, [ form.formState.isDirty, issueTracking, provider ])
 
