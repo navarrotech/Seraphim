@@ -3,7 +3,7 @@
 import type { Llm } from '@prisma/client'
 import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
-export class CallableLLM {
+export class BaseCallableLLM {
   protected readonly llm: Llm
 
   constructor(llm: Llm) {
@@ -16,13 +16,25 @@ export class CallableLLM {
     return `Response to: ${prompt}`
   }
 
-  public async getRateLimits(): Promise<RateLimitSnapshot | null> {
-    // Placeholder implementation - replace with actual rate limit retrieval logic
-    console.debug('CallableLLM getRateLimits has no provider implementation', {
-      llmId: this.llm.id,
-      llmType: this.llm.type,
-    })
-    return null
+  public async getRateLimits(): Promise<RateLimitSnapshot> {
+    return {
+      primary: {
+        usedPercent: 0,
+        windowDurationMins: null,
+        resetsAt: null,
+      },
+      secondary: {
+        usedPercent: 0,
+        windowDurationMins: null,
+        resetsAt: null,
+      },
+      credits: {
+        hasCredits: true,
+        unlimited: true,
+        balance: null,
+      },
+      planType: 'unknown',
+    }
   }
 
   public async validateLlm(): Promise<[ boolean, string ]> {

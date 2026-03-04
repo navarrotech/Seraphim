@@ -10,9 +10,11 @@ import { IoIosCheckmarkCircleOutline } from 'react-icons/io'
 import { AiTwotoneCloseCircle } from 'react-icons/ai'
 
 import CodexIcon from './icons/Codex.svg?react'
+import DeepseekIcon from './icons/Deepseek.svg?react'
 
 export {
   CodexIcon,
+  DeepseekIcon,
 }
 
 export const CheckIcon = IoIosCheckmarkCircleOutline

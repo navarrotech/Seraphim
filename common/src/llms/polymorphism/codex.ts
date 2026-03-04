@@ -6,7 +6,7 @@ import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLim
 import type { PlanType } from '@common/vendor/codex-protocol/PlanType'
 
 // Core
-import { CallableLLM } from './callLlm'
+import { BaseCallableLLM } from './base'
 import { Codex } from '@openai/codex-sdk'
 
 // Node.js
@@ -19,7 +19,7 @@ import { existsSync } from 'node:fs'
 import { safeParseJson } from '@common/json'
 import { Timer } from '@common/timer'
 
-export class CallableCodex extends CallableLLM {
+export class CallableCodex extends BaseCallableLLM {
   private getTargetTriple() {
     if (process.platform === 'linux' || process.platform === 'android') {
       if (process.arch === 'x64') {
@@ -132,7 +132,7 @@ export class CallableCodex extends CallableLLM {
   }
 
   public async query(prompt: string, systemPrompt?: string): Promise<string> {
-    const timer = new Timer('OpenAI query')
+    const timer = new Timer('Codex query')
 
     let contextDirectory: string | null = null
     try {

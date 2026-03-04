@@ -15,6 +15,8 @@ import { useSelector } from '@frontend/framework/store'
 
 // User Interface
 import { ViewOpenAIAPILLMPage } from './ViewOpenAIAPILLMPage'
+import { ViewDeepSeekAPILLMPage } from './ViewDeepSeekAPILLMPage'
+import { ViewClaudeAPILLMPage } from './ViewClaudeAPILLMPage'
 import { Card } from '@frontend/elements/Card'
 import {
   Button,
@@ -23,8 +25,15 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from '@heroui/react'
-import { SiOpenai } from 'react-icons/si'
-import { PlusIcon, EllipsisIcon, DeleteIcon, EditIcon, CodexIcon } from '@frontend/elements/graphics/IconNexus'
+import { SiOpenai, SiClaude } from 'react-icons/si'
+import {
+  PlusIcon,
+  EllipsisIcon,
+  DeleteIcon,
+  EditIcon,
+  CodexIcon,
+  DeepseekIcon,
+} from '@frontend/elements/graphics/IconNexus'
 import { ViewOpenAiLoginLLMPage } from './ViewOpenAILoginLLMPage'
 import { ListItem } from '../ListItem'
 import { EmptyData } from '../EmptyData'
@@ -39,6 +48,8 @@ import { UrlTree } from '@common/urls'
 const IconByType = {
   OPENAI_API_KEY: <SiOpenai className='icon' size={38} />,
   OPENAI_LOGIN_TOKEN: <CodexIcon className='icon' width={38} />,
+  DEEPSEEK_API_KEY: <DeepseekIcon className='icon' width={38} />,
+  CLAUDE_API_KEY: <SiClaude className='icon' size={38} />,
 } as const satisfies Record<LlmWithRateLimits['type'], ReactNode>
 
 export function ListLLMsPage() {
@@ -101,6 +112,12 @@ export function ListLLMsPage() {
   if (type === 'OPENAI_API_KEY') {
     ViewPage = ViewOpenAIAPILLMPage
   }
+  else if (type === 'DEEPSEEK_API_KEY') {
+    ViewPage = ViewDeepSeekAPILLMPage
+  }
+  else if (type === 'CLAUDE_API_KEY') {
+    ViewPage = ViewClaudeAPILLMPage
+  }
   else if (type === 'OPENAI_LOGIN_TOKEN') {
     ViewPage = ViewOpenAiLoginLLMPage
   }
@@ -145,6 +162,32 @@ export function ListLLMsPage() {
                   <CodexIcon width='18' />
                 </span>
                 <span>Codex Login Token</span>
+              </div>
+            </DropdownItem>
+            <DropdownItem
+              key='deepseek-api'
+              onPress={() => {
+                select('DEEPSEEK_API_KEY')
+              }}
+            >
+              <div className='level-left w-full'>
+                <span className='icon w-[18px]'>
+                  <DeepseekIcon width='18' />
+                </span>
+                <span>DeepSeek API Key</span>
+              </div>
+            </DropdownItem>
+            <DropdownItem
+              key='claude-api'
+              onPress={() => {
+                select('CLAUDE_API_KEY')
+              }}
+            >
+              <div className='level-left w-full'>
+                <span className='icon w-[18px]'>
+                  <SiClaude />
+                </span>
+                <span>Claude API Key</span>
               </div>
             </DropdownItem>
           </DropdownMenu>

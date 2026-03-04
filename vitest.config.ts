@@ -3,12 +3,12 @@
 import type { VitestEnvironment } from 'vitest/node'
 
 // Core
+import 'dotenv/config'
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
 
 // Plugins:
 import tsconfigPaths from 'vite-tsconfig-paths'
-
 
 // Env
 const IS_CI = process.env.GITHUB_ACTIONS === 'true'

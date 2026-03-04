@@ -44,6 +44,16 @@ export function createCodexAuthFile(
   else if (task.llm.type === 'OPENAI_LOGIN_TOKEN') {
     return task.llm.apiKey
   }
+  else if (task.llm.type === 'DEEPSEEK_API_KEY') {
+    return JSON.stringify({
+      DEEPSEEK_API_KEY: task.llm.apiKey,
+    })
+  }
+  else if (task.llm.type === 'CLAUDE_API_KEY') {
+    return JSON.stringify({
+      ANTHROPIC_API_KEY: task.llm.apiKey,
+    })
+  }
   else {
     throw new Error(`Unsupported LLM type: ${task.llm.type}`)
   }

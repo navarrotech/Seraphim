@@ -53,7 +53,7 @@ export async function handleUpsertLlmRequest(
     request,
     response,
     {
-      context: llmId ? 'Update llm API' : 'Create OpenAI API key llm API',
+      context: llmId ? 'Update llm API' : 'Create llm API',
       errorMessage: 'Invalid request body',
     },
   )
@@ -70,7 +70,7 @@ export async function handleUpsertLlmRequest(
     })
 
     if (!user) {
-      console.debug('OpenAI API key llm create requested, but no users exist')
+      console.debug('LLM create requested, but no users exist')
       response.status(404).json({ error: 'User not found' })
       return
     }

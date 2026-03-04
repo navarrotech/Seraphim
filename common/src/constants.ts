@@ -73,6 +73,16 @@ export const SUPPORTED_MODELS_BY_LLM = {
     'gpt-5-codex-mini',
     'gpt-5',
   ],
+  DEEPSEEK_API_KEY: [
+    'deepseek-chat',
+    'deepseek-reasoner',
+  ],
+  CLAUDE_API_KEY: [
+    'claude-sonnet-4-5',
+    'claude-opus-4-1',
+    'claude-3-7-sonnet-latest',
+    'claude-3-5-haiku-latest',
+  ],
 } as const satisfies Partial<Record<LlmType, readonly string[]>>
 
 // GitHub Auth

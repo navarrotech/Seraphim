@@ -2,10 +2,9 @@
 
 import type { Llm } from '@prisma/client'
 import type { ResponsesModel } from 'openai/resources/shared'
-import type { RateLimitSnapshot } from '@common/vendor/codex-protocol/v2/RateLimitSnapshot'
 
 // Core
-import { CallableLLM } from './callLlm'
+import { BaseCallableLLM } from './base'
 
 // Lib
 import OpenAI from 'openai'
@@ -13,7 +12,7 @@ import OpenAI from 'openai'
 // Misc
 import { Timer } from '@common/timer'
 
-export class CallableOpenAI extends CallableLLM {
+export class CallableOpenAI extends BaseCallableLLM {
   private client: OpenAI
   private backupModel: ResponsesModel = 'gpt-5.2'
 
@@ -33,7 +32,7 @@ export class CallableOpenAI extends CallableLLM {
     const instructions = systemPrompt?.trim() || undefined
     const input = prompt?.trim() || ''
     if (!input) {
-      return 'Unnamed task'
+      return null
     }
 
     try {
@@ -44,7 +43,7 @@ export class CallableOpenAI extends CallableLLM {
       })
       console.debug('OpenAI response', { response: response.output_text })
 
-      return response.output_text ?? 'Unnamed task'
+      return response.output_text ?? null
     }
     catch (error) {
       console.error('Error during OpenAI query', error)
@@ -53,28 +52,7 @@ export class CallableOpenAI extends CallableLLM {
       timer.stop()
     }
 
-    return 'Unnamed task'
-  }
-
-  public async getRateLimits(): Promise<RateLimitSnapshot> {
-    return {
-      primary: {
-        usedPercent: 0,
-        windowDurationMins: null,
-        resetsAt: null,
-      },
-      secondary: {
-        usedPercent: 0,
-        windowDurationMins: null,
-        resetsAt: null,
-      },
-      credits: {
-        hasCredits: true,
-        unlimited: true,
-        balance: null,
-      },
-      planType: 'unknown',
-    }
+    return null
   }
 
   public async validateLlm(): Promise<[ boolean, string ]> {
