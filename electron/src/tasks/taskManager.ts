@@ -334,7 +334,13 @@ class TaskManager {
   private async requestTaskName(llm: Llm, workspace: Workspace, userMessage: string) {
     try {
       const callableLlm = getCallableLLM(llm)
-      const [ taskName, gitWorkBranchName ] = await Promise.all([
+
+      const shortHash1 = `${Math.floor(Date.now() / 1000).toString(36)}`
+
+      const [
+        taskName = 'Unnamed task',
+        gitWorkBranchName = shortHash1,
+      ] = await Promise.all([
         callableLlm.query(
           userMessage,
           (`Below the user will provide an initial request for a given agentic task.`
@@ -355,11 +361,11 @@ class TaskManager {
         ),
       ])
 
-    const shortHash = `${Math.floor(Date.now() / 1000).toString(36)}`
+    const shortHash2 = `${Math.floor(Date.now() / 1000).toString(36)}`
 
       return {
         taskName,
-        gitWorkBranchName: `${gitWorkBranchName}--${shortHash}`,
+        gitWorkBranchName: `${gitWorkBranchName}--${shortHash2}`,
       } as const
     }
     catch (error) {

@@ -25,7 +25,7 @@ function buildLlm(overrides: Partial<Llm> = {}): Llm {
     type: LlmType.CLAUDE_API_KEY,
     name: 'Anthropic Test LLM',
     isDefault: false,
-    preferredModel: process.env.VITEST_ANTHROPIC_MODEL || 'claude-3-7-sonnet-latest',
+    preferredModel: process.env.VITEST_ANTHROPIC_MODEL || 'claude-opus-4-6',
     apiKey: process.env.VITEST_ANTHROPIC_API_KEY || null,
     refreshToken: null,
     expiresAt: null,

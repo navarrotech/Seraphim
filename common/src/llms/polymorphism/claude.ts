@@ -18,17 +18,21 @@ type ClaudeMessagesResponse = {
 export class CallableClaude extends BaseCallableLLM {
   private readonly endpoint = 'https://api.anthropic.com/v1/messages'
   private readonly backupModel = 'claude-3-7-sonnet-latest'
+  private latestQueryErrorMessage: string | null = null
 
   public async query(prompt: string, systemPrompt?: string): Promise<string> {
     const timer = new Timer('Claude query')
+    this.latestQueryErrorMessage = null
 
     const input = prompt?.trim() || ''
     if (!input) {
+      this.latestQueryErrorMessage = 'Prompt is empty'
       return null
     }
 
     if (!this.llm.apiKey) {
       console.debug('Claude query attempted without API key', { llmId: this.llm.id })
+      this.latestQueryErrorMessage = 'No api key provided'
       return null
     }
 
@@ -55,9 +59,13 @@ export class CallableClaude extends BaseCallableLLM {
 
       if (!response.ok) {
         const body = await response.text()
-        console.debug('Claude query failed with non-ok response', {
+        const normalizedBody = body?.trim() || 'No response body'
+        this.latestQueryErrorMessage = `Anthropic API returned ${response.status}: ${normalizedBody}`
+        console.error('Claude query failed with non-ok response', {
           status: response.status,
-          body,
+          body: normalizedBody,
+          llmId: this.llm.id,
+          preferredModel: this.llm.preferredModel || this.backupModel,
         })
         return null
       }
@@ -70,9 +78,16 @@ export class CallableClaude extends BaseCallableLLM {
         .join('\n')
         .trim()
 
+      if (!text) {
+        this.latestQueryErrorMessage = 'Anthropic response did not include text content'
+      }
+
       return text || null
     }
     catch (error) {
+      this.latestQueryErrorMessage = error instanceof Error
+        ? error.message
+        : String(error)
       console.error('Error during Claude query', error)
       return null
     }
@@ -91,6 +106,9 @@ export class CallableClaude extends BaseCallableLLM {
       return [ true, '' ]
     }
 
-    return [ false, 'Claude API key authentication failed' ]
+    const errorDetail = this.latestQueryErrorMessage
+      ? `: ${this.latestQueryErrorMessage}`
+      : ''
+    return [ false, `Claude API key authentication failed${errorDetail}` ]
   }
 }

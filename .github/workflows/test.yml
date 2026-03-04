@@ -81,6 +81,12 @@ jobs:
         continue-on-error: true
         id: unit-test
         run: yarn vitest run
+        env:
+          VITEST_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VITEST_DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          VITEST_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VITEST_CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          VITEST_ANTHROPIC_MODEL: claude-opus-4-6
 
       - name: Build
         continue-on-error: true
