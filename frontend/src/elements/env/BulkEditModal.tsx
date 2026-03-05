@@ -18,7 +18,7 @@ import {
   ModalFooter,
 } from '@heroui/react'
 import { Monaco } from '@frontend/elements/Monaco'
-import { SaveButton } from '../SaveButton'
+import { SaveButton } from '../buttons/SaveButton'
 
 // Utility
 import { convertEnvironmentToDotEnv, convertDotEnvToEnvironment } from '@common/envKit'

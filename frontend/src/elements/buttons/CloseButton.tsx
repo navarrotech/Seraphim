@@ -2,7 +2,7 @@
 
 // UI
 import { Tooltip } from '@heroui/react'
-import { CloseIcon } from './graphics/IconNexus'
+import { CloseIcon } from '../graphics/IconNexus'
 
 type Props = {
   isDisabled?: boolean

@@ -14,7 +14,7 @@ import {
 } from '@heroui/react'
 import { BulkEditModal } from './BulkEditModal'
 import { DeleteIcon, EditIcon, PlusIcon } from '@frontend/elements/graphics/IconNexus'
-import { DisplayErrors } from '../DisplayErrors'
+import { DisplayErrors } from '../buttons/DisplayErrors'
 
 type Props = {
   id: string

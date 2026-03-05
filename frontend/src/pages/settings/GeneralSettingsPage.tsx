@@ -17,9 +17,9 @@ import { updateCurrentUserSettings } from '@frontend/routes/userRoutes'
 import { Card } from '@frontend/elements/Card'
 import { ThemeInput } from '@frontend/elements/ThemeInput'
 import { LanguageInput } from '@frontend/elements/LanguageInput'
-import { DisplayErrors } from '@frontend/elements/DisplayErrors'
-import { SaveButton } from '@frontend/elements/SaveButton'
-import { ResetButton } from '@frontend/elements/ResetButton'
+import { DisplayErrors } from '@frontend/elements/buttons/DisplayErrors'
+import { SaveButton } from '@frontend/elements/buttons/SaveButton'
+import { ResetButton } from '@frontend/elements/buttons/ResetButton'
 
 const resolvedForm = zodResolver(userSettingsUpdateFieldsSchema)
 

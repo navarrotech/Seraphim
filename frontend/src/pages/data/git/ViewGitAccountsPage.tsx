@@ -14,11 +14,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 // User Interface
 import { Input } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
-import { DisplayErrors } from '@frontend/elements/DisplayErrors'
+import { DisplayErrors } from '@frontend/elements/buttons/DisplayErrors'
 import { Information } from '@frontend/elements/Information'
-import { SaveButton } from '@frontend/elements/SaveButton'
-import { ResetButton } from '@frontend/elements/ResetButton'
-import { CloseButton } from '@frontend/elements/CloseButton'
+import { SaveButton } from '@frontend/elements/buttons/SaveButton'
+import { ResetButton } from '@frontend/elements/buttons/ResetButton'
+import { CloseButton } from '@frontend/elements/buttons/CloseButton'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
