@@ -92,7 +92,7 @@ export class BaseGit {
   //        Listing branches        //
   // ////////////////////////////// //
 
-  protected async listBranches(
+  public async listBranches(
     options: GitListBranchesOptions,
   ): Promise<GitListBranchesResult | null> {
     const cloner = new Cloner(options.repoPath)

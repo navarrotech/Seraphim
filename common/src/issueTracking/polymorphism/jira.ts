@@ -7,17 +7,13 @@ import type {
   IssueTrackingIssueUpdate,
   IssueTrackingLabel,
   IssueTrackingListIssuesParams,
+  IssueTrackingSearchMode,
   IssueTrackingStatusType,
 } from '../types'
 
 // Core
 import { IssueTracker } from './issueTracker'
-
-// Lib
 import { AgileClient, HttpException, Version3Client } from 'jira.js'
-
-// Utility
-import { resolveIssueTrackingBaseUrl } from '../utils'
 
 export class JiraIssueTracker extends IssueTracker {
   private readonly client: Version3Client
@@ -27,7 +23,7 @@ export class JiraIssueTracker extends IssueTracker {
     super(issueTracking)
 
     const clientConfig = {
-      host: resolveIssueTrackingBaseUrl(this.issueTracking.baseUrl),
+      host: IssueTracker.resolveIssueTrackingBaseUrl(this.issueTracking.baseUrl),
       authentication: {
         basic: {
           email: this.issueTracking.email,
@@ -97,13 +93,74 @@ export class JiraIssueTracker extends IssueTracker {
   public async listIssues(
     params: IssueTrackingListIssuesParams = {},
   ): Promise<IssueTrackingIssueList> {
-    console.debug('Jira listIssues not implemented', {
-      issueTrackingId: this.issueTracking.id,
-      search: params.q ?? null,
-      page: params.page ?? null,
-      limit: params.limit ?? null,
-    })
-    return super.listIssues(params)
+    const page = params.page ?? 1
+    const limit = params.limit ?? 50
+    const searchMode = params.mode ?? 'text'
+
+    if (!this.issueTracking.targetBoard?.trim()) {
+      console.debug('Jira listIssues cannot run without targetBoard', {
+        issueTrackingId: this.issueTracking.id,
+      })
+      return super.listIssues(params)
+    }
+
+    const startAt = (page - 1) * limit
+    const searchJql = this.buildSearchJql(params.q, searchMode)
+
+    if (this.isNumericBoardId(this.issueTracking.targetBoard)) {
+      const boardId = Number(this.issueTracking.targetBoard)
+
+      try {
+        const response = await this.agileClient.board.getIssuesForBoard({
+          boardId,
+          startAt,
+          maxResults: limit,
+          jql: searchJql || undefined,
+          fields: [ 'summary', 'status', 'labels' ],
+        })
+
+        return this.mapIssueListResponse(response, page, limit)
+      }
+      catch (error) {
+        console.debug('Jira listIssues failed for board id search', {
+          issueTrackingId: this.issueTracking.id,
+          boardId,
+          search: params.q ?? null,
+          page,
+          limit,
+          error,
+        })
+        return super.listIssues(params)
+      }
+    }
+
+    const projectKey = this.issueTracking.targetBoard.trim()
+    const jqlParts = [ `project = "${this.escapeJqlValue(projectKey)}"` ]
+    if (searchJql) {
+      jqlParts.push(`(${searchJql})`)
+    }
+
+    try {
+      const response = await this.client.issueSearch.searchForIssuesUsingJql({
+        jql: jqlParts.join(' AND '),
+        startAt,
+        maxResults: limit,
+        fields: [ 'summary', 'status', 'labels' ],
+      })
+
+      return this.mapIssueListResponse(response, page, limit)
+    }
+    catch (error) {
+      console.debug('Jira listIssues failed for project key search', {
+        issueTrackingId: this.issueTracking.id,
+        projectKey,
+        search: params.q ?? null,
+        page,
+        limit,
+        error,
+      })
+      return super.listIssues(params)
+    }
   }
 
   public async getIssueById(issueId: string): Promise<IssueTrackingIssue | null> {
@@ -142,6 +199,109 @@ export class JiraIssueTracker extends IssueTracker {
 
   private isNumericBoardId(value: string) {
     return /^\d+$/.test(value)
+  }
+
+  private buildSearchJql(
+    searchQuery: string | undefined,
+    searchMode: IssueTrackingSearchMode,
+  ) {
+    const normalizedSearchQuery = searchQuery?.trim()
+    if (!normalizedSearchQuery) {
+      return ''
+    }
+
+    if (searchMode === 'jql') {
+      return normalizedSearchQuery
+    }
+
+    const escaped = this.escapeJqlValue(normalizedSearchQuery)
+    return `text ~ "${escaped}"`
+  }
+
+  private escapeJqlValue(value: string) {
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+  }
+
+  private mapIssueListResponse(
+    payload: {
+      issues?: unknown[]
+      total?: number
+    },
+    page: number,
+    limit: number,
+  ): IssueTrackingIssueList {
+    const payloadItems = Array.isArray(payload.issues)
+      ? payload.issues
+      : []
+
+    const items: IssueTrackingIssue[] = []
+
+    for (const payloadItem of payloadItems) {
+      const issue = this.mapIssuePayload(payloadItem)
+      if (!issue) {
+        continue
+      }
+
+      items.push(issue)
+    }
+
+    return {
+      items,
+      page,
+      limit,
+      totalCount: Number.isFinite(payload.total)
+        ? Number(payload.total)
+        : items.length,
+    }
+  }
+
+  private mapIssuePayload(payload: unknown): IssueTrackingIssue | null {
+    if (!payload || typeof payload !== 'object') {
+      console.debug('Jira listIssues received non-object issue payload', { payload })
+      return null
+    }
+
+    const issue = payload as {
+      id?: string | number
+      key?: string
+      fields?: {
+        summary?: string
+        status?: {
+          id?: string | number
+        }
+        labels?: unknown
+      }
+    }
+
+    const issueId = String(issue.id || '').trim()
+    const issueKey = issue.key?.trim()
+    const issueSummary = issue.fields?.summary?.trim()
+    const issueStatusId = String(issue.fields?.status?.id || '').trim()
+
+    if (!issueId || !issueKey || !issueSummary || !issueStatusId) {
+      console.debug('Jira listIssues payload missing expected issue fields', {
+        issueTrackingId: this.issueTracking.id,
+        issueId,
+        issueKey,
+        issueSummary,
+        issueStatusId,
+      })
+      return null
+    }
+
+    const issueLabels = Array.isArray(issue.fields?.labels)
+      ? issue.fields?.labels.filter((label): label is string => typeof label === 'string')
+      : []
+
+    return {
+      id: issueId,
+      key: issueKey,
+      summary: issueSummary,
+      statusId: issueStatusId,
+      labels: issueLabels,
+    }
   }
 
   private async validateTargetBoard(): Promise<[ boolean, string ]> {

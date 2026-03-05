@@ -14,3 +14,25 @@ export const upsertIssueTrackingSchema = z
   })
 
 export type UpsertIssueTrackingRequest = z.infer<typeof upsertIssueTrackingSchema>
+
+export const listIssueTrackingIssuesParamsSchema = z.object({
+  issueTrackingId: z.string().trim().uuid(),
+})
+export type ListIssueTrackingIssuesParams = z.infer<typeof listIssueTrackingIssuesParamsSchema>
+
+export const listIssueTrackingIssuesQuerySchema = z.object({
+  q: z.string().trim().optional(),
+  mode: z.enum([ 'text', 'jql' ]).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+})
+export type ListIssueTrackingIssuesQuery = z.infer<typeof listIssueTrackingIssuesQuerySchema>
+
+export const listIssueTrackingIssuesRequestSchema = z.object({
+  issueTrackingId: z.string().trim().uuid(),
+  q: z.string().trim().optional(),
+  mode: z.enum([ 'text', 'jql' ]).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+})
+export type ListIssueTrackingIssuesRequest = z.infer<typeof listIssueTrackingIssuesRequestSchema>

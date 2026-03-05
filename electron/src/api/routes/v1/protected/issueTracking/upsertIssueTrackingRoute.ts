@@ -9,6 +9,7 @@ import { parseRequestBody, parseRequestParams } from '../../validation'
 import { broadcastSseChange } from '@electron/api/sse/sseEvents'
 import { requireDatabaseClient } from '@electron/database'
 import { getIssueTracker } from '@common/issueTracking/getIssueTracker'
+import { IssueTracker } from '@common/issueTracking/polymorphism/issueTracker'
 
 // Lib
 import { z } from 'zod'
@@ -17,7 +18,6 @@ import { z } from 'zod'
 import { upsertIssueTrackingSchema } from '@common/schema/issueTracking'
 
 // Utility
-import { resolveIssueTrackingBaseUrl } from '@common/issueTracking/utils'
 import { sanitizeIssueTracking } from './utils'
 
 const upsertIssueTrackingParamsSchema = z.object({
@@ -105,7 +105,7 @@ export async function handleUpsertIssueTrackingRequest(
     }
   }
 
-  const resolvedBaseUrl = resolveIssueTrackingBaseUrl(
+  const resolvedBaseUrl = IssueTracker.resolveIssueTrackingBaseUrl(
     payload.baseUrl ?? existingIssueTracking?.baseUrl,
   )
   const resolvedAccessToken = payload.accessToken

@@ -2,7 +2,11 @@
 
 import type { StandardPaginatedResponseData, StandardUrlParams } from '@common/types'
 
-export type IssueTrackingListIssuesParams = StandardUrlParams
+export type IssueTrackingSearchMode = 'text' | 'jql'
+
+export type IssueTrackingListIssuesParams = StandardUrlParams & {
+  mode?: IssueTrackingSearchMode
+}
 
 export type IssueTrackingIssue = {
   id: string

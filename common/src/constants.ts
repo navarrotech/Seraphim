@@ -2,6 +2,9 @@
 
 import type { LlmType } from '@prisma/client'
 
+// Human UX
+export const SEARCH_DEBOUNCE_MS = 400
+
 // Project Configuration
 export const CONFIG_FILE_NAME = 'seraphim.jsonc' as const
 

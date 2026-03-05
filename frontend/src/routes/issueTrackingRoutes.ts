@@ -2,9 +2,11 @@
 
 import type { IssueTracking } from '@common/types'
 import type { UpsertIssueTrackingRequest } from '@common/schema/issueTracking'
+import type { IssueTrackingIssueList } from '@common/issueTracking/types'
+import type { ListIssueTrackingIssuesRequest } from '@common/schema/issueTracking'
 
 // Core
-import { parseRequestBeforeSend } from '@common/api'
+import { buildUrlParams, parseRequestBeforeSend } from '@common/api'
 import { frontendClient } from '@frontend/framework/api'
 
 // Redux
@@ -13,6 +15,7 @@ import { dispatch } from '@frontend/framework/store'
 
 // Schema
 import { upsertIssueTrackingSchema } from '@common/schema/issueTracking'
+import { listIssueTrackingIssuesRequestSchema } from '@common/schema/issueTracking'
 
 // /////////////////////////////// //
 //     List Issue Tracking Accounts //
@@ -33,6 +36,30 @@ export async function listIssueTracking(): Promise<ListIssueTrackingResponse> {
   )
 
   return response
+}
+
+
+// /////////////////////////////// //
+//        List Jira Issues         //
+// /////////////////////////////// //
+
+type ListIssueTrackingIssuesResponse = IssueTrackingIssueList & {
+  issueTrackingId: string
+}
+
+export function listIssueTrackingIssues(request: ListIssueTrackingIssuesRequest) {
+  const query = parseRequestBeforeSend(listIssueTrackingIssuesRequestSchema, request)
+
+  return frontendClient
+    .get(`v1/protected/issue-tracking/${query.issueTrackingId}/issues`, {
+      searchParams: buildUrlParams({
+        q: query.q,
+        mode: query.mode,
+        page: query.page,
+        limit: query.limit,
+      }),
+    })
+    .json<ListIssueTrackingIssuesResponse>()
 }
 
 // /////////////////////////////// //

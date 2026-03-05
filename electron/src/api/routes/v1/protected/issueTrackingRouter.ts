@@ -7,6 +7,7 @@ import { Router as createRouter } from 'express'
 
 // Misc
 import { handleDeleteIssueTrackingRequest } from './issueTracking/deleteIssueTrackingRoute'
+import { handleListIssueTrackingIssuesRequest } from './issueTracking/listIssuesRoute'
 import { handleListIssueTrackingRequest } from './issueTracking/listIssueTrackingRoute'
 import { handleUpsertIssueTrackingRequest } from './issueTracking/upsertIssueTrackingRoute'
 
@@ -23,6 +24,12 @@ export function createIssueTrackingRouter(): Router {
   issueTrackingRouter.get(
     '/',
     handleListIssueTrackingRequest,
+  )
+
+  // /api/v1/protected/issue-tracking/:issueTrackingId/issues
+  issueTrackingRouter.get(
+    '/:issueTrackingId/issues',
+    handleListIssueTrackingIssuesRequest,
   )
 
   // /api/v1/protected/issue-tracking/:issueTrackingId
