@@ -30,7 +30,7 @@ jobs:
         with:
           submodules: "recursive"
           set-safe-directory: true
-          token: ${{ secrets.CI_TOKEN }}
+          token: ${{ secrets.JL_FINE_GRAINED_GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
