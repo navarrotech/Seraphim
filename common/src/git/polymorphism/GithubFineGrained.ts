@@ -105,14 +105,16 @@ export class GithubFineGrained extends BaseGit {
       console.debug('GitHub fine-grained repo probe failed', { reposError })
     }
 
-    // Get emails => Email addresses:read
+    // Get emails => Email addresses:read (optional for some org-scoped fine-grained tokens)
     if (emailsResponse?.status === 200) {
       acceptedScopes.add('Email addresses:read')
     }
     else {
-      missingScopes.add('Email addresses:read')
       console.debug('GitHub fine-grained email probe failed', { emailsError })
     }
+
+    const resolvedEmails = emailsResponse?.data.map((email) => email.email)
+      || [ userResponse.data.email ].filter(Boolean)
 
     if (missingScopes.size > 0) {
       return {
@@ -120,7 +122,7 @@ export class GithubFineGrained extends BaseGit {
         message: `GitHub fine-grained token is missing required permissions: ${Array.from(missingScopes).join(', ')}`,
         type: 'Github fine-grained',
         username: userResponse.data.login,
-        emails: emailsResponse?.data.map((e) => e.email) || [],
+        emails: resolvedEmails,
         scopes: Array.from(acceptedScopes),
         acceptedScopes: Array.from(acceptedScopes),
         missingScopes: Array.from(missingScopes),
@@ -132,7 +134,7 @@ export class GithubFineGrained extends BaseGit {
       message: 'GitHub fine-grained token is valid',
       type: 'Github fine-grained',
       username: userResponse.data.login,
-      emails: emailsResponse?.data.map((e) => e.email) || [],
+      emails: resolvedEmails,
       scopes: Array.from(acceptedScopes),
       acceptedScopes: Array.from(acceptedScopes),
       missingScopes: [],

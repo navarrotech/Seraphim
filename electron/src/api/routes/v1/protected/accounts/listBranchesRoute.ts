@@ -2,11 +2,13 @@
 
 import type { Request, Response } from 'express'
 
+// Core
+import { createGitClient } from '@common/git/createGitClient'
+
 // Lib
 import { z } from 'zod'
 
 // Utility
-import { fetchGithubBranchesForRepo } from '@electron/api/oauth/githubBranchService'
 import { requireDatabaseClient } from '@electron/database'
 import { parseRequestQuery } from '../../validation'
 import { resolveSearchQuery } from '../../utils/searchQuery'
@@ -15,7 +17,6 @@ const branchQuerySchema = z.object({
   workspaceId: z.string().trim().min(1),
   gitAccountId: z.string().trim().min(1),
   q: z.string().trim().optional(),
-  search: z.string().trim().optional(),
   page: z.string().trim().optional(),
   limit: z.string().trim().optional(),
 })
@@ -121,15 +122,23 @@ export async function handleListBranchesRequest(
 
   const searchQuery = resolveSearchQuery(query)
 
-  const branchResponse = await fetchGithubBranchesForRepo(
-    gitAccount.accessToken,
-    sourceRepoUrl,
-    {
-      searchQuery,
-      page,
-      limit,
-    },
-  )
+  const accessToken = gitAccount.accessToken?.trim()
+  if (!accessToken) {
+    console.debug('List Github branches could not find a usable token on git account', {
+      gitAccountId: gitAccount.id,
+    })
+    response.status(400).json({ error: 'Git account token is required' })
+    return
+  }
+
+  const gitClient = createGitClient(accessToken)
+
+  const branchResponse = await gitClient.listBranches({
+    repoPath: sourceRepoUrl,
+    q: searchQuery,
+    page,
+    limit,
+  })
 
   if (!branchResponse) {
     console.debug('List Github branches failed to fetch branch data', {

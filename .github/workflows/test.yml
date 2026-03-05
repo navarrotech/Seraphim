@@ -86,6 +86,9 @@ jobs:
           VITEST_DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           VITEST_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VITEST_CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          VITEST_GITHUB_REPO_URL: https://github.com/JalapenoLabs/Seraphim
+          VITEST_GITHUB_CLASSIC_TOKEN: ${{ secrets.JL_CLASSIC_GITHUB_TOKEN }}
+          VITEST_GITHUB_FINE_GRAINED_TOKEN: ${{ secrets.JL_FINE_GRAINED_GITHUB_TOKEN }}
           VITEST_ANTHROPIC_MODEL: claude-opus-4-6
 
       - name: Build
