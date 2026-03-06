@@ -23,12 +23,14 @@ export const slice = createEnhancedSlice({
   initialState,
   reducers: {
     setTasks: (state, action: PayloadAction<Task[]>) => {
-      state.items = action.payload.filter((task) => !task.archived)
+      const filtered = action.payload.filter((task) => !task.archived)
+      state.items = filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     },
     upsertTask: (state, action: PayloadAction<Task>) => {
       const asRecord = Object.fromEntries(state.items.map((item) => [ item.id, item ]))
       asRecord[action.payload.id] = action.payload
-      state.items = Object.values(asRecord)
+      const updatedItems = Object.values(asRecord)
+      state.items = updatedItems.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     },
     removeTask: (state, action: PayloadAction<Task>) => {
       state.items = state.items.filter((task) => task.id !== action.payload.id)

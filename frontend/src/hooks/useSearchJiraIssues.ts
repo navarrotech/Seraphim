@@ -8,8 +8,10 @@ import useSWR from 'swr'
 import { useSelector } from '@frontend/framework/store'
 import { useDebouncedState } from './useDebouncedState'
 
-// Misc
+// API
 import { listIssueTrackingIssues } from '@frontend/routes/issueTrackingRoutes'
+
+// Misc
 import { SEARCH_DEBOUNCE_MS } from '@common/constants'
 
 
