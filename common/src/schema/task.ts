@@ -5,13 +5,33 @@ import { z } from 'zod'
 
 export const taskCreateSchema = z
   .object({
-    workspaceId: z.string().trim().min(1),
-    gitAccountId: z.string().trim().min(1),
-    llmId: z.string().trim().min(1),
-    message: z.string().trim().min(1),
-    branch: z.string().trim().min(1),
-    issueLink: z.string().optional(),
-    archived: z.boolean().optional().default(false),
+    workspaceId: z
+      .string()
+      .trim()
+      .min(1, 'Workspace is required'),
+    gitAccountId: z
+      .string()
+      .trim()
+      .min(1, 'Git account is required'),
+    llmId: z
+      .string()
+      .trim()
+      .min(1, 'LLM is required'),
+    message: z
+      .string()
+      .trim()
+      .min(1, 'A base prompt message is required'),
+    branch: z
+      .string()
+      .trim()
+      .min(1, 'A branch is required'),
+    issueLink: z
+      .string()
+      .optional(),
+    archived: z
+      .boolean()
+      .optional()
+      .default(false),
   })
   .strict()
 

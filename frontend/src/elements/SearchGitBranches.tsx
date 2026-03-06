@@ -2,7 +2,7 @@
 
 // Core
 import useLocalStorageState from 'use-local-storage-state'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useDebouncedState } from '@frontend/hooks/useDebouncedState'
 import useSWR from 'swr'
 
@@ -26,20 +26,30 @@ type Props = {
 const SEARCH_LIMIT = 20
 
 export function SearchGitBranches(props: Props) {
-  const {
-    value = '',
-  } = props
+  const value = props.value
 
   const [ searchValue, setSearchValue ] = useLocalStorageState<string>(
     'search-git-branches',
     { defaultValue: '' },
   )
 
+  const hasRestoredFromStorage = useRef(false)
+
   useEffect(() => {
-    if (searchValue) {
+    if (hasRestoredFromStorage.current) {
+      return
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      hasRestoredFromStorage.current = true
+      return
+    }
+
+    if (searchValue?.trim()) {
+      hasRestoredFromStorage.current = true
       props.onSelectionChange(searchValue)
     }
-  }, [])
+  }, [ value, searchValue, props.onSelectionChange ])
 
   const debouncedSearchValue = useDebouncedState(searchValue, SEARCH_DEBOUNCE_MS)
   const canSearchBranches = Boolean(props.workspaceId && props.gitAccountId)
@@ -71,8 +81,21 @@ export function SearchGitBranches(props: Props) {
   )
 
   useEffect(() => {
-    setSearchValue(value)
-  }, [ value ])
+    if (typeof value !== 'string') {
+      return
+    }
+
+    const normalizedValue = value.trim()
+    if (!normalizedValue) {
+      return
+    }
+
+    if (normalizedValue === searchValue) {
+      return
+    }
+
+    setSearchValue(normalizedValue)
+  }, [ value, searchValue, setSearchValue ])
 
   const branches = branchSearch.data?.branches || []
 
