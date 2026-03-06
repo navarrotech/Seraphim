@@ -102,6 +102,7 @@ export function NewTaskPage() {
       <Monaco
         autoFocus
         height='90vh'
+        minimapOverride
         readOnly={isDisabled}
         fileLanguage='markdown'
         value={form.watch('message')}
