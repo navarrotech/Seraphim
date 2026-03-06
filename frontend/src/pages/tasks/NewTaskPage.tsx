@@ -3,7 +3,7 @@
 import type { TaskCreateRequest } from '@common/schema/task'
 
 // Core
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
 import { useNavigate } from 'react-router'
@@ -16,7 +16,6 @@ import { createTask } from '@frontend/routes/taskRoutes'
 import { Button, Tooltip } from '@heroui/react'
 import { Monaco } from '@frontend/elements/Monaco'
 import { Card } from '@frontend/elements/Card'
-import { DisplayErrors } from '@frontend/elements/buttons/DisplayErrors'
 import { SearchWorkspaces } from '@frontend/elements/SearchWorkspaces'
 import { SearchGitBranches } from '@frontend/elements/SearchGitBranches'
 import { SearchAuthAccounts } from '@frontend/elements/SearchAuthAccounts'
@@ -26,7 +25,6 @@ import { SearchIssueLinks } from '@frontend/elements/SearchIssueLinks'
 // Utility
 import { zodResolver } from '@hookform/resolvers/zod'
 import { taskCreateSchema } from '@common/schema/task'
-import { flatMapDeep, isPlainObject } from 'lodash-es'
 
 const resolvedForm = zodResolver(taskCreateSchema)
 const formMode = {
@@ -34,6 +32,8 @@ const formMode = {
   shouldValidate: true,
   shouldTouch: true,
 }
+
+const localStorageKey = 'new-task-default-prompt'
 
 export function NewTaskPage() {
   const navigate = useNavigate()
@@ -44,7 +44,7 @@ export function NewTaskPage() {
       workspaceId: '',
       gitAccountId: '',
       llmId: '',
-      message: '',
+      message: localStorage.getItem(localStorageKey) || '',
       branch: '',
       issueLink: '',
       archived: false,
@@ -52,14 +52,28 @@ export function NewTaskPage() {
     mode: 'all',
   })
 
-  const errors = useMemo(() => {
-    return flatMapDeep(
-      Object.values(form.formState.errors),
-      (value) => isPlainObject(value)
-        ? Object.values(value)
-        : value,
+  useEffect(() => {
+    form.trigger()
+
+    const subscription = form.watch(async (_, info) => {
+      if (!info.name) {
+        return
+      }
+
+      await form.trigger(info.name)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [ form ])
+
+  useEffect(() => {
+    localStorage.setItem(
+      localStorageKey,
+      form.watch('message') || '',
     )
-  }, [ form.formState.errors ])
+  }, [ form.watch('message') ])
 
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
@@ -79,10 +93,7 @@ export function NewTaskPage() {
     onSave,
   })
 
-  let tooltip = 'Click to begin the task'
-  if (errors?.length) {
-    tooltip = errors[0]
-  }
+  console.log(form.formState.errors)
 
   return <section className='level w-full items-start h-[90vh]'>
     <article className='relaxed w-full'>
@@ -132,11 +143,19 @@ export function NewTaskPage() {
       <div className='flex-1' />
 
       <div>
-        <DisplayErrors
-          errors={errors}
-          className='relaxed'
-        />
-        <Tooltip content={tooltip}>
+        <Tooltip
+          content={
+            // @ts-ignore
+            form.formState.errors['']
+            || form.formState.errors?.message?.message
+            || form.formState.errors?.workspaceId?.message
+            || form.formState.errors?.gitAccountId?.message
+            || form.formState.errors?.llmId?.message
+            || form.formState.errors?.branch?.message
+            || form.formState.errors?.issueLink?.message
+            || 'Click to begin the task'
+          }
+        >
           <div>
             <Button
               id='start-task'
