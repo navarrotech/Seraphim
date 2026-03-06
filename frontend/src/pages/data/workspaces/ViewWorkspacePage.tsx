@@ -11,12 +11,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 // User Interface
-import { Input, Textarea } from '@heroui/react'
+import { Input, Textarea, Tooltip } from '@heroui/react'
 import { Card } from '@frontend/elements/Card'
 import { DisplayErrors } from '@frontend/elements/buttons/DisplayErrors'
 import { SaveButton } from '@frontend/elements/buttons/SaveButton'
 import { ResetButton } from '@frontend/elements/buttons/ResetButton'
 import { CloseButton } from '@frontend/elements/buttons/CloseButton'
+import { SearchGitRepos } from '@frontend/elements/SearchGithubRepos'
 
 // Utility
 import { useWatchUnsavedWork } from '@frontend/hooks/useWatchUnsavedWork'
@@ -79,7 +80,13 @@ export function ViewWorkspacePage(props: Props) {
     }
 
     await form.handleSubmit(
-      (values) => upsertWorkspace(workspace?.id || '', values),
+      (values) => {
+        upsertWorkspace(workspace?.id || '', values)
+
+        if (props.close) {
+          props.close()
+        }
+      },
     )()
   }, [ form.formState.isDirty, workspace ])
 
@@ -108,6 +115,34 @@ export function ViewWorkspacePage(props: Props) {
     />
     <div className='relaxed'>
       <div className='compact'>
+        { props.workspace?.sourceRepoUrl
+          ? <Tooltip content='This workspace is already linked to a repository, and cannot be changed once created.'>
+              <Input
+              fullWidth
+              isReadOnly
+              label='Source repository URL'
+              value={form.watch('sourceRepoUrl') || ''}
+            />
+          </Tooltip>
+            : <SearchGitRepos
+              selection={form.watch('sourceRepoUrl')}
+              onSelectionChange={(repo) => {
+                form.setValue('sourceRepoUrl', repo.cloneUrl, { shouldDirty: true, shouldValidate: true })
+
+                const currentFormName = form.watch('name')
+                if (!currentFormName && repo.name) {
+                  form.setValue('name', repo.name, { shouldDirty: true, shouldValidate: true })
+                }
+
+                const currentFormDescription = form.watch('description')
+                if (!currentFormDescription && repo.description) {
+                  form.setValue('description', repo.description, { shouldDirty: true, shouldValidate: true })
+                }
+              }}
+            />
+        }
+      </div>
+      <div className='compact'>
         <Input
           fullWidth
           label='Workspace name'
@@ -117,35 +152,21 @@ export function ViewWorkspacePage(props: Props) {
           value={form.watch('name') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('name', value, { shouldDirty: true })
+            form.setValue('name', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
       <div className='compact'>
         <Input
           fullWidth
-          label='Repository URL'
-          placeholder='git@github.com:org/repo.git'
-          isInvalid={Boolean(form.formState.errors.sourceRepoUrl)}
-          errorMessage={form.formState.errors.sourceRepoUrl?.message}
-          value={form.watch('sourceRepoUrl') || ''}
-          onChange={(event) => {
-            const value = event.currentTarget.value
-            form.setValue('sourceRepoUrl', value, { shouldDirty: true })
-          }}
-        />
-      </div>
-      <div className='compact'>
-        <Input
-          fullWidth
-          label='Git branch template'
-          placeholder='main'
+          label='Git branch template name'
+          placeholder='first.last-{issue-number}-{short-description}'
           isInvalid={Boolean(form.formState.errors.gitBranchTemplate)}
           errorMessage={form.formState.errors.gitBranchTemplate?.message}
           value={form.watch('gitBranchTemplate') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('gitBranchTemplate', value, { shouldDirty: true })
+            form.setValue('gitBranchTemplate', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -159,7 +180,7 @@ export function ViewWorkspacePage(props: Props) {
           value={form.watch('description') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('description', value, { shouldDirty: true })
+            form.setValue('description', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -173,7 +194,7 @@ export function ViewWorkspacePage(props: Props) {
           value={form.watch('setupScript') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('setupScript', value, { shouldDirty: true })
+            form.setValue('setupScript', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -187,7 +208,7 @@ export function ViewWorkspacePage(props: Props) {
           value={form.watch('postScript') || ''}
           onChange={(event) => {
             const value = event.currentTarget.value
-            form.setValue('postScript', value, { shouldDirty: true })
+            form.setValue('postScript', value, { shouldDirty: true, shouldValidate: true })
           }}
         />
       </div>
@@ -206,7 +227,7 @@ export function ViewWorkspacePage(props: Props) {
             form.setValue(
               'customDockerfileCommands',
               value,
-              { shouldDirty: true },
+              { shouldDirty: true, shouldValidate: true },
             )
           }}
         />

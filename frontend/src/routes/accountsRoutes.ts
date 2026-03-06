@@ -46,7 +46,10 @@ export async function listAccounts(): Promise<ListAccountsResponse> {
 //        List Account Repos       //
 // /////////////////////////////// //
 
-type ListReposRequest = {}
+type ListReposVisibility = 'all' | 'private' | 'public'
+type ListReposRequest = StandardUrlParams & {
+  visibility?: ListReposVisibility
+}
 type ListReposResponse = {
   results: {
     accountId: string
