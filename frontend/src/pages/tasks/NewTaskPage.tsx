@@ -19,6 +19,7 @@ import { SearchWorkspaces } from '@frontend/elements/SearchWorkspaces'
 import { SearchGitBranches } from '@frontend/elements/SearchGitBranches'
 import { SearchAuthAccounts } from '@frontend/elements/SearchAuthAccounts'
 import { SearchLlmAccounts } from '@frontend/elements/SearchLlmAccounts'
+import { SearchIssueTrackers } from '@frontend/elements/SearchIssueTrackers'
 import { SearchIssueLinks } from '@frontend/elements/SearchIssueLinks'
 
 // Utility
@@ -43,6 +44,7 @@ export function NewTaskPage() {
       workspaceId: '',
       gitAccountId: '',
       llmId: '',
+      issueTrackingId: '',
       message: localStorage.getItem(localStorageKey) || '',
       branch: '',
       issueLink: '',
@@ -138,8 +140,15 @@ export function NewTaskPage() {
         />
       </Card>
       <Card className='relaxed' label='Issue (optional)'>
+        <SearchIssueTrackers
+          className='relaxed'
+          isDisabled={isDisabled}
+          onSelectionChange={(value) => form.setValue('issueTrackingId', value.id, formMode)}
+          // value={form.watch('issueTrackingId')}
+        />
         <SearchIssueLinks
           className='relaxed'
+          issueTrackingId={form.watch('issueTrackingId')}
           isDisabled={isDisabled}
           onSelection={(value) => form.setValue('issueLink', value, formMode)}
           // value={form.watch('issueLink')}

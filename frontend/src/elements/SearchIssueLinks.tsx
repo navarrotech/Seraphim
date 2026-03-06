@@ -14,6 +14,7 @@ import { Autocomplete, AutocompleteItem, Select, SelectItem, cn } from '@heroui/
 import { useSearchIssues } from '@frontend/hooks/useSearchIssues'
 
 type Props = {
+  issueTrackingId: string
   onSelection: (value: string) => void
   page?: number
   limit?: number
@@ -32,7 +33,7 @@ export function SearchIssueLinks(props: Props) {
     defaultValue: 'text',
   })
 
-  const issueSearch = useSearchIssues(search, mode, page, limit)
+  const issueSearch = useSearchIssues(props.issueTrackingId, search, mode, page, limit)
 
   return <div className={cn('level gap-2 items-end', props.className)}>
     <Autocomplete
@@ -52,7 +53,7 @@ export function SearchIssueLinks(props: Props) {
         const selectedValue = String(selectedKey || '')
         props.onSelection(selectedValue)
       }}
-      isDisabled={props.isDisabled || !issueSearch.issueTracking?.id}
+      isDisabled={props.isDisabled || !props.issueTrackingId}
       errorMessage={issueSearch.error ? 'Unable to load Jira issues right now.' : undefined}
       isInvalid={!!issueSearch.error && Boolean(search)}
     >{ issueSearch.issues.map((issue) => (
@@ -85,7 +86,7 @@ export function SearchIssueLinks(props: Props) {
 
         setMode(selectedKey)
       }}
-      isDisabled={props.isDisabled || !issueSearch.issueTracking?.id}
+      isDisabled={props.isDisabled || !props.issueTrackingId}
     >
       <SelectItem key='text'>Text</SelectItem>
       <SelectItem key='jql'>JQL</SelectItem>

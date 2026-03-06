@@ -17,6 +17,11 @@ export const taskCreateSchema = z
       .string()
       .trim()
       .min(1, 'LLM is required'),
+    issueTrackingId: z
+      .string()
+      .trim()
+      .min(1, 'Issue tracking is required')
+      .optional(),
     message: z
       .string()
       .trim()
