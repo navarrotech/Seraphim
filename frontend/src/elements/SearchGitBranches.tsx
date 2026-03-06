@@ -21,6 +21,7 @@ type Props = {
   gitAccountId: string
   workspaceId: string
   className?: string
+  isDisabled?: boolean
 }
 
 const SEARCH_LIMIT = 20
@@ -117,7 +118,7 @@ export function SearchGitBranches(props: Props) {
       setSearchValue(selectedValue)
       props.onSelectionChange(selectedValue)
     }}
-    isDisabled={!canSearchBranches}
+    isDisabled={props.isDisabled || !canSearchBranches}
     errorMessage={branchSearch.error ? 'Unable to load branches right now.' : undefined}
   >{ branches.map((branch) => (
     <AutocompleteItem key={branch.name}>{

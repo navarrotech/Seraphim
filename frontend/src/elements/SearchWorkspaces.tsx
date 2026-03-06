@@ -13,6 +13,7 @@ import { Autocomplete, AutocompleteItem, cn } from '@heroui/react'
 type Props = {
   onSelectionChange: (workspace: WorkspaceWithEnv) => void
   className?: string
+  isDisabled?: boolean
 }
 
 export function SearchWorkspaces(props: Props) {
@@ -45,6 +46,7 @@ export function SearchWorkspaces(props: Props) {
     label='Workspace'
     placeholder='Select a workspace'
     className={cn(props.className)}
+    isDisabled={props.isDisabled}
     selectedKey={selection}
     onSelectionChange={(selectionKey) => {
       const selectedWorkspaceId = String(selectionKey || '')

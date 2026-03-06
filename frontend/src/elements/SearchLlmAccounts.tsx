@@ -13,6 +13,7 @@ import { Autocomplete, AutocompleteItem, cn } from '@heroui/react'
 type Props = {
   onSelectionChange: (llm: LlmWithRateLimits) => void
   className?: string
+  isDisabled?: boolean
 }
 
 export function SearchLlmAccounts(props: Props) {
@@ -45,6 +46,7 @@ export function SearchLlmAccounts(props: Props) {
     label='LLM account'
     placeholder='Select an LLM account'
     className={cn(props.className)}
+    isDisabled={props.isDisabled}
     selectedKey={selection}
     onSelectionChange={(selectionKey) => {
       const selectedLlmId = String(selectionKey || '')

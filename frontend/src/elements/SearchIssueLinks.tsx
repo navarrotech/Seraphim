@@ -18,6 +18,7 @@ type Props = {
   page?: number
   limit?: number
   className?: string
+  isDisabled?: boolean
 }
 
 export function SearchIssueLinks(props: Props) {
@@ -51,7 +52,7 @@ export function SearchIssueLinks(props: Props) {
         const selectedValue = String(selectedKey || '')
         props.onSelection(selectedValue)
       }}
-      isDisabled={!issueSearch.issueTracking?.id}
+      isDisabled={props.isDisabled || !issueSearch.issueTracking?.id}
       errorMessage={issueSearch.error ? 'Unable to load Jira issues right now.' : undefined}
       isInvalid={!!issueSearch.error && Boolean(search)}
     >{ issueSearch.issues.map((issue) => (
@@ -84,7 +85,7 @@ export function SearchIssueLinks(props: Props) {
 
         setMode(selectedKey)
       }}
-      isDisabled={!issueSearch.issueTracking?.id}
+      isDisabled={props.isDisabled || !issueSearch.issueTracking?.id}
     >
       <SelectItem key='text'>Text</SelectItem>
       <SelectItem key='jql'>JQL</SelectItem>

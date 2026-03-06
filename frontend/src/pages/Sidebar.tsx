@@ -93,14 +93,16 @@ function TaskList() {
     recentTasks.map((task) => {
       const initial = task.name?.charAt(0)?.toUpperCase() || 'T'
       const color = colorByStatus[task.state]
+      const name = task.name || 'Untitled Task'
 
       return (
         <Tooltip
           key={task.id}
-          content={task.name || 'Untitled Task'}
+          content={`${name} (${task.state})`}
           placement='right'
         >
           <Button
+            isIconOnly
             id={task.id}
             as={Link}
             to={getViewTaskUrl(task.id)}

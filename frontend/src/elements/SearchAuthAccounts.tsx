@@ -13,6 +13,7 @@ import { Autocomplete, AutocompleteItem, cn } from '@heroui/react'
 type Props = {
   onSelectionChange: (account: GitAccount) => void
   className?: string
+  isDisabled?: boolean
 }
 
 export function SearchAuthAccounts(props: Props) {
@@ -45,6 +46,7 @@ export function SearchAuthAccounts(props: Props) {
     label='Auth account'
     placeholder='Select an auth account'
     className={cn(props.className)}
+    isDisabled={props.isDisabled}
     selectedKey={selection}
     onSelectionChange={(selectionKey) => {
       const selectedAccountId = String(selectionKey || '')
