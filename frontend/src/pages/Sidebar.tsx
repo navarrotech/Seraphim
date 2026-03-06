@@ -18,7 +18,9 @@ export function Sidebar() {
   const isTaskScreen = location.pathname.startsWith(UrlTree.tasks)
   const recentTasks = tasks.slice(0, 5)
 
-  return <aside className='flex min-h-screen w-16 flex-col items-center justify-between py-4 bg-white/20 backdrop-blur-lg'>
+  return <aside
+    className='flex min-h-screen w-16 flex-col items-center justify-between py-4 bg-white/20 backdrop-blur-lg'
+  >
     <div className='flex w-full flex-col items-center gap-4'>
       <div className='flex items-center justify-center'>
         <img
@@ -32,16 +34,19 @@ export function Sidebar() {
         <div className='flex flex-col gap-3 mt-4'>
           {recentTasks.map((task) => {
             const initial = task.name ? task.name.charAt(0).toUpperCase() : 'T'
-            
+
             let colorClasses = 'bg-default-200 text-default-800 dark:bg-default-100 dark:text-default-foreground'
             const s = task.state
             if (s === 'Working' || s === 'Reviewing' || s === 'Validating') {
               colorClasses = 'bg-primary text-white'
-            } else if (s === 'AwaitingReview') {
+            }
+            else if (s === 'AwaitingReview') {
               colorClasses = 'bg-success text-white'
-            } else if (s === 'ContainerBroken' || s === 'Failed') {
+            }
+            else if (s === 'ContainerBroken' || s === 'Failed') {
               colorClasses = 'bg-danger text-white'
-            } else if (s === 'Creating' || s === 'SettingUp' || s === 'Halting' || s === 'Deleting') {
+            }
+            else if (s === 'Creating' || s === 'SettingUp' || s === 'Halting' || s === 'Deleting') {
               colorClasses = 'bg-secondary text-secondary-foreground'
             }
 
@@ -49,7 +54,10 @@ export function Sidebar() {
               <Tooltip key={task.id} content={task.name || 'Untitled Task'} placement='right'>
                 <NavLink
                   to={UrlTree.viewTask.replace(':taskId', task.id)}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg font-bold shadow-sm transition-transform hover:scale-105 ${colorClasses}`}
+                  className={
+                    `flex h-10 w-10 items-center justify-center rounded-lg font-bold `
+                    + `shadow-sm transition-transform hover:scale-105 ${colorClasses}`
+                  }
                 >
                   {initial}
                 </NavLink>
@@ -64,8 +72,13 @@ export function Sidebar() {
       <Tooltip content='Settings' placement='right'>
         <NavLink
           to={UrlTree.settings}
-          className={({ isActive }) => 'p-2 rounded '
-            + (isActive ? 'bg-primary text-white' : 'hover:bg-black/10 dark:hover:bg-white/10')}
+          className={({ isActive }) => {
+            if (isActive) {
+              return 'p-2 rounded bg-primary text-white'
+            }
+
+            return 'p-2 rounded hover:bg-black/10 dark:hover:bg-white/10'
+          }}
         >
           <SettingsIcon size={22} />
         </NavLink>
