@@ -40,6 +40,7 @@ const resolvedForm = zodResolver(upsertAccountSchema)
 
 export function ViewGitAccountsPage(props: Props) {
   const { account, provider } = props
+  const isCreateMode = !account?.id
 
   const form = useForm<UpsertAccountRequest>({
     resolver: resolvedForm,
@@ -83,6 +84,14 @@ export function ViewGitAccountsPage(props: Props) {
     })
   }, [ account, form.formState.isDirty ])
 
+  const onSaveAndCloseIfCreate = useCallback(async () => {
+    const isSuccessful = await onSave()
+
+    if (isSuccessful && isCreateMode && props.close) {
+      props.close()
+    }
+  }, [ onSave, isCreateMode, props.close ])
+
   useWatchUnsavedWork(form.formState.isDirty, {
     onSave,
   })
@@ -90,6 +99,13 @@ export function ViewGitAccountsPage(props: Props) {
   useHotkey([ 'Control', 's' ], onSave, {
     preventDefault: true,
     blockOtherHotkeys: true,
+    enabled: !isCreateMode,
+  })
+
+  useHotkey([ 'Control', 'Enter' ], onSaveAndCloseIfCreate, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+    enabled: isCreateMode,
   })
 
   if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
@@ -206,13 +222,7 @@ export function ViewGitAccountsPage(props: Props) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={async () => {
-          const isSuccessful = await onSave()
-
-          if (isSuccessful && props.close) {
-            props.close()
-          }
-        }}
+        onSave={onSaveAndCloseIfCreate}
         isDirty={form.formState.isDirty}
         isDisabled={!form.formState.isValid}
         isLoading={form.formState.isSubmitting}

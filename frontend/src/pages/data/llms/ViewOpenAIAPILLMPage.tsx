@@ -34,6 +34,7 @@ const resolvedForm = zodResolver(upsertLlmSchema)
 
 export function ViewOpenAIAPILLMPage(props: ViewProps) {
   const { existingLLM } = props
+  const isCreateMode = !existingLLM?.id
 
   const form = useForm<LlmWithRateLimits>({
     resolver: resolvedForm,
@@ -100,6 +101,14 @@ export function ViewOpenAIAPILLMPage(props: ViewProps) {
     })
   }, [ form.formState.isDirty, existingLLM ])
 
+  const onSaveAndCloseIfCreate = useCallback(async () => {
+    const isSuccessful = await onSave()
+
+    if (isSuccessful && isCreateMode && props.close) {
+      props.close()
+    }
+  }, [ onSave, isCreateMode, props.close ])
+
   useWatchUnsavedWork(form.formState.isDirty, {
     onSave,
   })
@@ -107,6 +116,13 @@ export function ViewOpenAIAPILLMPage(props: ViewProps) {
   useHotkey([ 'Control', 's' ], onSave, {
     preventDefault: true,
     blockOtherHotkeys: true,
+    enabled: !isCreateMode,
+  })
+
+  useHotkey([ 'Control', 'Enter' ], onSaveAndCloseIfCreate, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+    enabled: isCreateMode,
   })
 
   if (!isEmpty(form.formState.errors) || !form.formState.isValid) {
@@ -241,13 +257,7 @@ export function ViewOpenAIAPILLMPage(props: ViewProps) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={async () => {
-          const isSuccessful = await onSave()
-
-          if (isSuccessful && props.close) {
-            props.close()
-          }
-        }}
+        onSave={onSaveAndCloseIfCreate}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
         isDisabled={!form.formState.isValid}

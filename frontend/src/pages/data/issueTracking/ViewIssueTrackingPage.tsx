@@ -35,6 +35,7 @@ const resolvedForm = zodResolver(upsertIssueTrackingSchema)
 
 export function ViewIssueTrackingPage(props: Props) {
   const { issueTracking, provider } = props
+  const isCreateMode = !issueTracking?.id
 
   const form = useForm<IssueTracking>({
     resolver: resolvedForm,
@@ -91,6 +92,14 @@ export function ViewIssueTrackingPage(props: Props) {
     })
   }, [ form.formState.isDirty, issueTracking, provider ])
 
+  const onSaveAndCloseIfCreate = useCallback(async () => {
+    const isSuccessful = await onSave()
+
+    if (isSuccessful && isCreateMode && props.close) {
+      props.close()
+    }
+  }, [ onSave, isCreateMode, props.close ])
+
   useWatchUnsavedWork(form.formState.isDirty, {
     onSave,
   })
@@ -98,6 +107,13 @@ export function ViewIssueTrackingPage(props: Props) {
   useHotkey([ 'Control', 's' ], onSave, {
     preventDefault: true,
     blockOtherHotkeys: true,
+    enabled: !isCreateMode,
+  })
+
+  useHotkey([ 'Control', 'Enter' ], onSaveAndCloseIfCreate, {
+    preventDefault: true,
+    blockOtherHotkeys: true,
+    enabled: isCreateMode,
   })
 
   return <Card className='w-full'>
@@ -196,13 +212,7 @@ export function ViewIssueTrackingPage(props: Props) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={async () => {
-          const isSuccessful = await onSave()
-
-          if (isSuccessful && props.close) {
-            props.close()
-          }
-        }}
+        onSave={onSaveAndCloseIfCreate}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
       />
