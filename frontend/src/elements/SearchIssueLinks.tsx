@@ -4,33 +4,36 @@ import type { IssueTrackingSearchMode } from '@common/issueTracking/types'
 import type { Selection } from '@react-types/shared'
 
 // Core
+import useLocalStorageState from 'use-local-storage-state'
 import { useState } from 'react'
 
 // User interface
-import { Autocomplete, AutocompleteItem, Select, SelectItem } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Select, SelectItem, cn } from '@heroui/react'
 
 // Utility
-import { useSearchJiraIssues } from '@frontend/hooks/useSearchJiraIssues'
+import { useSearchIssues } from '@frontend/hooks/useSearchIssues'
 
 type Props = {
   onSelection: (value: string) => void
-  defaultMode?: IssueTrackingSearchMode
   page?: number
   limit?: number
+  className?: string
 }
 
-export function SearchJiraIssueLinks(props: Props) {
+export function SearchIssueLinks(props: Props) {
   const {
     page = 1,
     limit = 10,
   } = props
 
   const [ search, setSearch ] = useState<string>('')
-  const [ mode, setMode ] = useState<IssueTrackingSearchMode>(props.defaultMode ?? 'text')
+  const [ mode, setMode ] = useLocalStorageState<IssueTrackingSearchMode>('search-issue-links-mode', {
+    defaultValue: 'text',
+  })
 
-  const issueSearch = useSearchJiraIssues(search, mode, page, limit)
+  const issueSearch = useSearchIssues(search, mode, page, limit)
 
-  return <div className='level gap-2 items-end'>
+  return <div className={cn('level gap-2 items-end', props.className)}>
     <Autocomplete
       className='w-full'
       fullWidth
@@ -62,7 +65,7 @@ export function SearchJiraIssueLinks(props: Props) {
     }</Autocomplete>
     <Select
       className='w-32'
-      label='Mode'
+      label='Search'
       disallowEmptySelection
       selectedKeys={[ mode ]}
       onSelectionChange={(selection: Selection) => {

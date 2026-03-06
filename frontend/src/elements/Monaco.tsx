@@ -44,30 +44,28 @@ export function Monaco(props: MonacoProps) {
     }
   }, [])
 
-  return <div className={props.readOnly ? 'opacity-70' : ''}>
-    <Editor
-      height={props.height}
-      language={props.fileLanguage}
-      value={props.value}
-      onChange={!props.readOnly
-        ? props.onChange
-        : undefined
-      }
-      theme={theme === 'dark'
-        ? SERAPHIM_DARK_THEME
-        : SERAPHIM_LIGHT_THEME
-      }
-      loading={<></>}
-      onMount={handleMount}
-      options={{
-        automaticLayout: true,
-        minimap: {
-          enabled: props.minimapOverride ?? true,
-        },
-        scrollBeyondLastLine: true,
-        readOnly: props.readOnly ?? false,
-        fontSize: props.fontSize,
-      }}
-    />
-  </div>
+  return <Editor
+    height={props.height}
+    language={props.fileLanguage}
+    value={props.value}
+    onChange={!props.readOnly
+      ? props.onChange
+      : undefined
+    }
+    theme={theme === 'dark'
+      ? SERAPHIM_DARK_THEME
+      : SERAPHIM_LIGHT_THEME
+    }
+    loading={<></>}
+    onMount={handleMount}
+    options={{
+      automaticLayout: true,
+      minimap: {
+        enabled: props.minimapOverride ?? true,
+      },
+      scrollBeyondLastLine: true,
+      readOnly: props.readOnly ?? false,
+      fontSize: props.fontSize,
+    }}
+  />
 }

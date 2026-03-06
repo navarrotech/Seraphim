@@ -81,7 +81,8 @@ class TaskManager {
   public async createTask(request: TaskCreateRequest): Promise<CreateTaskResult> {
     const databaseClient = requireDatabaseClient('TaskManager createTask')
 
-    const [ workspace, llm ] = await Promise.all([
+    const [ user, workspace, llm ] = await Promise.all([
+      databaseClient.user.findFirst(),
       databaseClient.workspace.findUnique({
         where: {
           id: request.workspaceId,
@@ -144,7 +145,7 @@ class TaskManager {
 
     const createdTask = await databaseClient.task.create({
       data: {
-        userId: request.userId,
+        userId: user?.id,
         workspaceId: request.workspaceId,
         llmId: request.llmId,
         gitAccountId: request.gitAccountId,

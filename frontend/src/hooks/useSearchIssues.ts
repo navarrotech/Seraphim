@@ -15,23 +15,23 @@ import { listIssueTrackingIssues } from '@frontend/routes/issueTrackingRoutes'
 import { SEARCH_DEBOUNCE_MS } from '@common/constants'
 
 
-export function useSearchJiraIssues(
+export function useSearchIssues(
   searchValue: string,
   mode: IssueTrackingSearchMode,
   page: number = 1,
   limit: number = 20,
 ) {
-  const jiraIssueTracking = useSelector((state) =>
+  const issueTracking = useSelector((state) =>
     state.issueTracking.items.find((issueTracking) => issueTracking.provider === 'Jira'),
   )
 
   const debouncedSearchValue = useDebouncedState(searchValue, SEARCH_DEBOUNCE_MS)
 
   const issueSearch = useSWR(
-    jiraIssueTracking?.id
+    issueTracking?.id
     ? [
       'jira-issues-search',
-      jiraIssueTracking.id,
+      issueTracking.id,
       debouncedSearchValue,
       mode,
       page,
@@ -50,7 +50,7 @@ export function useSearchJiraIssues(
   const issues: IssueTrackingIssue[] = issueSearch.data?.items || []
 
   return {
-    issueTracking: jiraIssueTracking || null,
+    issueTracking: issueTracking || null,
     issues,
     totalCount: issueSearch.data?.totalCount || 0,
     mode,

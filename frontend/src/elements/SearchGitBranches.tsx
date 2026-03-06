@@ -1,28 +1,28 @@
 // Copyright © 2026 Jalapeno Labs
 
-import type { Workspace } from '@common/types'
-
 // Core
-import { useEffect, useMemo, useState } from 'react'
+import useLocalStorageState from 'use-local-storage-state'
+import { useEffect, useMemo } from 'react'
+import { useDebouncedState } from '@frontend/hooks/useDebouncedState'
 import useSWR from 'swr'
-import { useSelector } from '@frontend/framework/store'
+
+// API
+import { listBranches } from '@frontend/routes/accountsRoutes'
 
 // User interface
-import { Autocomplete, AutocompleteItem } from '@heroui/react'
-
-// Utility
-import { useDebouncedState } from '@frontend/hooks/useDebouncedState'
+import { Autocomplete, AutocompleteItem, cn } from '@heroui/react'
 
 // Misc
-import { listBranches } from '@frontend/routes/accountsRoutes'
+import { SEARCH_DEBOUNCE_MS } from '@common/constants'
 
 type Props = {
   value?: string
-  onValueChange: (value: string) => void
-  workspace: Workspace
+  onSelectionChange: (value: string) => void
+  gitAccountId: string
+  workspaceId: string
+  className?: string
 }
 
-const SEARCH_DEBOUNCE_MS = 300
 const SEARCH_LIMIT = 20
 
 export function SearchGitBranches(props: Props) {
@@ -30,16 +30,22 @@ export function SearchGitBranches(props: Props) {
     value = '',
   } = props
 
-  const [ searchValue, setSearchValue ] = useState(value)
-  const debouncedSearchValue = useDebouncedState(searchValue, SEARCH_DEBOUNCE_MS)
-
-  const githubAccount = useSelector((state) =>
-    state.accounts.items.find((account) => account.provider === 'GITHUB'),
+  const [ searchValue, setSearchValue ] = useLocalStorageState<string>(
+    'search-git-branches',
+    { defaultValue: '' },
   )
-  const canSearchBranches = Boolean(props.workspace.id && githubAccount?.id)
+
+  useEffect(() => {
+    if (searchValue) {
+      props.onSelectionChange(searchValue)
+    }
+  }, [])
+
+  const debouncedSearchValue = useDebouncedState(searchValue, SEARCH_DEBOUNCE_MS)
+  const canSearchBranches = Boolean(props.workspaceId && props.gitAccountId)
 
   const swrKey = useMemo(() => {
-    if (!canSearchBranches || !githubAccount?.id) {
+    if (!canSearchBranches || !props.gitAccountId) {
       return null
     }
 
@@ -47,11 +53,11 @@ export function SearchGitBranches(props: Props) {
     // a single account id, and workspace forms currently select one branch value.
     return [
       'workspace-branches',
-      props.workspace.id,
-      githubAccount.id,
+      props.workspaceId,
+      props.gitAccountId,
       debouncedSearchValue,
     ] as const
-  }, [ canSearchBranches, props.workspace.id, githubAccount?.id, debouncedSearchValue ])
+  }, [ canSearchBranches, props.workspaceId, props.gitAccountId, debouncedSearchValue ])
 
   const branchSearch = useSWR(
     swrKey,
@@ -76,16 +82,17 @@ export function SearchGitBranches(props: Props) {
     placeholder='main'
     allowsCustomValue
     isLoading={branchSearch.isLoading}
+    className={cn(props.className)}
     inputValue={searchValue}
     onInputChange={(nextValue) => {
       setSearchValue(nextValue)
-      props.onValueChange(nextValue)
+      props.onSelectionChange(nextValue)
     }}
     onSelectionChange={(selectedKey) => {
       const selectedValue = String(selectedKey || '')
 
       setSearchValue(selectedValue)
-      props.onValueChange(selectedValue)
+      props.onSelectionChange(selectedValue)
     }}
     isDisabled={!canSearchBranches}
     errorMessage={branchSearch.error ? 'Unable to load branches right now.' : undefined}
