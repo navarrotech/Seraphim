@@ -5,7 +5,7 @@ export const UrlTree = {
   root: '/',
 
   tasks: '/tasks',
-  newTasks: '/tasks/new',
+  newTask: '/tasks/new',
   viewTask: '/tasks/:taskId',
 
   settings: '/settings',
@@ -32,3 +32,6 @@ export const UNKNOWN_ROUTE_REDIRECT_TO: UrlValue = UrlTree.tasks
 // ///////////////////////////// //
 //         Link factories        //
 // ///////////////////////////// //
+
+export const getViewTaskUrl = (taskId: string) =>
+  UrlTree.viewTask.replace(':taskId', taskId)

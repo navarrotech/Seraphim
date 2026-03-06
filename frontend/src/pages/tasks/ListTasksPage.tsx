@@ -24,7 +24,7 @@ export function ListTasksPage() {
 
   if (!tasks?.length) {
     console.debug('ListTasksPage has no tasks in redux, redirecting to new task page')
-    return <Navigate to={UrlTree.newTasks} replace />
+    return <Navigate to={UrlTree.newTask} replace />
   }
 
   function handleSelectTask(task: Task) {

@@ -9,6 +9,7 @@ import type {
   Message,
   Turn,
   Task,
+  TaskState,
   User,
   UserSettings as UserSettingsPrisma,
   Workspace,
@@ -28,6 +29,7 @@ export type ThemePreference = Theme | 'system'
 export type UserLanguage = 'auto' | 'en-US'
 export type LogLevel = 'info' | 'log' | 'warn' | 'error' | 'debug' | 'verbose' | 'silly'
 export type SystemStatus = 'operational' | 'degraded' | 'failure' | 'offline'
+export type Color = 'default' | 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info'
 export type UnsubscribeFunction = () => any
 export type StandardFilePointer = string | string[]
 
@@ -44,6 +46,7 @@ export type {
   Message,
   Turn,
   Task,
+  TaskState,
   User,
   Workspace,
   WorkspaceEnv,

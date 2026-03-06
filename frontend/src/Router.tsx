@@ -30,7 +30,7 @@ export const Router = createBrowserRouter(
       <Route path={UrlTree.root} element={<AppOutlet />}>
 
         <Route path={UrlTree.tasks} element={<ListTasksPage />} />
-        <Route path={UrlTree.newTasks} element={<NewTaskPage />} />
+        <Route path={UrlTree.newTask} element={<NewTaskPage />} />
         <Route path={UrlTree.viewTask} element={<ViewTaskPage />} />
 
         <Route path={UrlTree.settings} element={<SettingsOutlet />}>
