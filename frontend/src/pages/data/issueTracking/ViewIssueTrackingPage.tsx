@@ -74,23 +74,21 @@ export function ViewIssueTrackingPage(props: Props) {
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
       console.debug('ViewIssueTrackingPage save skipped because there are no changes')
-      return
+      return false
     }
 
-    await form.handleSubmit(
-      async (values) => {
-        const response = await upsertIssueTracking(issueTracking?.id || '', {
-          ...values,
-          provider,
-        })
-
-        if (response?.issueTracking?.id) {
-          props.close?.()
-        }
-
-        return response
-      },
-    )()
+    return new Promise<boolean>(async (accept) => {
+      await form.handleSubmit(
+        async (values) => {
+          await upsertIssueTracking(issueTracking?.id || '', {
+            ...values,
+            provider,
+          })
+          accept(true)
+        },
+        () => accept(false),
+      )()
+    })
   }, [ form.formState.isDirty, issueTracking, provider ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
@@ -198,7 +196,13 @@ export function ViewIssueTrackingPage(props: Props) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={onSave}
+        onSave={async () => {
+          const isSuccessful = await onSave()
+
+          if (isSuccessful && props.close) {
+            props.close()
+          }
+        }}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
       />

@@ -83,23 +83,21 @@ export function ViewClaudeAPILLMPage(props: ViewProps) {
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
       console.debug('ViewLLMPage save skipped because there are no changes')
-      return
+      return false
     }
 
-    await form.handleSubmit(
-      async (values) => {
-        const result = await upsertLlm(existingLLM?.id || '', {
-          ...values,
-          type: 'CLAUDE_API_KEY',
-        })
-
-        if (result?.llm) {
-          props.close?.()
-        }
-
-        return result
-      },
-    )()
+    return new Promise<boolean>(async (accept) => {
+      await form.handleSubmit(
+        async (values) => {
+          await upsertLlm(existingLLM?.id || '', {
+            ...values,
+            type: 'CLAUDE_API_KEY',
+          })
+          accept(true)
+        },
+        () => accept(false),
+      )()
+    })
   }, [ form.formState.isDirty, existingLLM ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
@@ -242,7 +240,13 @@ export function ViewClaudeAPILLMPage(props: ViewProps) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={onSave}
+        onSave={async () => {
+          const isSuccessful = await onSave()
+
+          if (isSuccessful && props.close) {
+            props.close()
+          }
+        }}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
         isDisabled={!form.formState.isValid}

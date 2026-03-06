@@ -76,18 +76,18 @@ export function ViewWorkspacePage(props: Props) {
   const onSave = useCallback(async () => {
     if (!form.formState.isDirty) {
       console.debug('ViewWorkspacePage save skipped because there are no changes')
-      return
+      return false
     }
 
-    await form.handleSubmit(
-      (values) => {
-        upsertWorkspace(workspace?.id || '', values)
-
-        if (props.close) {
-          props.close()
-        }
-      },
-    )()
+    return new Promise<boolean>(async (accept) => {
+      await form.handleSubmit(
+        async (values) => {
+          await upsertWorkspace(workspace?.id || '', values)
+          accept(true)
+        },
+        () => accept(false),
+      )()
+    })
   }, [ form.formState.isDirty, workspace ])
 
   useWatchUnsavedWork(form.formState.isDirty, {
@@ -240,7 +240,13 @@ export function ViewWorkspacePage(props: Props) {
         isDisabled={form.formState.isSubmitting}
       />
       <SaveButton
-        onSave={onSave}
+        onSave={async () => {
+          const isSuccessful = await onSave()
+
+          if (isSuccessful && props.close) {
+            props.close()
+          }
+        }}
         isDirty={form.formState.isDirty}
         isLoading={form.formState.isSubmitting}
       />
