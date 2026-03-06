@@ -9,7 +9,7 @@ import { subscribeHotkey } from '@frontend/framework/hotkeys'
 
 export function useHotkey(
   keys: ValidKeys[],
-  callback: (event: KeyboardEvent) => Promisable<void>,
+  callback: (event: KeyboardEvent) => Promisable<any>,
   options?: HotkeyOptions,
 ) {
   useEffect(() => {

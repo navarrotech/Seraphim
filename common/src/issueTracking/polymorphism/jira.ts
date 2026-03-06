@@ -151,6 +151,25 @@ export class JiraIssueTracker extends IssueTracker {
       return this.mapIssueListResponse(response, page, limit)
     }
     catch (error) {
+      const statusCode = this.resolveHttpStatusCode(error)
+      if (statusCode === 410) {
+        console.debug('Jira listIssues legacy search endpoint is gone, retrying with enhanced search', {
+          issueTrackingId: this.issueTracking.id,
+          projectKey,
+          search: params.q ?? null,
+          page,
+          limit,
+        })
+
+        return this.listIssuesViaEnhancedSearch({
+          jql: jqlParts.join(' AND '),
+          page,
+          limit,
+          projectKey,
+          search: params.q ?? null,
+        })
+      }
+
       console.debug('Jira listIssues failed for project key search', {
         issueTrackingId: this.issueTracking.id,
         projectKey,
@@ -255,6 +274,132 @@ export class JiraIssueTracker extends IssueTracker {
         ? Number(payload.total)
         : items.length,
     }
+  }
+
+  private async listIssuesViaEnhancedSearch(params: {
+    jql: string
+    page: number
+    limit: number
+    projectKey: string
+    search: string | null
+  }): Promise<IssueTrackingIssueList> {
+    try {
+      const enhancedSearchResponse = await this.searchIssuesWithPaginationToken({
+        jql: params.jql,
+        page: params.page,
+        limit: params.limit,
+      })
+
+      const totalCount = await this.countIssuesForJql(params.jql)
+
+      return this.mapIssueListResponse({
+        issues: enhancedSearchResponse.issues,
+        total: totalCount ?? undefined,
+      }, params.page, params.limit)
+    }
+    catch (error) {
+      console.debug('Jira listIssues failed for enhanced project key search', {
+        issueTrackingId: this.issueTracking.id,
+        projectKey: params.projectKey,
+        search: params.search,
+        page: params.page,
+        limit: params.limit,
+        error,
+      })
+
+      return super.listIssues({
+        q: params.search ?? undefined,
+        page: params.page,
+        limit: params.limit,
+      })
+    }
+  }
+
+  private async searchIssuesWithPaginationToken(params: {
+    jql: string
+    page: number
+    limit: number
+  }): Promise<{
+    issues?: unknown[]
+  }> {
+    let nextPageToken: string | undefined
+
+    for (let currentPage = 1; currentPage <= params.page; currentPage += 1) {
+      const response = await this.client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+        jql: params.jql,
+        nextPageToken,
+        maxResults: params.limit,
+        fields: [ 'summary', 'status', 'labels' ],
+      })
+
+      if (currentPage === params.page) {
+        return response
+      }
+
+      if (!response.nextPageToken) {
+        return { issues: []}
+      }
+
+      nextPageToken = response.nextPageToken
+    }
+
+    return { issues: []}
+  }
+
+  private async countIssuesForJql(jql: string): Promise<number | null> {
+    try {
+      const response = await this.client.issueSearch.countIssues({ jql })
+      if (!Number.isFinite(response.count)) {
+        return null
+      }
+
+      return Number(response.count)
+    }
+    catch (error) {
+      console.debug('Jira listIssues failed to resolve issue count for enhanced search', {
+        issueTrackingId: this.issueTracking.id,
+        jql,
+        error,
+      })
+
+      return null
+    }
+  }
+
+  private resolveHttpStatusCode(error: unknown): number | null {
+    if (error instanceof HttpException && Number.isFinite(error.status)) {
+      return error.status
+    }
+
+    if (!error || typeof error !== 'object') {
+      return null
+    }
+
+    const errorRecord = error as {
+      status?: unknown
+      response?: {
+        status?: unknown
+      }
+      cause?: {
+        response?: {
+          status?: unknown
+        }
+      }
+    }
+
+    if (Number.isFinite(errorRecord.status)) {
+      return Number(errorRecord.status)
+    }
+
+    if (Number.isFinite(errorRecord.response?.status)) {
+      return Number(errorRecord.response?.status)
+    }
+
+    if (Number.isFinite(errorRecord.cause?.response?.status)) {
+      return Number(errorRecord.cause?.response?.status)
+    }
+
+    return null
   }
 
   private mapIssuePayload(payload: unknown): IssueTrackingIssue | null {

@@ -13,6 +13,12 @@ type Context = {
   debugMock: ReturnType<typeof vi.spyOn>
 }
 
+type IssueSearchClientMock = {
+  searchForIssuesUsingJql: ReturnType<typeof vi.fn>
+  searchForIssuesUsingJqlEnhancedSearch: ReturnType<typeof vi.fn>
+  countIssues: ReturnType<typeof vi.fn>
+}
+
 function hasRequiredEnvValues() {
   const accessToken = process.env.VITEST_JIRA_ACCESS_TOKEN
   const email = process.env.VITEST_JIRA_EMAIL
@@ -38,6 +44,19 @@ function buildIssueTracking(
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
+  }
+}
+
+function setIssueSearchClientMock(
+  tracker: JiraIssueTracker,
+  issueSearchClientMock: IssueSearchClientMock,
+) {
+  ;(tracker as unknown as {
+    client: {
+      issueSearch: IssueSearchClientMock
+    }
+  }).client = {
+    issueSearch: issueSearchClientMock,
   }
 }
 
@@ -107,5 +126,137 @@ describe('JiraIssueTracker', () => {
 
     expect(success).toBe(false)
     expect(errorMessage.toLowerCase()).toContain('project')
+  })
+
+  describe('listIssues', () => {
+    it<Context>('falls back to enhanced search when legacy Jira search returns 410', async () => {
+      const tracker = new JiraIssueTracker(
+        buildIssueTracking({
+          id: 'jira-test-410-fallback',
+          targetBoard: 'LABS',
+          accessToken: 'test-token',
+          email: 'test@example.com',
+        }),
+      )
+
+      const searchForIssuesUsingJql = vi.fn().mockRejectedValue({
+        status: 410,
+        response: {
+          status: 410,
+        },
+      })
+      const searchForIssuesUsingJqlEnhancedSearch = vi.fn().mockResolvedValue({
+        issues: [{
+          id: '10001',
+          key: 'LABS-1',
+          fields: {
+            summary: 'Fallback issue',
+            status: {
+              id: '3',
+            },
+            labels: [ 'needs-review' ],
+          },
+        }],
+      })
+      const countIssues = vi.fn().mockResolvedValue({
+        count: 27,
+      })
+
+      setIssueSearchClientMock(tracker, {
+        searchForIssuesUsingJql,
+        searchForIssuesUsingJqlEnhancedSearch,
+        countIssues,
+      })
+
+      const result = await tracker.listIssues({
+        page: 1,
+        limit: 10,
+      })
+
+      expect(searchForIssuesUsingJql).toHaveBeenCalledTimes(1)
+      expect(searchForIssuesUsingJqlEnhancedSearch).toHaveBeenCalledTimes(1)
+      expect(countIssues).toHaveBeenCalledTimes(1)
+      expect(result.totalCount).toBe(27)
+      expect(result.items).toEqual([{
+        id: '10001',
+        key: 'LABS-1',
+        summary: 'Fallback issue',
+        statusId: '3',
+        labels: [ 'needs-review' ],
+      }])
+    })
+
+    it<Context>('returns requested page from enhanced search token pagination', async () => {
+      const tracker = new JiraIssueTracker(
+        buildIssueTracking({
+          id: 'jira-test-enhanced-pagination',
+          targetBoard: 'LABS',
+          accessToken: 'test-token',
+          email: 'test@example.com',
+        }),
+      )
+
+      const searchForIssuesUsingJql = vi.fn().mockRejectedValue({
+        status: 410,
+      })
+      const searchForIssuesUsingJqlEnhancedSearch = vi.fn()
+        .mockResolvedValueOnce({
+          issues: [{
+            id: '10001',
+            key: 'LABS-1',
+            fields: {
+              summary: 'Page 1 issue',
+              status: {
+                id: '3',
+              },
+              labels: [],
+            },
+          }],
+          nextPageToken: 'token-page-2',
+        })
+        .mockResolvedValueOnce({
+          issues: [{
+            id: '10002',
+            key: 'LABS-2',
+            fields: {
+              summary: 'Page 2 issue',
+              status: {
+                id: '4',
+              },
+              labels: [ 'ready' ],
+            },
+          }],
+        })
+      const countIssues = vi.fn().mockResolvedValue({
+        count: 20,
+      })
+
+      setIssueSearchClientMock(tracker, {
+        searchForIssuesUsingJql,
+        searchForIssuesUsingJqlEnhancedSearch,
+        countIssues,
+      })
+
+      const result = await tracker.listIssues({
+        page: 2,
+        limit: 1,
+      })
+
+      expect(searchForIssuesUsingJqlEnhancedSearch).toHaveBeenCalledTimes(2)
+      expect(searchForIssuesUsingJqlEnhancedSearch).toHaveBeenNthCalledWith(1, {
+        jql: 'project = "LABS"',
+        nextPageToken: undefined,
+        maxResults: 1,
+        fields: [ 'summary', 'status', 'labels' ],
+      })
+      expect(searchForIssuesUsingJqlEnhancedSearch).toHaveBeenNthCalledWith(2, {
+        jql: 'project = "LABS"',
+        nextPageToken: 'token-page-2',
+        maxResults: 1,
+        fields: [ 'summary', 'status', 'labels' ],
+      })
+      expect(result.items[0]?.key).toBe('LABS-2')
+      expect(result.totalCount).toBe(20)
+    })
   })
 })
