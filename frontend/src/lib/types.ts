@@ -320,6 +320,25 @@ export type AnomalousEmptyPr = {
   pr_url: string
 }
 
+// A setup-script edit the agent made to itself via the Seraphim MCP (issue #340),
+// recorded so the board can surface it in a banner until the operator acknowledges it.
+export type SetupScriptChange = {
+  id: string
+  // The task being worked when the change was made; null once that task is gone.
+  task_id: string | null
+  // 'repo' (a repository's setup_script) or 'base' (the global environment setup).
+  target: 'repo' | 'base'
+  repo_id: string | null
+  // The repo's owner/name at the time (snapshotted); null for a 'base' change.
+  repo_full_name: string | null
+  old_script: string
+  new_script: string
+  // The agent's one-line reason for the change.
+  summary: string
+  acknowledged: boolean
+  created_at: string
+}
+
 // What deleting a repository will purge, shown in the delete confirmation.
 export type RepoDeletionImpact = {
   tasks: number
@@ -547,6 +566,9 @@ export type BoardResponse = {
   repo_sync_errors: RepoSyncError[]
   // Open, non-draft empty PRs (issue #314), for the self-clearing anomaly banner.
   anomalous_empty_prs: AnomalousEmptyPr[]
+  // Setup-script edits the agent made to itself (issue #340), unacknowledged, for
+  // the board banner that keeps the operator aware of the change.
+  setup_script_changes: SetupScriptChange[]
 }
 
 // A pull request the task has opened. A task may span several repos, so it can

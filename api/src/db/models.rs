@@ -407,6 +407,32 @@ pub struct RepoSyncError {
     pub sync_error_at: DateTime<Utc>,
 }
 
+/// A setup-script edit the agent made to itself through the Seraphim MCP (issue
+/// #340). Recorded so the change is never silent: the board banner shows the
+/// unacknowledged ones and the row keeps the before/after for audit and revert.
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct SetupScriptChange {
+    pub id: Uuid,
+    /// The task the agent was working when it made the change; `None` once that
+    /// task is deleted.
+    pub task_id: Option<Uuid>,
+    /// `"repo"` (a repository's `setup_script`) or `"base"` (the global
+    /// `base_setup_script`, the environment setup).
+    pub target: String,
+    /// The repo whose script changed, for a `"repo"` target; `None` for `"base"`
+    /// or once the repo is deleted.
+    pub repo_id: Option<Uuid>,
+    /// The repo's `owner/name` at the time, snapshotted so the record still reads
+    /// after a rename or delete. `None` for a `"base"` change.
+    pub repo_full_name: Option<String>,
+    pub old_script: String,
+    pub new_script: String,
+    /// The agent's one-line reason, shown to the operator so the change is explained.
+    pub summary: String,
+    pub acknowledged: bool,
+    pub created_at: DateTime<Utc>,
+}
+
 /// An open, non-draft pull request whose net diff is empty (issue #314): an
 /// anomaly, since GitHub cannot squash-merge a zero-change PR and the agent did
 /// not deliberately park it as a draft. Surfaced as a self-clearing board banner

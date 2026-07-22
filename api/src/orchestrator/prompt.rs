@@ -517,6 +517,9 @@ fn context_header(
     // Shared by every mode: noticing missing tooling can happen on any run, so
     // the recommend-improvements guidance lives in the common header.
     prompt.push_str(ENVIRONMENT_SUGGESTIONS);
+    // The agent can also apply the setup-script optimization itself via the
+    // Seraphim MCP, not just recommend it (issue #340).
+    prompt.push_str(SETUP_SCRIPT_AUTONOMY);
     // Likewise follow-up work the agent spots while working (issue #272): bubble it
     // up at the end so the operator can one-click it into a ticket.
     prompt.push_str(FOLLOW_UP_SUGGESTIONS);
@@ -668,6 +671,25 @@ const ENVIRONMENT_SUGGESTIONS: &str = "\n\
     \x20 JSON\n\n\
     Only suggest things that genuinely help; if nothing comes to mind, skip it. \
     This does not replace opening the pull request.\n";
+
+/// Standing instruction (issue #340) letting the agent apply setup-script
+/// optimizations itself, via the Seraphim MCP, rather than only recommending them.
+///
+/// The MCP tools (`seraphim` server) read and update a repo's `setup_script` or
+/// the global environment setup; every change is recorded and shown to the operator
+/// (a board banner + a notification), so this is autonomy WITH accountability.
+const SETUP_SCRIPT_AUTONOMY: &str = "\n\
+    # Improve your own setup scripts directly\n\
+    When the improvement you would recommend above is a setup-script change (e.g. \
+    \"add `cd frontend && yarn install` so UI tasks build immediately\"), you can \
+    apply it yourself through the `seraphim` MCP instead of only suggesting it. Its \
+    tools list the current base and per-repo setup scripts and update a repo's \
+    `setup_script` or the global environment setup. Prefer editing a repo's \
+    `setup_script` for a repo-specific step and the base setup only for a truly \
+    global tool. Read the current script first, make a minimal, correct edit, and \
+    pass a one-line `summary` explaining why. Every change is recorded and surfaced \
+    to the operator, so keep edits genuine and safe; if you are unsure, recommend it \
+    with `seraphim-suggest` instead.\n";
 
 /// Guidance, appended to every task prompt, on bubbling up follow-up work (#272).
 const FOLLOW_UP_SUGGESTIONS: &str = "\n\

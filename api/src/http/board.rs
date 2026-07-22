@@ -15,8 +15,8 @@ use tracing::{info, warn};
 
 use super::ApiResult;
 use crate::db::models::{
-    AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, Settings, SourceKind, Task, TaskColumn,
-    TaskStatus,
+    AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, Settings, SetupScriptChange, SourceKind,
+    Task, TaskColumn, TaskStatus,
 };
 use crate::db::queries;
 use crate::git;
@@ -43,6 +43,10 @@ pub struct BoardResponse {
     /// board surfaces in a banner so it does not sit only in the logs. Self-clearing
     /// (it drops off once the PR gains changes, closes, or is marked draft).
     pub anomalous_empty_prs: Vec<AnomalousEmptyPr>,
+    /// Setup-script edits the agent made to itself (issue #340), unacknowledged,
+    /// newest first, so the board banner shows what changed until the operator
+    /// clears it.
+    pub setup_script_changes: Vec<SetupScriptChange>,
 }
 
 /// `GET /api/v1/board` - every card, the org/pause settings, per-card counts of
@@ -60,6 +64,7 @@ pub async fn get_board(State(state): State<AppState>) -> ApiResult<Json<BoardRes
     let heart_attacks = queries::list_unacknowledged_heart_attacks(&state.db).await?;
     let repo_sync_errors = queries::list_repo_sync_errors(&state.db).await?;
     let anomalous_empty_prs = queries::list_anomalous_empty_prs(&state.db).await?;
+    let setup_script_changes = queries::list_unacknowledged_setup_changes(&state.db).await?;
     Ok(Json(BoardResponse {
         tasks,
         settings,
@@ -68,6 +73,7 @@ pub async fn get_board(State(state): State<AppState>) -> ApiResult<Json<BoardRes
         heart_attacks,
         repo_sync_errors,
         anomalous_empty_prs,
+        setup_script_changes,
     }))
 }
 

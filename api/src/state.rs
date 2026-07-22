@@ -63,6 +63,18 @@ pub enum ServerEvent {
     },
     /// A task finished (auto-merged to Done); drives the completion sound.
     TaskFinished { task_id: Uuid, task_title: String },
+    /// The agent edited one of its own setup scripts through the Seraphim MCP
+    /// (issue #340); drives a one-time toast + native notification so the operator
+    /// knows. The ongoing state is carried by the board's setup-change banner.
+    SetupScriptChanged {
+        /// The task being worked when the change was made, when known.
+        task_id: Option<Uuid>,
+        /// The repo's `owner/name` for a repo change, or "environment setup" for
+        /// the base script, so the toast names what changed.
+        target_label: String,
+        /// The agent's one-line reason for the change.
+        summary: String,
+    },
     /// A streamed event from the compose assistant's turn (issue #181); the
     /// /compose page appends it to the chat transcript.
     Compose { payload: serde_json::Value },
@@ -443,6 +455,21 @@ impl AppState {
         let _ = self.events.send(ServerEvent::TaskFinished {
             task_id,
             task_title,
+        });
+    }
+
+    /// Announces that the agent edited one of its own setup scripts (issue #340),
+    /// so the notifications sidebar can toast and notify natively.
+    pub fn notify_setup_script_changed(
+        &self,
+        task_id: Option<Uuid>,
+        target_label: String,
+        summary: String,
+    ) {
+        let _ = self.events.send(ServerEvent::SetupScriptChanged {
+            task_id,
+            target_label,
+            summary,
         });
     }
 
