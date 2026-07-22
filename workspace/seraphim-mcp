@@ -1,0 +1,260 @@
+#!/usr/bin/env node
+// seraphim-mcp: an MCP server that lets the agent edit its own setup scripts (issue #340).
+//
+// Registered at user scope by the workspace entrypoint (`claude mcp add -s user
+// seraphim -- seraphim-mcp`), so a `claude -p --permission-mode bypassPermissions`
+// turn loads it with no approval gate, exactly like the Playwright MCP. It exposes
+// three tools backed by the Seraphim API:
+//   - list_setup_scripts      read the current base + per-repo setup scripts
+//   - update_repo_setup_script  replace one repo's setup_script
+//   - update_base_setup_script  replace the global environment-setup script
+//
+// So the agent can APPLY an environment optimization it spots (e.g. "add
+// `cd frontend && yarn install` so UI tasks build immediately"), not just
+// recommend it. Every update is recorded by the API and surfaced to the operator
+// (a board banner + a notification), so the autonomy is never silent.
+//
+// This is a hand-rolled stdio MCP server (newline-delimited JSON-RPC 2.0), zero
+// dependencies like the other `seraphim-*` helpers. It reads SERAPHIM_API_URL and
+// (when inside a task turn) SERAPHIM_TASK_ID from its environment, inherited from
+// the `claude` process the orchestrator execs.
+
+const SERVER_NAME = 'seraphim'
+const SERVER_VERSION = '1.0.0'
+// Echoed back to a client that requests it; else this recent protocol revision.
+const DEFAULT_PROTOCOL_VERSION = '2025-06-18'
+
+const API_URL = process.env.SERAPHIM_API_URL
+const TASK_ID = process.env.SERAPHIM_TASK_ID
+
+// Only stderr is safe to log to: stdout carries the JSON-RPC stream.
+function log(message) {
+  process.stderr.write(`seraphim-mcp: ${message}\n`)
+}
+
+// --- Tool definitions --------------------------------------------------------
+
+const TOOLS = [
+  {
+    name: 'list_setup_scripts',
+    description:
+      'List the current setup scripts Seraphim runs: the global base (environment) ' +
+      'setup script and each repository\'s per-repo setup_script. Call this first to ' +
+      'read what exists before proposing an edit.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'update_repo_setup_script',
+    description:
+      "Replace a repository's setup_script (runs after each clone; before every task " +
+      'when setup_script_always_run is on). Use this to bake in a repo-specific setup ' +
+      'step you had to run by hand, e.g. installing dependencies. Read the current ' +
+      'script with list_setup_scripts first and send the full new script. The change ' +
+      'is recorded and shown to the operator.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repo: {
+          type: 'string',
+          description: "The repository: its owner/name, its short name, or its id."
+        },
+        setup_script: {
+          type: 'string',
+          description: 'The full new setup script (replaces the existing one).'
+        },
+        summary: {
+          type: 'string',
+          description: 'A one-line reason for the change, shown to the operator.'
+        }
+      },
+      required: ['repo', 'setup_script', 'summary'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'update_base_setup_script',
+    description:
+      'Replace the global base (environment) setup script, which runs once per ' +
+      'workspace provision/recreate. Use this only for a truly global tool or step; ' +
+      'prefer update_repo_setup_script for anything repo-specific. The change takes ' +
+      'effect on the next workspace provision/recreate. It is recorded and shown to ' +
+      'the operator.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        setup_script: {
+          type: 'string',
+          description: 'The full new base setup script (replaces the existing one).'
+        },
+        summary: {
+          type: 'string',
+          description: 'A one-line reason for the change, shown to the operator.'
+        }
+      },
+      required: ['setup_script', 'summary'],
+      additionalProperties: false
+    }
+  }
+]
+
+// --- API helpers -------------------------------------------------------------
+
+async function apiGet(path) {
+  const response = await fetch(`${API_URL}${path}`)
+  const text = await response.text()
+  if (!response.ok) {
+    throw new Error(`the API returned HTTP ${response.status}: ${text}`)
+  }
+  return text ? JSON.parse(text) : {}
+}
+
+async function apiPost(path, body) {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  const text = await response.text()
+  if (!response.ok) {
+    // The API returns { "error": "..." } for a bad request; surface that verbatim.
+    let detail = text
+    try {
+      detail = JSON.parse(text)?.error ?? text
+    } catch {
+      // Non-JSON body; use it as is.
+    }
+    throw new Error(detail || `the API returned HTTP ${response.status}`)
+  }
+  return text ? JSON.parse(text) : {}
+}
+
+// --- Tool handlers -----------------------------------------------------------
+
+async function callTool(name, args) {
+  if (!API_URL) {
+    throw new Error('SERAPHIM_API_URL is not set (it is injected by the orchestrator per turn)')
+  }
+
+  if (name === 'list_setup_scripts') {
+    const data = await apiGet('/api/v1/agent/setup-scripts')
+    return JSON.stringify(data, null, 2)
+  }
+
+  if (name === 'update_repo_setup_script') {
+    const change = await apiPost('/api/v1/agent/setup-scripts/repo', {
+      task_id: TASK_ID,
+      repo: String(args?.repo ?? ''),
+      setup_script: String(args?.setup_script ?? ''),
+      summary: String(args?.summary ?? '')
+    })
+    return `Updated the setup script for ${change?.change?.repo_full_name ?? args?.repo}. The operator has been notified.`
+  }
+
+  if (name === 'update_base_setup_script') {
+    await apiPost('/api/v1/agent/setup-scripts/base', {
+      task_id: TASK_ID,
+      setup_script: String(args?.setup_script ?? ''),
+      summary: String(args?.summary ?? '')
+    })
+    return 'Updated the base (environment) setup script. It takes effect on the next workspace provision/recreate. The operator has been notified.'
+  }
+
+  throw new Error(`unknown tool '${name}'`)
+}
+
+// --- JSON-RPC over newline-delimited stdio -----------------------------------
+
+function send(message) {
+  process.stdout.write(`${JSON.stringify(message)}\n`)
+}
+
+function sendResult(id, result) {
+  send({ jsonrpc: '2.0', id, result })
+}
+
+function sendError(id, code, message) {
+  send({ jsonrpc: '2.0', id, error: { code, message } })
+}
+
+async function handleMessage(message) {
+  const { id, method, params } = message
+  // A response has no method; a notification has no id. We only act on requests
+  // (and the initialized notification, which needs no reply).
+  const isRequest = method !== undefined && id !== undefined && id !== null
+
+  if (method === 'initialize') {
+    const protocolVersion =
+      typeof params?.protocolVersion === 'string' ? params.protocolVersion : DEFAULT_PROTOCOL_VERSION
+    sendResult(id, {
+      protocolVersion,
+      capabilities: { tools: {} },
+      serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+      instructions:
+        'Edit the setup scripts Seraphim runs for its repos. List them first, then ' +
+        'update a repo\'s setup_script or the base environment script. Changes are ' +
+        'recorded and shown to the operator.'
+    })
+    return
+  }
+
+  if (method === 'notifications/initialized') {
+    return
+  }
+
+  if (method === 'ping') {
+    sendResult(id, {})
+    return
+  }
+
+  if (method === 'tools/list') {
+    sendResult(id, { tools: TOOLS })
+    return
+  }
+
+  if (method === 'tools/call') {
+    const toolName = params?.name
+    try {
+      const text = await callTool(toolName, params?.arguments ?? {})
+      sendResult(id, { content: [{ type: 'text', text }] })
+    } catch (error) {
+      // A tool failure is reported inside the result (isError), not as a protocol
+      // error, so the model sees the message and can correct itself.
+      sendResult(id, { content: [{ type: 'text', text: `Error: ${error.message}` }], isError: true })
+    }
+    return
+  }
+
+  // Any other request method is unsupported; notifications are ignored silently.
+  if (isRequest) {
+    sendError(id, -32601, `method not found: ${method}`)
+  }
+}
+
+function main() {
+  let buffer = ''
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => {
+    buffer += chunk
+    let newline
+    while ((newline = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, newline).trim()
+      buffer = buffer.slice(newline + 1)
+      if (!line) {
+        continue
+      }
+      let message
+      try {
+        message = JSON.parse(line)
+      } catch (error) {
+        log(`ignoring unparseable line: ${error.message}`)
+        continue
+      }
+      // Handle sequentially; each handler awaits its own API call. Errors are
+      // contained per message so one bad call never tears down the server.
+      handleMessage(message).catch((error) => log(`handler error: ${error.message}`))
+    }
+  })
+  process.stdin.on('end', () => process.exit(0))
+}
+
+main()

@@ -219,10 +219,13 @@ COPY seraphim-state /usr/local/bin/seraphim-state
 COPY seraphim-draft /usr/local/bin/seraphim-draft
 COPY seraphim-screenshot /usr/local/bin/seraphim-screenshot
 COPY seraphim-followup /usr/local/bin/seraphim-followup
+# The Seraphim MCP server (issue #340): a stdio MCP the agent uses to edit its own
+# setup scripts. Registered at user scope by the entrypoint, like the Playwright MCP.
+COPY seraphim-mcp /usr/local/bin/seraphim-mcp
 RUN chmod +x /usr/local/bin/seraphim-suggest /usr/local/bin/seraphim-ask \
     /usr/local/bin/seraphim-comment /usr/local/bin/seraphim-state \
     /usr/local/bin/seraphim-draft /usr/local/bin/seraphim-screenshot \
-    /usr/local/bin/seraphim-followup
+    /usr/local/bin/seraphim-followup /usr/local/bin/seraphim-mcp
 
 # --- Computed-style check library for visual self-review (issue #245) ---------
 # The deterministic CSS checks (centering/spacing/overflow/stacking) the agent

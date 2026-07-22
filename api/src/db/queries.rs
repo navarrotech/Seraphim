@@ -16,9 +16,9 @@ use super::models::{
     ClaudeUsageCredentials, DependencyCandidate, EnvSuggestion, EnvVar, EnvVarWrite, HeartAttack,
     InternalComment, JiraBoard, JiraDeployment, NetworkAccessLevel, PendingPlacement,
     PendingQuestion, Question, QuestionOption, QuestionStatus, Railway, RepoDeletionImpact,
-    RepoSyncError, ReposDeletionImpact, Repository, ReviewPolicy, Settings, SourceKind,
-    StatsAggregate, Task, TaskAttachment, TaskColumn, TaskPullRequest, TaskScreenshot, TaskStatus,
-    Turn,
+    RepoSyncError, ReposDeletionImpact, Repository, ReviewPolicy, Settings, SetupScriptChange,
+    SourceKind, StatsAggregate, Task, TaskAttachment, TaskColumn, TaskPullRequest, TaskScreenshot,
+    TaskStatus, Turn,
 };
 use crate::automation::{RuleAction, RuleGroup, Trigger};
 
@@ -1116,6 +1116,96 @@ pub async fn delete_repositories(pool: &PgPool, ids: &[Uuid]) -> sqlx::Result<u6
         .await?;
     tx.commit().await?;
     Ok(result.rows_affected())
+}
+
+/// Replaces a single repo's `setup_script`, leaving everything else untouched.
+///
+/// Used by the agent's self-service setup-script MCP (issue #340), which sends
+/// only the new script, so this is a targeted update rather than the full
+/// [`update_repository`] upsert. Returns the updated row.
+pub async fn update_repo_setup_script(
+    pool: &PgPool,
+    id: Uuid,
+    setup_script: &str,
+) -> sqlx::Result<Repository> {
+    sqlx::query_as::<_, Repository>(
+        "UPDATE repositories SET setup_script = $2, updated_at = now() \
+         WHERE id = $1 RETURNING *",
+    )
+    .bind(id)
+    .bind(setup_script)
+    .fetch_one(pool)
+    .await
+}
+
+// --- Setup-script self-edits (agent MCP, issue #340) -------------------------
+//
+// The agent edits its own setup scripts through the Seraphim MCP; each edit is
+// recorded here so the change is surfaced to the operator (board banner + a
+// one-time notification) and kept for audit and manual revert.
+
+/// Replaces the global `base_setup_script` (the environment setup that runs once
+/// per provision), leaving every other setting untouched. Returns the new settings.
+pub async fn update_base_setup_script(pool: &PgPool, setup_script: &str) -> sqlx::Result<Settings> {
+    sqlx::query_as::<_, Settings>(&format!(
+        "UPDATE settings SET base_setup_script = $1, updated_at = now() \
+         WHERE id = 1 RETURNING {SETTINGS_COLUMNS}"
+    ))
+    .bind(setup_script)
+    .fetch_one(pool)
+    .await
+}
+
+/// Records one setup-script edit the agent made, returning the stored row.
+///
+/// `repo_id` / `repo_full_name` are set for a `"repo"` target and left `None` for a
+/// `"base"` one. `task_id` attributes the change to the task being worked.
+#[allow(clippy::too_many_arguments)]
+pub async fn record_setup_script_change(
+    pool: &PgPool,
+    task_id: Option<Uuid>,
+    target: &str,
+    repo_id: Option<Uuid>,
+    repo_full_name: Option<&str>,
+    old_script: &str,
+    new_script: &str,
+    summary: &str,
+) -> sqlx::Result<SetupScriptChange> {
+    sqlx::query_as::<_, SetupScriptChange>(
+        "INSERT INTO setup_script_changes \
+           (task_id, target, repo_id, repo_full_name, old_script, new_script, summary) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+    )
+    .bind(task_id)
+    .bind(target)
+    .bind(repo_id)
+    .bind(repo_full_name)
+    .bind(old_script)
+    .bind(new_script)
+    .bind(summary)
+    .fetch_one(pool)
+    .await
+}
+
+/// Unacknowledged setup-script changes, newest first, for the board banner.
+pub async fn list_unacknowledged_setup_changes(
+    pool: &PgPool,
+) -> sqlx::Result<Vec<SetupScriptChange>> {
+    sqlx::query_as::<_, SetupScriptChange>(
+        "SELECT * FROM setup_script_changes WHERE acknowledged = FALSE ORDER BY created_at DESC",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// Marks a recorded setup-script change acknowledged, clearing it from the banner.
+pub async fn acknowledge_setup_change(pool: &PgPool, id: Uuid) -> sqlx::Result<SetupScriptChange> {
+    sqlx::query_as::<_, SetupScriptChange>(
+        "UPDATE setup_script_changes SET acknowledged = TRUE WHERE id = $1 RETURNING *",
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await
 }
 
 // --- Tasks -------------------------------------------------------------------

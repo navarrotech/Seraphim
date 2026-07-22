@@ -111,5 +111,21 @@ if command -v playwright-mcp >/dev/null 2>&1; then
   ' || echo "warning: could not register the Playwright MCP; visual self-review will be unavailable" >&2
 fi
 
+# --- Seraphim MCP: let the agent edit its own setup scripts (issue #340) -------
+# A stdio MCP server the agent uses to read and update the setup scripts Seraphim
+# runs (a repo's setup_script or the global environment setup), so it can apply an
+# environment optimization itself, not only recommend it. Registered at USER scope
+# in the same CLAUDE_CONFIG_DIR/.claude.json so a `claude -p ... --permission-mode
+# bypassPermissions` turn loads it with no approval gate. Idempotent (remove-then-
+# add) and survives the config-repo checkout, exactly like the Playwright MCP.
+# It reads SERAPHIM_API_URL / SERAPHIM_TASK_ID, injected per turn into the claude
+# exec whose child the server inherits. Best-effort: a failure never blocks idling.
+if command -v seraphim-mcp >/dev/null 2>&1; then
+  runuser -u "${AGENT_USER}" -- env CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR}" bash -c '
+    claude mcp remove -s user seraphim >/dev/null 2>&1 || true
+    claude mcp add -s user seraphim -- seraphim-mcp >/dev/null 2>&1
+  ' || echo "warning: could not register the Seraphim MCP; setup-script self-edits will be unavailable" >&2
+fi
+
 # Hand off to the idle command (tail -f /dev/null).
 exec "$@"

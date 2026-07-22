@@ -19,6 +19,7 @@ mod railways;
 mod repos;
 mod screenshots;
 mod settings;
+mod setup_scripts;
 mod sse;
 mod stats;
 mod suggestions;
@@ -130,6 +131,19 @@ pub fn router(state: AppState) -> Router {
             )),
         )
         .route("/attachments/:id", get(attachments::serve))
+        // The agent editing its own setup scripts through the Seraphim MCP (issue
+        // #340): read the current scripts, update a repo's or the base script, and
+        // let the operator acknowledge a recorded change from the board banner.
+        .route("/agent/setup-scripts", get(setup_scripts::list))
+        .route(
+            "/agent/setup-scripts/repo",
+            post(setup_scripts::update_repo),
+        )
+        .route(
+            "/agent/setup-scripts/base",
+            post(setup_scripts::update_base),
+        )
+        .route("/setup-changes/:id/ack", post(setup_scripts::acknowledge))
         .route("/agent/questions", post(questions::ask))
         .route("/questions/pending", get(questions::pending))
         .route("/questions/:id/answer", post(questions::answer))

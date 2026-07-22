@@ -202,6 +202,24 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
   its task's title/source/repo link (`AggregatedSuggestion`), and the page reuses
   the same ack and create-issue actions, with open items on top and acknowledged
   ones in a greyed, hover-revealed bottom section.
+- **`setup_script_changes`** (issue #340) — setup-script edits the agent made to
+  **itself** through the **Seraphim MCP** (`workspace/seraphim-mcp`), so it can
+  apply an environment optimization it spots (e.g. "add `cd frontend && yarn
+  install` so UI tasks build immediately") instead of only recommending it via
+  `seraphim-suggest`. The MCP is a hand-rolled zero-dep stdio server (like the
+  `seraphim-*` helpers), registered at user scope by the entrypoint alongside the
+  Playwright MCP, and exposes `list_setup_scripts`, `update_repo_setup_script`, and
+  `update_base_setup_script`, backed by `GET /agent/setup-scripts` and
+  `POST /agent/setup-scripts/{repo,base}` (`http/setup_scripts.rs`). Every edit
+  replaces a repo's `setup_script` or the global `base_setup_script` and records a
+  row here with the before/after, `target` (`repo`|`base`), `summary` (the agent's
+  one-line why), and the `task_id` it was working. The change is **never silent**:
+  the board shows the unacknowledged ones in a banner (via the board payload) and a
+  one-time toast + native notification fires (`ServerEvent::SetupScriptChanged`),
+  cleared by `POST /setup-changes/:id/ack`. No-op edits are rejected so the audit
+  holds only real changes; a base change takes effect on the next provision/recreate.
+  A standing prompt instruction (`prompt::SETUP_SCRIPT_AUTONOMY`) tells the agent it
+  can apply the change itself, with accountability.
 - **`questions`** — decisions the agent escalated to the user, stored on the task
   (`prompt`, up to three suggested `options`, `status`, the chosen `answer`).
   Posted by the agent's `seraphim-ask` helper, answered in the task view, and

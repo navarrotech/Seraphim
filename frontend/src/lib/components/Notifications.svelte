@@ -27,8 +27,14 @@
     prompt: string
     // 'question' is the agent asking for input; 'heart_attack' is a dead turn;
     // 'repo_sync_error' is a repo whose issue sync started failing (issue #213);
-    // 'anomalous_empty_pr' is an open non-draft PR with no changes (issue #314).
-    kind: 'question' | 'heart_attack' | 'repo_sync_error' | 'anomalous_empty_pr'
+    // 'anomalous_empty_pr' is an open non-draft PR with no changes (issue #314);
+    // 'setup_script_changed' is the agent editing its own setup script (issue #340).
+    kind:
+      | 'question'
+      | 'heart_attack'
+      | 'repo_sync_error'
+      | 'anomalous_empty_pr'
+      | 'setup_script_changed'
   }
 
   function loadIds(key: string): Set<string> {
@@ -236,6 +242,19 @@
     playSound('completion')
   }
 
+  // The agent edited one of its own setup scripts (issue #340). Fires once when the
+  // change is made; the board's banner carries the detail and clears on ack. Not an
+  // error, so no alert sound, just a toast + native notification so the operator knows.
+  function handleSetupScriptChanged(event: MessageEvent) {
+    const data = JSON.parse(event.data) as {
+      task_id: string | null
+      target_label: string
+      summary: string
+    }
+    pushToast(data.task_id, data.target_label, data.summary, 'setup_script_changed')
+    notifyNatively(`Agent updated a setup script: ${data.target_label}`, data.summary)
+  }
+
   onMount(() => {
     refresh()
     loadSoundPrefs()
@@ -253,6 +272,7 @@
     eventSource.addEventListener('repo_sync_error', handleRepoSyncError)
     eventSource.addEventListener('anomalous_empty_pr', handleAnomalousEmptyPr)
     eventSource.addEventListener('task_finished', handleTaskFinished)
+    eventSource.addEventListener('setup_script_changed', handleSetupScriptChanged)
     eventSource.addEventListener('refresh', () => {
       refresh()
       // Pick up sound-preference changes the operator just saved.
@@ -351,7 +371,9 @@
       class="pointer-events-auto flex items-start overflow-hidden rounded-lg border bg-card shadow-2xl {toast.kind ===
         'heart_attack' || toast.kind === 'repo_sync_error' || toast.kind === 'anomalous_empty_pr'
         ? 'border-destructive/60'
-        : 'border-warning/50'}"
+        : toast.kind === 'setup_script_changed'
+          ? 'border-primary/50'
+          : 'border-warning/50'}"
     >
       <button
         type="button"
@@ -369,6 +391,10 @@
         {:else if toast.kind === 'anomalous_empty_pr'}
           <span class="text-[10px] font-bold uppercase tracking-wide text-destructive"
             >Empty pull request</span
+          >
+        {:else if toast.kind === 'setup_script_changed'}
+          <span class="text-[10px] font-bold uppercase tracking-wide text-primary"
+            >Setup script updated</span
           >
         {:else}
           <span class="text-[10px] font-bold uppercase tracking-wide text-warning"

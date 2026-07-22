@@ -35,6 +35,7 @@ import type {
   RuleGroup,
   RuleSource,
   Settings,
+  SetupScriptChange,
   Stats,
   TailscaleActionResponse,
   TailscaleStatus,
@@ -288,6 +289,14 @@ export function createIssueFromSuggestion(suggestionId: string, target: CreateIs
 // Clears a heart attack from the board banner once the operator has read it.
 export function acknowledgeHeartAttack(id: string) {
   return apiClient.post(`heart-attacks/${id}/ack`).json<HeartAttack>()
+}
+
+// --- Setup-script self-edits (agent MCP, issue #340) -------------------------
+
+// Clears a recorded setup-script change from the board banner once the operator
+// has seen it.
+export function acknowledgeSetupChange(id: string) {
+  return apiClient.post(`setup-changes/${id}/ack`).json<SetupScriptChange>()
 }
 
 // --- Questions ---------------------------------------------------------------

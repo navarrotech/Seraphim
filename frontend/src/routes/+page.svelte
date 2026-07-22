@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DndEvent } from 'svelte-dnd-action'
-  import type { AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, Settings, SourceKind, Task, TaskColumn } from '$lib/types'
+  import type { AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, SetupScriptChange, Settings, SourceKind, Task, TaskColumn } from '$lib/types'
 
   import { onMount, onDestroy } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
@@ -18,13 +18,15 @@
     X,
     ListChecks,
     Filter,
-    Check
+    Check,
+    Wrench
   } from '@lucide/svelte'
   import { PaneGroup } from 'paneforge'
 
   import { COLUMNS } from '$lib/types'
   import {
     acknowledgeHeartAttack,
+    acknowledgeSetupChange,
     assignRepoToRailway,
     bulkDeleteTasks,
     bulkSetTaskFields,
@@ -88,6 +90,10 @@
   const visibleEmptyPrs = $derived(
     anomalousEmptyPrs.filter((pr) => !dismissedEmptyPrs.has(pr.pr_url))
   )
+  // Setup-script edits the agent made to itself (issue #340). Recorded server-side
+  // and acknowledged via the API (like heart attacks), so the banner clears on the
+  // next board load; the one-time toast is driven via SSE.
+  let setupScriptChanges = $state<SetupScriptChange[]>([])
   // Every railway (swimlane), already ordered `main` first then by rank.
   let railways = $state<Railway[]>([])
   // The board cards, grouped first by railway id, then by column. One array per
@@ -439,6 +445,7 @@
         dismissedEmptyPrs.delete(url)
       }
     }
+    setupScriptChanges = board.setup_script_changes
     repoNames = Object.fromEntries(repos.map((repo) => [repo.id, repo.full_name]))
 
     // Group every card by railway, then by column. A lane with no cards still gets
@@ -483,6 +490,17 @@
       await acknowledgeHeartAttack(id)
     } catch (error) {
       console.debug('failed to acknowledge heart attack', error)
+    }
+  }
+
+  // Acknowledge a setup-script change (issue #340): drop it locally so the banner
+  // clears instantly, then persist so it stays cleared on the next board load.
+  async function dismissSetupChange(id: string) {
+    setupScriptChanges = setupScriptChanges.filter((change) => change.id !== id)
+    try {
+      await acknowledgeSetupChange(id)
+    } catch (error) {
+      console.debug('failed to acknowledge setup-script change', error)
     }
   }
 
@@ -1014,6 +1032,51 @@
         title="Dismiss"
         aria-label="Dismiss empty pull request anomaly"
         onclick={() => dismissedEmptyPrs.add(pr.pr_url)}
+      >
+        <X class="size-4" />
+      </Button>
+    </Alert.Root>
+  {/each}
+
+  {#each setupScriptChanges as change (change.id)}
+    <!-- The agent edited one of its own setup scripts (issue #340). Not an error,
+         so this is an informational banner (primary accent, not destructive): it
+         names what changed and why, shows the new script, and links to the task,
+         with a dismiss that acknowledges it server-side so it clears for good. -->
+    <Alert.Root class="mx-6 mt-4 flex items-start justify-between gap-4 border-primary/40">
+      <div class="min-w-0">
+        <Alert.Title class="flex items-center gap-1.5">
+          <Wrench class="size-4 flex-none" />
+          Agent updated the setup script: {change.target === 'base'
+            ? 'environment setup'
+            : (change.repo_full_name ?? 'a repository')}
+        </Alert.Title>
+        <Alert.Description class="break-words">
+          {#if change.summary}
+            <span class="block">{change.summary}</span>
+          {/if}
+          <pre
+            class="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-xs whitespace-pre-wrap">{change.new_script ||
+              '(empty script)'}</pre>
+          {#if change.target === 'base'}
+            <span class="mt-1 block text-xs opacity-80">
+              Takes effect on the next workspace provision/recreate.
+            </span>
+          {/if}
+          {#if change.task_id}
+            <a href={`/task/${change.task_id}`} class="mt-1 inline-block text-xs underline">
+              Open the task that made this change
+            </a>
+          {/if}
+        </Alert.Description>
+      </div>
+      <Button
+        variant="outline"
+        size="icon"
+        class="flex-none"
+        title="Dismiss"
+        aria-label="Dismiss setup-script change"
+        onclick={() => dismissSetupChange(change.id)}
       >
         <X class="size-4" />
       </Button>
