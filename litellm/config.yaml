@@ -1,0 +1,57 @@
+# Lightweight LiteLLM proxy config for Seraphim (issue #342).
+#
+# Groundwork so Seraphim can eventually drive any LiteLLM-supported LLM through a
+# single Anthropic-compatible endpoint the Claude Code CLI understands: point the
+# CLI at the proxy (ANTHROPIC_BASE_URL=http://litellm:4000, auth = the master key)
+# and LiteLLM translates the provider's own message shapes to and from the
+# Anthropic Messages API. This file is not wired into the agent yet; it is the
+# config the sidecar boots from.
+#
+# The sidecar runs in LiteLLM's LIGHTWEIGHT mode: no database, no admin UI, no
+# telemetry. It reads provider API keys from the environment (see `.env`); a route
+# whose key is unset simply fails at call time, so the proxy still starts with
+# none configured.
+#
+# The models below are EXAMPLES to edit for your accounts. `model_name` is the id
+# a client requests; `litellm_params.model` is LiteLLM's `<provider>/<model>`
+# route. Provider references:
+#   OpenAI:   https://docs.litellm.ai/docs/providers/openai
+#   xAI Grok: https://docs.litellm.ai/docs/providers/xai
+#   Moonshot: https://docs.litellm.ai/docs/providers/moonshot
+
+model_list:
+  # OpenAI (ChatGPT).
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gpt-4.1
+    litellm_params:
+      model: openai/gpt-4.1
+      api_key: os.environ/OPENAI_API_KEY
+
+  # xAI Grok.
+  - model_name: grok-4
+    litellm_params:
+      model: xai/grok-4
+      api_key: os.environ/XAI_API_KEY
+
+  # Moonshot Kimi.
+  - model_name: kimi-k2
+    litellm_params:
+      model: moonshot/kimi-k2-0711-preview
+      api_key: os.environ/MOONSHOT_API_KEY
+
+litellm_settings:
+  # This is a self-hosted sidecar; never phone home.
+  telemetry: false
+  # Silently drop a provider-unsupported parameter instead of erroring, so a
+  # request shaped for one model still routes cleanly to a provider that lacks a
+  # given field. This is what makes the Anthropic <-> other-provider translation
+  # forgiving across differing schemas.
+  drop_params: true
+
+general_settings:
+  # Clients (eventually the Claude Code CLI via ANTHROPIC_BASE_URL) authenticate
+  # to the proxy with this key. Set it in `.env`; never commit a real one.
+  master_key: os.environ/LITELLM_MASTER_KEY

@@ -53,6 +53,7 @@ Five Compose services (`docker-compose.yml`):
 | `frontend` | SvelteKit | Kanban UI, live task stream, settings |
 | `workspace` | Custom image | Long-lived agent sandbox (Claude Code + toolchain) |
 | `tailscale` | Tailscale | Exposes the UI over the tailnet with HTTPS |
+| `litellm` | LiteLLM proxy | **Opt-in** sidecar (`llm` profile): translates other LLMs to the Anthropic API (issue #342) |
 
 **Control flow:** the `api` is the brain. The `workspace` is a powerful-but-dumb
 sandbox; the API reaches in via `docker exec` (bollard) over the mounted host
@@ -81,6 +82,7 @@ api/        Rust backend (see below)
 frontend/   SvelteKit UI
 workspace/  Dockerfile + entrypoint.sh (the agent sandbox image)
 tailscale/  serve.json
+litellm/    config.yaml + README (opt-in LiteLLM proxy sidecar, issue #342)
 scripts/    start.sh stop.sh restart.sh
 ```
 
@@ -617,6 +619,9 @@ docker compose build --no-cache <svc>     # clean rebuild if needed
 docker compose ps
 docker compose logs api --tail 50
 docker compose down           # stop, keep volumes (scripts/stop.sh)
+
+# Opt-in LiteLLM proxy sidecar (issue #342): off by default, `llm` profile
+docker compose --profile llm up -d litellm
 ```
 
 `.env` (gitignored) holds the Postgres creds (bootstrap), ports, `SSH_HOME`,
@@ -640,6 +645,30 @@ turn is in progress, pauses the agent, then launches a detached `docker:cli`
 -d --build`; being outside the compose project, it survives the API being rebuilt.
 The UI then polls `/version` and reloads when the commit changes. `HOST_REPO_DIR`
 is the only new required env for the in-app update (the check works without it).
+
+## LiteLLM proxy sidecar (issue #342)
+
+Groundwork toward running the agent on any LiteLLM-supported LLM (OpenAI, xAI
+Grok, Moonshot Kimi, ...). The `litellm` compose service is a **lightweight**
+LiteLLM proxy: it translates other providers' message shapes to and from the
+Anthropic Messages API (`/v1/messages`) that the Claude Code CLI speaks. Lives in
+`litellm/` (`config.yaml` = the model routes, `README.md` = the how-to).
+
+- **Lightweight** = proxy only, no database (no `DATABASE_URL` / `STORE_MODEL_IN_DB`,
+  so it skips Prisma and boots from `config.yaml`), no admin UI (`DISABLE_ADMIN_UI`),
+  no telemetry. The `ghcr.io/berriai/litellm` image (pinned) is the DB-free proxy;
+  the `litellm-database` variant is the heavier one, deliberately not used.
+- **Opt-in.** It only starts under the `llm` profile
+  (`docker compose --profile llm up -d litellm`), so a default deployment carries
+  no extra container. Internal-only, reachable at `http://litellm:4000`; not exposed
+  on a host port.
+- **Config.** Routes in `litellm/config.yaml` map a requested `model_name` to a
+  `<provider>/<model>`. Keys come from `.env` (`LITELLM_MASTER_KEY` for client auth;
+  `OPENAI_API_KEY` / `XAI_API_KEY` / `MOONSHOT_API_KEY` for the routes); an unset
+  provider key just fails that route at call time, so the proxy still starts.
+- **Not wired in yet.** Selecting a model per credential and pointing the agent's
+  `claude` exec at the proxy (`ANTHROPIC_BASE_URL=http://litellm:4000`) is future
+  work (issue #341). This sidecar is the translation layer that will build on.
 
 ## Local dev / checks (must pass before committing)
 

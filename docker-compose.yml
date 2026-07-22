@@ -115,6 +115,45 @@ services:
     networks:
       - seraphim
 
+  # Lightweight LiteLLM proxy sidecar (issue #342). Groundwork to eventually drive
+  # any LiteLLM-supported LLM (OpenAI, xAI Grok, Moonshot Kimi, ...) through one
+  # Anthropic-compatible endpoint the Claude Code CLI can be pointed at. It runs in
+  # LiteLLM's lightweight mode: no database, no admin UI, no telemetry. Opt-in and
+  # NOT wired into the agent yet, so it only starts under the `llm` profile
+  # (`docker compose --profile llm up -d`); a default deployment carries no extra
+  # container until model routing lands. Reachable in-cluster at http://litellm:4000.
+  litellm:
+    container_name: seraphim-litellm
+    # Pinned; the plain `litellm` image is the DB-free proxy (the `-database`
+    # variant is the heavier one). Bump deliberately, per the version-pinning rule.
+    image: ghcr.io/berriai/litellm:v1.93.0
+    profiles: ["llm"]
+    restart: unless-stopped
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000", "--num_workers", "1"]
+    environment:
+      # No DATABASE_URL / STORE_MODEL_IN_DB is set, so the proxy skips the database
+      # entirely; the admin UI is disabled too. This is the lightweight deployment.
+      DISABLE_ADMIN_UI: "True"
+      # Auth for clients hitting the proxy, plus the provider keys the routes use.
+      # All from `.env`; an unset provider key just makes that route fail at call
+      # time, so the proxy still starts with none configured.
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
+    volumes:
+      - ./litellm/config.yaml:/etc/litellm/config.yaml:ro
+    networks:
+      - seraphim
+    healthcheck:
+      # The image is Python-based (no curl/wget guaranteed); urllib is always here.
+      # /health/liveliness needs no auth and returns 200 once the proxy is serving.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   tailscale:
     container_name: seraphim-tailscale
     image: tailscale/tailscale:latest
