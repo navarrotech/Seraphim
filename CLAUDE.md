@@ -682,6 +682,23 @@ turn is in progress, pauses the agent, then launches a detached `docker:cli`
 The UI then polls `/version` and reloads when the commit changes. `HOST_REPO_DIR`
 is the only new required env for the in-app update (the check works without it).
 
+**Host self-updater (issue #346, `scripts/update.*` + `scripts/install.*`):** a
+host-side alternative to the in-app button, for keeping a deployment current with
+no clicks. `scripts/update.sh` (Linux/macOS/Git Bash) and `scripts/update.ps1`
+(Windows PowerShell 5.1+) run one pass: only on `main`/`develop`, only when the
+tree is clean and behind its upstream, they wait for the agent to catch up (the
+`agent_caught_up` flag on `GET /update/status`, true when To Do / In Progress /
+In Review hold no agent action items), pause it (`POST /settings/pause`, which the
+board reflects), drain the in-flight turn (`agent_working`), `git pull --ff-only`,
+relaunch via `scripts/start.sh` (or `docker compose up -d --build` on Windows),
+then resume unless the operator had it paused. The update proceeds even if the API
+is unreachable (no graceful pause then). `scripts/install.sh` installs a systemd
+timer (`seraphim-update.{service,timer}`, default 15 min; prints cron instructions
+when `systemctl` is absent); `scripts/install.ps1` registers the `SeraphimSelfUpdater`
+Scheduled Task. `uninstall.*` remove them. All knobs are `SERAPHIM_*` env vars
+(see `scripts/README.md`). This path does its own `git pull` + compose on the host,
+so it needs no `HOST_REPO_DIR` and no updater container.
+
 ## LiteLLM proxy sidecar (issue #342)
 
 Groundwork toward running the agent on any LiteLLM-supported LLM (OpenAI, xAI

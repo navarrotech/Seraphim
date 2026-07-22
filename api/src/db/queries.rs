@@ -1314,6 +1314,28 @@ pub async fn any_task_in_progress(pool: &PgPool) -> sqlx::Result<bool> {
     .await
 }
 
+/// Whether the agent has no remaining action items (issue #346): nothing queued
+/// in To Do, nothing In Progress, and no In Review PR still waiting on an agent
+/// turn (a CI fix, a merge-conflict resolve, or review-comment addressing).
+/// Cards parked on an external or human wait (awaiting review, CI-blocked) do not
+/// count, since the agent is not the one holding them up. This mirrors the work
+/// `next_actionable_task` would pull, so it is the authoritative "caught up"
+/// signal: the host self-updater waits for it before restarting the stack, so a
+/// rebuild never interrupts a live turn or drops queued work.
+pub async fn agent_caught_up(pool: &PgPool) -> sqlx::Result<bool> {
+    sqlx::query_scalar::<_, bool>(
+        "SELECT NOT EXISTS(\
+             SELECT 1 FROM tasks \
+             WHERE board_column = 'in_progress' \
+                OR (board_column = 'todo' AND hold = FALSE) \
+                OR (board_column = 'in_review' AND hold = FALSE \
+                    AND status IN ('ci_failing', 'merge_conflict', 'addressing_review'))\
+         )",
+    )
+    .fetch_one(pool)
+    .await
+}
+
 pub async fn get_task(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Task>> {
     sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE id = $1")
         .bind(id)

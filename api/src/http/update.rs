@@ -36,15 +36,21 @@ pub struct UpdateStatusResponse {
     agent_paused: bool,
     /// Whether a turn is actively running (the Update button is disabled then).
     agent_working: bool,
+    /// Whether the agent has no remaining action items across To Do, In Progress,
+    /// and In Review (issue #346). The host self-updater waits for this before it
+    /// restarts the stack, so a rebuild lands at a natural lull.
+    agent_caught_up: bool,
 }
 
 async fn status_response(state: &AppState) -> ApiResult<UpdateStatusResponse> {
     let settings = queries::get_settings(&state.db).await?;
     let working = queries::any_task_in_progress(&state.db).await?;
+    let caught_up = queries::agent_caught_up(&state.db).await?;
     Ok(UpdateStatusResponse {
         status: state.update_status(),
         agent_paused: settings.agent_paused,
         agent_working: working,
+        agent_caught_up: caught_up,
     })
 }
 
