@@ -11,6 +11,7 @@ use crate::db::models::{RepoDeletionImpact, ReposDeletionImpact, Repository, Rev
 use crate::db::queries;
 use crate::git;
 use crate::orchestrator::provision::repo_dir_name;
+use crate::orchestrator::repo_sync;
 use crate::state::AppState;
 
 /// `GET /api/v1/repos`
@@ -150,6 +151,9 @@ pub async fn upsert(
         body.setup_script_always_run,
     )
     .await?;
+    // Realtime: clone the added/enabled repo into the workspace now, in the
+    // background (or queue its removal if it was disabled) (issue #343).
+    repo_sync::sync_repos(&state, vec![repo.clone()]);
     state.notify_board();
     Ok(Json(repo))
 }
@@ -177,6 +181,8 @@ pub async fn update(
         body.setup_script_always_run,
     )
     .await?;
+    // Realtime: reconcile the workspace to the edited repo's state (issue #343).
+    repo_sync::sync_repos(&state, vec![repo.clone()]);
     state.notify_board();
     Ok(Json(repo))
 }
@@ -195,7 +201,13 @@ pub async fn delete(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    // Capture the row before deleting so we can remove its workspace clone; the
+    // row (and its railway/name) is gone after the delete (issue #343).
+    let removed = queries::get_repository(&state.db, id).await?;
     queries::delete_repository(&state.db, id).await?;
+    if let Some(repo) = removed {
+        repo_sync::queue_removals(&state, &[repo]);
+    }
     state.notify_board();
     Ok(Json(json!({ "deleted": true })))
 }
@@ -239,6 +251,12 @@ pub async fn bulk_fields(
 ) -> ApiResult<Json<serde_json::Value>> {
     let updated =
         queries::bulk_set_repo_fields(&state.db, &body.ids, body.enabled, body.sync_issues).await?;
+    // Realtime: an `enabled` flip clones the newly-enabled repos or queues the
+    // disabled ones for removal (issue #343). Skip when only `sync_issues` changed.
+    if body.enabled.is_some() {
+        let affected = queries::list_repositories_by_ids(&state.db, &body.ids).await?;
+        repo_sync::sync_repos(&state, affected);
+    }
     state.notify_board();
     Ok(Json(json!({ "updated": updated })))
 }
@@ -249,7 +267,11 @@ pub async fn bulk_delete(
     State(state): State<AppState>,
     Json(body): Json<BulkRepoIdsRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    // Capture the rows before deleting so their workspace clones can be removed
+    // between tasks (issue #343).
+    let removed = queries::list_repositories_by_ids(&state.db, &body.ids).await?;
     let deleted = queries::delete_repositories(&state.db, &body.ids).await?;
+    repo_sync::queue_removals(&state, &removed);
     state.notify_board();
     Ok(Json(json!({ "deleted": deleted })))
 }
@@ -272,12 +294,13 @@ pub async fn import_org(
     let discovered = git::list_org_repos(&github, &body.owner).await?;
 
     let mut imported = 0_usize;
+    let mut added = Vec::new();
     for repo in &discovered {
         let existed = queries::get_repository_by_full_name(&state.db, &repo.full_name)
             .await?
             .is_some();
         // Newly discovered repos inherit the global branch template (override later).
-        queries::create_repository_if_absent(
+        let created = queries::create_repository_if_absent(
             &state.db,
             &repo.full_name,
             &repo.clone_url,
@@ -289,9 +312,13 @@ pub async fn import_org(
         .await?;
         if !existed {
             imported += 1;
+            added.push(created);
         }
     }
 
+    // Realtime: clone every newly-imported repo into the workspace now, in the
+    // background, so a big org import lands immediately (issue #343).
+    repo_sync::sync_repos(&state, added);
     state.notify_board();
     Ok(Json(json!({
         "discovered": discovered.len(),

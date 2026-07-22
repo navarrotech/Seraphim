@@ -23,6 +23,9 @@ mod prompt;
 // seed endpoint (#216), so this module is crate-visible rather than orchestrator-private.
 pub(crate) mod provision;
 mod railway;
+// Realtime add/remove of repos in the workspace (issue #343): the HTTP repo
+// endpoints call `sync_repos` / `queue_removals`, the agent loop drains removals.
+pub(crate) mod repo_sync;
 mod review;
 mod subscription;
 mod thoughts;
@@ -1039,10 +1042,12 @@ pub async fn move_repo_to_railway(
     repo_id: uuid::Uuid,
     target_railway_id: uuid::Uuid,
 ) -> Result<std::result::Result<Repository, RailwayActionError>> {
-    if queries::get_repository(&state.db, repo_id).await?.is_none()
-        || queries::get_railway(&state.db, target_railway_id)
-            .await?
-            .is_none()
+    let Some(before) = queries::get_repository(&state.db, repo_id).await? else {
+        return Ok(Err(RailwayActionError::NotFound));
+    };
+    if queries::get_railway(&state.db, target_railway_id)
+        .await?
+        .is_none()
     {
         return Ok(Err(RailwayActionError::NotFound));
     }
@@ -1055,6 +1060,13 @@ pub async fn move_repo_to_railway(
         return Ok(Err(RailwayActionError::NotFound));
     };
     info!(repo_id = %repo.id, full_name = %repo.full_name, railway_id = %target_railway_id, "moved repo to railway");
+    // Realtime (issue #343): the clone is now stale on the old railway, so queue its
+    // removal there (applied between that lane's tasks), and clone it into the new
+    // railway in the background. A no-op when the railway is unchanged.
+    if before.railway_id != repo.railway_id {
+        repo_sync::queue_removals(state, std::slice::from_ref(&before));
+    }
+    repo_sync::sync_repos(state, vec![repo.clone()]);
     state.notify_board();
     Ok(Ok(repo))
 }
@@ -1314,6 +1326,14 @@ async fn agent_loop(state: AppState, handle: RailwayHandle) {
                 continue;
             }
         };
+
+        // Apply any repo removals queued while the agent was busy (issue #343). This
+        // runs between tasks - the loop only reaches here after a turn completes -
+        // so a running turn is never disrupted. Cheap in-memory check first, so an
+        // idle lane does no Docker work when there is nothing to remove.
+        if state.has_pending_removals(handle.id) {
+            repo_sync::apply_pending_removals(&state, &handle).await;
+        }
 
         match next_actionable_task(&state, &railway).await {
             Ok(Some((task, mode))) => {

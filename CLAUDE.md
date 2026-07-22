@@ -189,7 +189,17 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
   keep/on/off, `POST /repos/bulk/fields`) or deletes the selection
   (`POST /repos/bulk/delete`, with an aggregate blast-radius preview from
   `POST /repos/bulk/deletion-impact`). All three mirror the board's
-  `/tasks/bulk/*` handlers and notify the board once per action.
+  `/tasks/bulk/*` handlers and notify the board once per action. **Realtime
+  workspace sync (issue #343):** adding/enabling a repo (single add, org import,
+  bulk enable, railway reassign) clones it into the workspace **immediately in the
+  background** (`orchestrator::repo_sync::sync_repos` -> a spawned task ->
+  `provision::clone_repo`), so a fresh repo lands without waiting for the next full
+  provision, on a new dir that never disrupts the agent's in-flight turn. Removing
+  or disabling one queues its clone dir on `AppState::pending_removals`; the
+  railway's agent loop drains it **between tasks** (never mid-turn) and `rm -rf`s
+  the dir (`repo_sync::apply_pending_removals`, only into a running container).
+  Removal is guarded to a flat `/workspace/{name}` (unsafe names skipped), and the
+  config dir `.claude` is never touched.
 - **`tasks`** — the cards: `source_kind`, `external_id`, `repo_id`, `title`,
   `board_column`, `position` (fractional rank), `status`, `branch`, `pr_url`,
   `error`, `hold` (agent skips this card), `blocking` (serialize the queue while

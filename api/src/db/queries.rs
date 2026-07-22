@@ -926,6 +926,19 @@ pub async fn get_repository(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Repo
         .await
 }
 
+/// The repositories for a set of ids (any order). Used by the bulk repo endpoints
+/// to reconcile the workspace after a bulk enable/disable or before a bulk delete
+/// (issue #343).
+pub async fn list_repositories_by_ids(
+    pool: &PgPool,
+    ids: &[Uuid],
+) -> sqlx::Result<Vec<Repository>> {
+    sqlx::query_as::<_, Repository>("SELECT * FROM repositories WHERE id = ANY($1)")
+        .bind(ids)
+        .fetch_all(pool)
+        .await
+}
+
 pub async fn get_repository_by_full_name(
     pool: &PgPool,
     full_name: &str,
