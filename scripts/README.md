@@ -8,6 +8,7 @@ Wrappers the operator runs on the host that hosts the Docker stack.
 | `update.sh` / `update.ps1` | Linux + macOS / Windows | Run one safe self-update pass. |
 | `install.sh` / `install.ps1` | Linux (systemd) / Windows | Install the updater to run on a timer. |
 | `uninstall.sh` / `uninstall.ps1` | Linux / Windows | Remove the scheduled updater. |
+| `dev-api.sh` | Linux, macOS, Git Bash | Boot a throwaway backend (ephemeral PG + API + seeded dev repos) for UI review. |
 
 ## Self-updater (issue #346)
 
@@ -82,3 +83,37 @@ Installer-only knobs:
 each and prints an install command if one is missing. systemd (`systemctl`) is
 used on Linux and ships on RHEL and Debian; the Windows path uses the built-in
 `ScheduledTasks` module.
+
+## Dev backend for UI visual review (issue #351)
+
+Data-backed pages (the repositories page, the board, task views) need a live API
+with data to review in a browser. `dev-api.sh` wires up the pieces you would
+otherwise start by hand: a throwaway PostgreSQL 17 (`pg-ephemeral`), the API built
+and run against it, and a few seeded dev repositories. Pair it with the frontend
+dev server, which proxies `/api` to this backend.
+
+```bash
+scripts/dev-api.sh up            # start PG, run the API, seed dev repos (default)
+cd frontend && yarn dev          # in another terminal; serves the UI on :5173
+# open http://localhost:5173/repos to review, then:
+scripts/dev-api.sh down          # stop the API (keeps PG for a fast restart)
+```
+
+Verbs mirror `pg-ephemeral`, and every command returns (the API runs in the
+background):
+
+| Verb | Effect |
+|---|---|
+| `up` (default) | Start PG, build and run the API, seed dev repos. Idempotent: reuses a running API and re-seeds. |
+| `seed` | Re-seed the dev repos against the running API. |
+| `logs` | Tail the API log. |
+| `down` | Stop the API; leave PG running for a fast restart. |
+| `stop` | Stop the API and PG (keeps the PG data dir). |
+| `reset` | Stop the API and delete the PG data dir for a clean slate. |
+
+The seeded repositories are disposable dev fixtures with varied fields (enabled or
+disabled, issue-sync on or off, a review policy, a setup script, labels), so the
+page shows real variety. Requires `cargo`, `curl`, and `pg-ephemeral` (baked into
+the workspace image). Overridable via `SERAPHIM_DEV_API_URL`,
+`SERAPHIM_DEV_HEALTH_TIMEOUT`, `SERAPHIM_DEV_PID_FILE`, and `SERAPHIM_DEV_LOG_FILE`.
+This is a local dev tool, never for production data.
