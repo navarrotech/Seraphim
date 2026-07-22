@@ -767,6 +767,12 @@ board), `/settings` (the grid) plus its subpages (e.g. `/settings/workspace`,
 frontend, follow the visual self-review loop (open the affected route(s) with the
 Playwright MCP, check layout via computed styles at 375px and 1280px).
 
+For a **data-backed** page (repositories, board, task views), boot a throwaway
+backend with `scripts/dev-api.sh up` (issue #351): it starts an ephemeral
+Postgres, runs the API on `:27182`, and seeds a few dev repositories, so the page
+has live data to review. Then `cd frontend && yarn dev` and open the route;
+`scripts/dev-api.sh down` (or `stop`/`reset`) tears it down. See `scripts/README.md`.
+
 ## Conventions & gotchas
 
 - **Search with `rg`, not `grep` (issue #295).** The agent shell's `grep` is a
