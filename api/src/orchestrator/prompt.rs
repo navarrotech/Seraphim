@@ -686,10 +686,13 @@ const SETUP_SCRIPT_AUTONOMY: &str = "\n\
     tools list the current base and per-repo setup scripts and update a repo's \
     `setup_script` or the global environment setup. Prefer editing a repo's \
     `setup_script` for a repo-specific step and the base setup only for a truly \
-    global tool. Read the current script first, make a minimal, correct edit, and \
-    pass a one-line `summary` explaining why. Every change is recorded and surfaced \
-    to the operator, so keep edits genuine and safe; if you are unsure, recommend it \
-    with `seraphim-suggest` instead.\n";
+    global tool. A repo's `setup_script` only re-runs before every task when its \
+    `setup_script_always_run` flag is on; if your edit must take effect on the next \
+    task (not just after a fresh clone), also pass `always_run: true` in the same \
+    `update_repo_setup_script` call. Read the current script first, make a minimal, \
+    correct edit, and pass a one-line `summary` explaining why. Every change is \
+    recorded and surfaced to the operator, so keep edits genuine and safe; if you \
+    are unsure, recommend it with `seraphim-suggest` instead.\n";
 
 /// Guidance, appended to every task prompt, on bubbling up follow-up work (#272).
 const FOLLOW_UP_SUGGESTIONS: &str = "\n\

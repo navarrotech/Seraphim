@@ -46,10 +46,14 @@ const TOOLS = [
   {
     name: 'update_repo_setup_script',
     description:
-      "Replace a repository's setup_script (runs after each clone; before every task " +
-      'when setup_script_always_run is on). Use this to bake in a repo-specific setup ' +
-      'step you had to run by hand, e.g. installing dependencies. Read the current ' +
-      'script with list_setup_scripts first and send the full new script. The change ' +
+      "Update a repository's setup_script and/or its setup_script_always_run flag. " +
+      'The setup_script runs after each clone; when always_run is on it ALSO re-runs ' +
+      'before every task on the existing clone (not just first clone), so a setup ' +
+      'edit takes effect on the next task. Provide setup_script (the full replacement ' +
+      'script) to change the script, always_run (true/false) to toggle the flag, or ' +
+      'both. Read the current values with list_setup_scripts first. Use this to bake ' +
+      'in a repo-specific step you had to run by hand, e.g. installing dependencies, ' +
+      'and turn on always_run when that step must run before every task. The change ' +
       'is recorded and shown to the operator.',
     inputSchema: {
       type: 'object',
@@ -60,14 +64,23 @@ const TOOLS = [
         },
         setup_script: {
           type: 'string',
-          description: 'The full new setup script (replaces the existing one).'
+          description:
+            'The full new setup script (replaces the existing one). Omit to leave the ' +
+            'script unchanged and only toggle always_run.'
+        },
+        always_run: {
+          type: 'boolean',
+          description:
+            "Turn on to re-run this repo's setup_script before every task on the " +
+            'existing clone (not just first clone / full provision); off to run it only ' +
+            'on first clone. Omit to leave the flag unchanged.'
         },
         summary: {
           type: 'string',
           description: 'A one-line reason for the change, shown to the operator.'
         }
       },
-      required: ['repo', 'setup_script', 'summary'],
+      required: ['repo', 'summary'],
       additionalProperties: false
     }
   },
@@ -141,13 +154,28 @@ async function callTool(name, args) {
   }
 
   if (name === 'update_repo_setup_script') {
-    const change = await apiPost('/api/v1/agent/setup-scripts/repo', {
+    const body = {
       task_id: TASK_ID,
       repo: String(args?.repo ?? ''),
-      setup_script: String(args?.setup_script ?? ''),
       summary: String(args?.summary ?? '')
-    })
-    return `Updated the setup script for ${change?.change?.repo_full_name ?? args?.repo}. The operator has been notified.`
+    }
+    // Send only the fields the caller supplied: an omitted setup_script leaves the
+    // script as is, and an omitted always_run leaves the flag as is.
+    if (args?.setup_script !== undefined) {
+      body.setup_script = String(args.setup_script)
+    }
+    if (args?.always_run !== undefined) {
+      body.always_run = Boolean(args.always_run)
+    }
+    const change = await apiPost('/api/v1/agent/setup-scripts/repo', body)
+    const alwaysRun = change?.change?.always_run
+    const flagNote =
+      alwaysRun === true
+        ? ' It will now re-run before every task on the existing clone.'
+        : alwaysRun === false
+          ? ' It will now run only on first clone / full provision.'
+          : ''
+    return `Updated the setup script for ${change?.change?.repo_full_name ?? args?.repo}.${flagNote} The operator has been notified.`
   }
 
   if (name === 'update_base_setup_script') {

@@ -503,6 +503,10 @@ pub struct SetupScriptChange {
     pub repo_full_name: Option<String>,
     pub old_script: String,
     pub new_script: String,
+    /// When this change toggled the repo's `setup_script_always_run` flag (issue
+    /// #348), the value it set the flag to; `None` when the change left the flag
+    /// untouched (a `base` change, or a pure `setup_script` edit).
+    pub always_run: Option<bool>,
     /// The agent's one-line reason, shown to the operator so the change is explained.
     pub summary: String,
     pub acknowledged: bool,

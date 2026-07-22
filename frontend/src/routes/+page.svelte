@@ -1059,6 +1059,13 @@
           {#if change.summary}
             <span class="block">{change.summary}</span>
           {/if}
+          {#if change.always_run !== null}
+            <span class="mt-1 block text-xs opacity-80">
+              {change.always_run
+                ? 'Now re-runs before every task on the existing clone.'
+                : 'Now runs only on first clone / full provision.'}
+            </span>
+          {/if}
           <pre
             class="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-xs whitespace-pre-wrap">{change.new_script ||
               '(empty script)'}</pre>

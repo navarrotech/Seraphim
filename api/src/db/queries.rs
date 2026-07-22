@@ -1206,22 +1206,29 @@ pub async fn delete_repositories(pool: &PgPool, ids: &[Uuid]) -> sqlx::Result<u6
     Ok(result.rows_affected())
 }
 
-/// Replaces a single repo's `setup_script`, leaving everything else untouched.
+/// Replaces a repo's `setup_script` and, when `always_run` is `Some`, its
+/// `setup_script_always_run` flag (issue #348), leaving everything else untouched.
+/// `None` leaves the flag as is, so a pure script edit never disturbs it.
 ///
-/// Used by the agent's self-service setup-script MCP (issue #340), which sends
-/// only the new script, so this is a targeted update rather than the full
-/// [`update_repository`] upsert. Returns the updated row.
+/// Used by the agent's self-service setup-script MCP (issues #340, #348), so this
+/// is a targeted update rather than the full [`update_repository`] upsert. Returns
+/// the updated row.
 pub async fn update_repo_setup_script(
     pool: &PgPool,
     id: Uuid,
     setup_script: &str,
+    always_run: Option<bool>,
 ) -> sqlx::Result<Repository> {
     sqlx::query_as::<_, Repository>(
-        "UPDATE repositories SET setup_script = $2, updated_at = now() \
+        "UPDATE repositories \
+         SET setup_script = $2, \
+             setup_script_always_run = COALESCE($3, setup_script_always_run), \
+             updated_at = now() \
          WHERE id = $1 RETURNING *",
     )
     .bind(id)
     .bind(setup_script)
+    .bind(always_run)
     .fetch_one(pool)
     .await
 }
@@ -1248,6 +1255,9 @@ pub async fn update_base_setup_script(pool: &PgPool, setup_script: &str) -> sqlx
 ///
 /// `repo_id` / `repo_full_name` are set for a `"repo"` target and left `None` for a
 /// `"base"` one. `task_id` attributes the change to the task being worked.
+/// `always_run` is `Some` only when the change toggled the repo's
+/// `setup_script_always_run` flag (issue #348); `None` records a change that left
+/// the flag untouched (a `base` change or a pure `setup_script` edit).
 #[allow(clippy::too_many_arguments)]
 pub async fn record_setup_script_change(
     pool: &PgPool,
@@ -1257,12 +1267,13 @@ pub async fn record_setup_script_change(
     repo_full_name: Option<&str>,
     old_script: &str,
     new_script: &str,
+    always_run: Option<bool>,
     summary: &str,
 ) -> sqlx::Result<SetupScriptChange> {
     sqlx::query_as::<_, SetupScriptChange>(
         "INSERT INTO setup_script_changes \
-           (task_id, target, repo_id, repo_full_name, old_script, new_script, summary) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+           (task_id, target, repo_id, repo_full_name, old_script, new_script, always_run, summary) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
     )
     .bind(task_id)
     .bind(target)
@@ -1270,6 +1281,7 @@ pub async fn record_setup_script_change(
     .bind(repo_full_name)
     .bind(old_script)
     .bind(new_script)
+    .bind(always_run)
     .bind(summary)
     .fetch_one(pool)
     .await
