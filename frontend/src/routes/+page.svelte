@@ -928,7 +928,7 @@
          visible (monospaced) so the operator can patch the underlying cause, with
          a dismiss once they have read it. The banner stays global but is tagged
          with the railway it belongs to. -->
-    <Alert.Root variant="destructive" class="mx-6 mt-4 flex items-start justify-between gap-4">
+    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
       <div class="min-w-0">
         <Alert.Title class="flex items-center gap-1.5">
           <HeartPulse class="size-4 flex-none" />
@@ -965,7 +965,7 @@
   {/each}
 
   {#if settings?.config_repo_error}
-    <Alert.Root variant="destructive" class="mx-6 mt-4 flex items-center justify-between gap-4">
+    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-center justify-between gap-4">
       <div>
         <Alert.Title>Config repo (~/.claude) failed to set up — the agent is halted.</Alert.Title>
         <Alert.Description class="font-mono text-xs break-words">
@@ -982,7 +982,7 @@
     <!-- A repo's issue sync is failing (issue #213). Persist the reason until it
          recovers (it clears itself on the next successful sync), with a dismiss for
          operators who have read it. -->
-    <Alert.Root variant="destructive" class="mx-6 mt-4 flex items-start justify-between gap-4">
+    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
       <div class="min-w-0">
         <Alert.Title class="flex items-center gap-1.5">
           <RefreshCw class="size-4 flex-none" />
@@ -1010,7 +1010,7 @@
          squash a zero-change PR and the agent did not deliberately park it as a
          draft, so it is held in review and surfaced here. Self-clears when the PR
          gains changes, is closed, or is marked draft; dismissible once read. -->
-    <Alert.Root variant="destructive" class="mx-6 mt-4 flex items-start justify-between gap-4">
+    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
       <div class="min-w-0">
         <Alert.Title class="flex items-center gap-1.5">
           <GitPullRequestArrow class="size-4 flex-none" />
@@ -1047,7 +1047,7 @@
          so this is an informational banner (primary accent, not destructive): it
          names what changed and why, shows the new script, and links to the task,
          with a dismiss that acknowledges it server-side so it clears for good. -->
-    <Alert.Root class="mx-6 mt-4 flex items-start justify-between gap-4 border-primary/40">
+    <Alert.Root class="mx-6 w-auto mt-4 flex items-start justify-between gap-4 border-primary/40">
       <div class="min-w-0">
         <Alert.Title class="flex items-center gap-1.5">
           <Wrench class="size-4 flex-none" />
@@ -1088,7 +1088,7 @@
   {/each}
 
   {#if settings?.usage_paused_until && new Date(settings.usage_paused_until).getTime() > Date.now()}
-    <Alert.Root class="mx-6 mt-4 flex items-start justify-between gap-4 border-warning/40">
+    <Alert.Root class="mx-6 w-auto mt-4 flex items-start justify-between gap-4 border-warning/40">
       <div class="min-w-0">
         <Alert.Title>Paused: subscription usage limit reached.</Alert.Title>
         <Alert.Description>
