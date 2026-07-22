@@ -218,6 +218,53 @@ pub async fn provision_workspace(state: &AppState, handle: &RailwayHandle) -> Re
     run(state, handle.container(), &script).await
 }
 
+/// Clones (or, if already cloned, fetches) a single repo into the railway's
+/// container, out of band from a full provision (issue #343). The realtime add path
+/// so a newly-added repo lands in the workspace immediately rather than only on the
+/// next full provision. Idempotent, and it never re-runs the setup script on an
+/// existing clone (that stays a per-task concern, #275), so re-running it for an
+/// edited repo just refreshes the clone and its `CLAUDE.md`.
+///
+/// AGENTS.md and the config repo already exist from the full provision, so this
+/// writes only this repo's `CLAUDE.md`, not the shared prelude.
+pub async fn clone_repo(state: &AppState, handle: &RailwayHandle, repo: &Repository) -> Result<()> {
+    let script = format!("set -e\n{}", repo_block(repo, false));
+    run(state, handle.container(), &script).await
+}
+
+/// Removes the given repo clone directories from the railway's container (issue
+/// #343). Best-effort `rm -rf`; a missing dir is a no-op. Applied between the
+/// agent's tasks so a running turn is never disrupted. Unsafe names (empty, `.`,
+/// `..`, or containing `/`) are skipped so this can only ever delete a flat repo
+/// clone under `/workspace`.
+pub async fn remove_repo_dirs(
+    state: &AppState,
+    handle: &RailwayHandle,
+    dir_names: &[String],
+) -> Result<()> {
+    let script = removal_script(dir_names);
+    if script.is_empty() {
+        return Ok(());
+    }
+    run(state, handle.container(), &script).await
+}
+
+/// Whether a name is safe to `rm -rf` as a direct child of `/workspace`: a
+/// non-empty flat name, never `.`/`..` or a path that could escape the directory.
+fn is_safe_repo_dir(name: &str) -> bool {
+    !name.is_empty() && name != "." && name != ".." && !name.contains('/')
+}
+
+/// Builds the `rm -rf` script for the removal dirs, skipping any unsafe name. The
+/// `--` and quoting keep a repo name that starts with `-` or contains spaces safe.
+fn removal_script(dir_names: &[String]) -> String {
+    let mut script = String::new();
+    for name in dir_names.iter().filter(|name| is_safe_repo_dir(name)) {
+        script.push_str(&format!("rm -rf -- \"/workspace/{name}\"\n"));
+    }
+    script
+}
+
 /// Bash that returns a repo's working tree to a clean state before a checkout.
 ///
 /// A turn interrupted mid-merge/rebase (e.g. the API restarting during a
@@ -420,7 +467,9 @@ async fn run(state: &AppState, container: &str, script: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{branch_prep_snippet, repo_block, submodule_update_snippet};
+    use super::{
+        branch_prep_snippet, is_safe_repo_dir, removal_script, repo_block, submodule_update_snippet,
+    };
     use crate::db::models::Repository;
     use chrono::Utc;
     use uuid::Uuid;
@@ -522,5 +571,39 @@ mod tests {
                 || script.contains("submodule update --init --recursive")
         );
         assert!(script.contains("exit 1"));
+    }
+
+    #[test]
+    fn removal_script_rms_each_safe_dir_and_skips_unsafe_ones() {
+        let script = removal_script(&[
+            "Plunder".to_string(),
+            "my.repo".to_string(),
+            // Unsafe names must never make it into an `rm`.
+            "..".to_string(),
+            ".".to_string(),
+            "a/b".to_string(),
+            String::new(),
+        ]);
+        assert!(script.contains("rm -rf -- \"/workspace/Plunder\""));
+        assert!(script.contains("rm -rf -- \"/workspace/my.repo\""));
+        // No traversal or nested path can be emitted.
+        assert!(!script.contains("/workspace/.."));
+        assert!(!script.contains("/workspace/a/b"));
+        // Two safe dirs -> exactly two rm lines.
+        assert_eq!(script.matches("rm -rf --").count(), 2);
+        // An all-unsafe (or empty) input yields no script, so nothing runs.
+        assert!(removal_script(&["..".to_string()]).is_empty());
+        assert!(removal_script(&[]).is_empty());
+    }
+
+    #[test]
+    fn is_safe_repo_dir_rejects_traversal_and_paths() {
+        assert!(is_safe_repo_dir("Plunder"));
+        assert!(is_safe_repo_dir("my.repo-1_x"));
+        assert!(!is_safe_repo_dir(""));
+        assert!(!is_safe_repo_dir("."));
+        assert!(!is_safe_repo_dir(".."));
+        assert!(!is_safe_repo_dir("a/b"));
+        assert!(!is_safe_repo_dir("/etc"));
     }
 }

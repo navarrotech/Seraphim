@@ -1,6 +1,6 @@
 //! Shared application state and the server-sent-event broadcast bus.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 
@@ -193,6 +193,12 @@ pub struct AppState {
     /// post-turn handling (session persist, task move) if it changed, so a reset
     /// that lands mid-turn is never undone by the turn it interrupted.
     reset_epoch: Arc<AtomicU64>,
+    /// Repo clone dirs queued for removal from a railway's workspace, keyed by
+    /// `railway_id` (issue #343). A removed/disabled repo enqueues its flat clone
+    /// dir here; the railway's agent loop drains it BETWEEN tasks (never mid-turn)
+    /// and `rm -rf`s the dirs. Ephemeral: a restart re-provisions from the DB and a
+    /// stale dir is harmless (the agent never touches an un-tracked dir).
+    pending_removals: Arc<RwLock<HashMap<Uuid, HashSet<String>>>>,
     /// Static self-update config (the build's commit/branch + host paths).
     pub update: crate::config::UpdateConfig,
     /// The cached result of the last self-update check, refreshed hourly.
@@ -248,6 +254,7 @@ impl AppState {
             usage: Arc::new(RwLock::new(None)),
             claude_token_refresh: Arc::new(AsyncMutex::new(())),
             reset_epoch: Arc::new(AtomicU64::new(0)),
+            pending_removals: Arc::new(RwLock::new(HashMap::new())),
             update,
             update_status: Arc::new(RwLock::new(update_status)),
         }
@@ -289,6 +296,38 @@ impl AppState {
     /// follow this with [`Self::notify_board`] so the navbar status updates live.
     pub fn set_cooldown_until(&self, until: Option<DateTime<Utc>>) {
         *self.cooldown_until.write().expect("cooldown lock poisoned") = until;
+    }
+
+    /// Queues a repo clone dir for removal from a railway's workspace (issue #343).
+    /// The railway's agent loop drains this between tasks. Idempotent (a set), so
+    /// enqueuing the same dir twice removes it once.
+    pub fn queue_repo_removal(&self, railway_id: Uuid, dir_name: String) {
+        self.pending_removals
+            .write()
+            .expect("pending removals lock poisoned")
+            .entry(railway_id)
+            .or_default()
+            .insert(dir_name);
+    }
+
+    /// Whether a railway has repo removals waiting. A cheap in-memory check the
+    /// agent loop makes each tick before doing any Docker work.
+    pub fn has_pending_removals(&self, railway_id: Uuid) -> bool {
+        self.pending_removals
+            .read()
+            .expect("pending removals lock poisoned")
+            .get(&railway_id)
+            .is_some_and(|dirs| !dirs.is_empty())
+    }
+
+    /// Takes (and clears) a railway's queued removal dirs.
+    pub fn take_pending_removals(&self, railway_id: Uuid) -> Vec<String> {
+        self.pending_removals
+            .write()
+            .expect("pending removals lock poisoned")
+            .remove(&railway_id)
+            .map(|dirs| dirs.into_iter().collect())
+            .unwrap_or_default()
     }
 
     /// The live token usage of one railway's in-progress turn, if it is generating.
