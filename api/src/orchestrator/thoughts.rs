@@ -73,6 +73,10 @@ async fn summarize(
     settings: &Settings,
     thoughts: &[String],
 ) -> Result<Option<String>> {
+    // Run on the active credential (issue #341); skip cleanly if none is usable.
+    let Some(active) = super::credentials::active_credential(state).await? else {
+        return Ok(None);
+    };
     let args = TurnArgs {
         container: state.workspace.container().to_string(),
         working_dir: "/workspace".to_string(),
@@ -81,8 +85,9 @@ async fn summarize(
         // disturb) the shared task session.
         resume_session_id: None,
         model: settings.claude_model.clone(),
-        auth_mode: settings.claude_auth_mode,
-        oauth_token: super::subscription::fresh_inference_token(state).await?,
+        credential_kind: active.kind,
+        oauth_token: active.token,
+        base_url: active.base_url,
         github_token: queries::get_github_token(&state.db).await?,
         // A summary turn doesn't act as the task, so it gets no helper wiring.
         task_id: String::new(),

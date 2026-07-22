@@ -902,10 +902,6 @@ mod tests {
             config_repo_error: None,
             current_session_id: None,
             updated_at: chrono::Utc::now(),
-            claude_token_set: false,
-            claude_auth_mode: crate::db::models::ClaudeAuthMode::Subscription,
-            claude_account_email: String::new(),
-            claude_usage_token_set: false,
             github_token_set: false,
             availability_enabled: false,
             availability_timezone: "UTC".to_string(),
@@ -934,7 +930,6 @@ mod tests {
             attention_sound_custom: false,
             completion_sound_custom: false,
             jira_token_preview: None,
-            claude_token_preview: None,
             github_token_preview: None,
             cooldown_until: None,
         }

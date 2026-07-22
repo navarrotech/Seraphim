@@ -10,6 +10,7 @@ pub(crate) mod attachments;
 mod automation;
 mod board;
 mod compose;
+mod credentials;
 mod data;
 mod heart_attacks;
 mod jira;
@@ -197,15 +198,18 @@ pub fn router(state: AppState) -> Router {
         .route("/settings/usage/resume", post(settings::resume_usage))
         .route("/notepad", get(notepad::get).put(notepad::set))
         .route("/settings/tokens", post(settings::set_tokens))
+        // Multiple Claude credentials with priority rotation (issue #341): the LLMs
+        // settings subpage lists/adds/reorders them and connects new logins.
+        .route("/credentials", get(credentials::list))
+        .route("/credentials/reorder", post(credentials::reorder))
+        .route("/credentials/oauth/start", post(credentials::oauth_start))
+        .route("/credentials/oauth/finish", post(credentials::oauth_finish))
+        .route("/credentials/token", post(credentials::add_setup_token))
+        .route("/credentials/api-key", post(credentials::add_api_key))
         .route(
-            "/settings/claude/oauth/start",
-            post(settings::claude_oauth_start),
+            "/credentials/:id",
+            axum::routing::patch(credentials::update).delete(credentials::delete),
         )
-        .route(
-            "/settings/claude/oauth/finish",
-            post(settings::claude_oauth_finish),
-        )
-        .route("/settings/claude/api-key", post(settings::claude_api_key))
         .route(
             "/settings/sounds/:kind",
             get(settings::get_sound)

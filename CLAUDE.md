@@ -34,7 +34,10 @@ the mounted SSH keys, never by code.
 - **Orchestration:** Docker Compose is the primary deployment method.
 - **Exposure:** Tailscale sidecar (`tailscale serve`); `scripts/{start,stop,restart}.sh` wrappers.
 - **Hosts:** Windows 11 + Linux only (all services are Linux containers). No macOS.
-- **Claude auth:** subscription only, **no API key**. Token from `claude setup-token`.
+- **Claude auth:** multiple credentials with priority rotation (issue #341), managed
+  on Settings -> LLMs. Any mix of subscription OAuth logins, long-lived setup-tokens
+  (`claude setup-token`), and Anthropic API keys; the agent runs on the highest
+  priority one and rotates to the next when it hits its usage limit.
 - **Secrets (Claude OAuth + GitHub tokens):** stored in the **database** (Settings UI), never in `.env`; injected into the agent's execs at runtime.
 - **Agent trigger:** auto-pulls the top of **To Do** when idle (global pause switch exists).
 - **Workspace model:** all enabled repos cloned flat under `/workspace`; Claude spawned at `/workspace` for cross-repo work.
@@ -117,14 +120,13 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
 - **`settings`** — single row (`id=1`): org profile, `global_instructions`,
   `default_review_policy`, `agent_paused`, `claude_model`, `base_setup_script`
   (= environment setup), `config_repo_url`, `default_branch_template`,
-  `current_session_id` (the one shared Claude session), the secret columns
-  `claude_oauth_token` / `github_token` (the API only ever exposes
-  `*_token_set` booleans plus a masked `*_token_preview`, never the raw values;
-  write via `POST /settings/tokens`), the connected Claude account's
-  `claude_account_email` (captured from the subscription OAuth token-exchange /
-  refresh response and shown next to the environment name on the board, issue
-  #269; blank for a pasted setup-token or API key), and the optional
-  **availability schedule**
+  `current_session_id` (the one shared Claude session), the secret column
+  `github_token` (the API only ever exposes `*_token_set` booleans plus a masked
+  `*_token_preview`, never the raw values; write via `POST /settings/tokens`).
+  The Claude credentials moved off this row into `llm_credentials` (issue #341, see
+  below); the usage-pause columns (`usage_limit_pause_enabled`,
+  `usage_limit_threshold`, `usage_paused_until`) stay here since they gate the whole
+  agent. It also holds the optional **availability schedule**
   (`availability_enabled`, `availability_timezone` (IANA), `availability_windows`
   JSONB, `availability_skip_dates` JSONB). When enabled, the agent only pulls new
   work during the configured weekly windows in the operator's time zone, skipping
@@ -141,6 +143,30 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
   Attention sounds fire on the `notification`/`heart_attack` SSE events; the
   completion sound fires on a new `task_finished` SSE event emitted from the
   review loop's auto-merge-to-Done path (`ServerEvent::TaskFinished`).
+- **`llm_credentials`** (issue #341) — the priority-ordered Claude credentials the
+  agent rotates through, managed on the **Settings -> LLMs** subpage. Each row is a
+  `kind` (`subscription_oauth` | `setup_token` | `api_key`), a `label`, a fractional
+  `position` (lower runs first), `enabled`, the inference `secret`, the refreshing
+  OAuth material (subscription OAuth only), `account_email`, an `exhausted_until`
+  rotation timer, a `last_error`, and a provider-agnostic `provider` + `base_url`
+  (empty = Anthropic direct; a non-Anthropic provider is reached through the LiteLLM
+  sidecar's Anthropic endpoint, issue #342). The API never returns raw secrets, only
+  a masked `LlmCredentialView` (`GET /credentials`); mutations are
+  `POST /credentials/{oauth/start,oauth/finish,token,api-key,reorder}`,
+  `PATCH/DELETE /credentials/:id`. The rotation core is `orchestrator::credentials`:
+  `active_credential` resolves the highest-priority available credential (enabled,
+  has a secret, not exhausted) and refreshes its OAuth token ahead of expiry; a turn
+  runs on it (`TurnArgs.credential_kind`/`oauth_token`/`base_url`, exec injects
+  `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`, plus `ANTHROPIC_BASE_URL` when a
+  base URL is set). On a `rate_limit_event` the active credential is marked
+  `exhausted_until` the reset and `reconcile_pause` either rotates to the next
+  credential (clears the global pause) or, when EVERY credential is exhausted, sets
+  `settings.usage_paused_until` to the soonest reset. The board header shows the
+  active credential's email/label (`board.active_credential`); the usage gauge polls
+  the active subscription-OAuth credential when its consent granted `user:profile`.
+  `next_actionable_task` stays idle when `has_usable_credential` is false (none
+  configured or all exhausted). On first run, migration `0049` moves any existing
+  single credential off the `settings` row into this table as entry #1.
 - **`environment_variables`** — user-defined `key` / `value` / `is_secret` rows,
   injected into the agent's turn and setup execs at runtime. A secret value is
   scrubbed out of Claude's output before anything is persisted or streamed
@@ -769,11 +795,14 @@ Playwright MCP, check layout via computed styles at 375px and 1280px).
   write-back.
 - **MooreslabAI human-review commenting** — `GitHubSource::comment` exists but is
   unused (`#[expect(dead_code)]`).
-- **Subscription usage auto-pause** — when `usage_limit_pause_enabled`, a Claude
+- **Usage-limit rotation + auto-pause** — when `usage_limit_pause_enabled`, a Claude
   `rate_limit_event` that crosses `usage_limit_threshold` (or a rejected/exhausted
-  window) sets `settings.usage_paused_until` to the window's reset time (pure
-  decision in `orchestrator::usage::pause_until`); `next_actionable_task` holds all
-  new work until that time, then auto-clears it. Escape hatches (issue #292):
+  window; pure decision in `orchestrator::usage::pause_until`) marks the **active
+  credential** `exhausted_until` the window reset and rotates to the next credential
+  by priority (issue #341, `orchestrator::credentials::mark_exhausted_and_reconcile`).
+  Only when EVERY credential is exhausted does `reconcile_pause` set
+  `settings.usage_paused_until` to the soonest reset, and `next_actionable_task`
+  holds all new work until then, then auto-clears it. Escape hatches (issue #292):
   `POST /settings/usage/resume` clears the pause now (the board banner and the
   Settings usage section each have a "Resume now" button), and every settings
   update runs `orchestrator::reevaluate_usage_pause`, which lifts an active pause

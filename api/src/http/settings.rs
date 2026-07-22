@@ -10,8 +10,6 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json as SqlxJson;
 
-use tracing::{info, warn};
-
 use super::ApiResult;
 use crate::db::models::{
     AvailabilityWindow, EnvVarWrite, JiraDeployment, NetworkAccessLevel, ReviewPolicy, Settings,
@@ -25,10 +23,8 @@ use crate::state::AppState;
 /// a recognizable hint of each stored secret without ever receiving the raw value.
 async fn settings_view(state: &AppState) -> ApiResult<Settings> {
     let mut settings = queries::get_settings(&state.db).await?;
-    let claude = queries::get_claude_token(&state.db).await?;
     let github = queries::get_github_token(&state.db).await?;
     let jira = queries::get_jira_token(&state.db).await?;
-    settings.claude_token_preview = (!claude.is_empty()).then(|| mask(&claude));
     settings.github_token_preview = (!github.is_empty()).then(|| mask(&github));
     settings.jira_token_preview = (!jira.is_empty()).then(|| mask(&jira));
     Ok(settings)
@@ -124,23 +120,23 @@ pub async fn resume_usage(State(state): State<AppState>) -> ApiResult<Json<Setti
 
 #[derive(Debug, Deserialize)]
 pub struct TokensRequest {
-    pub claude_oauth_token: Option<String>,
     pub github_token: Option<String>,
     pub jira_api_token: Option<String>,
     pub github_webhook_secret: Option<String>,
     pub jira_webhook_secret: Option<String>,
 }
 
-/// `POST /api/v1/settings/tokens` - store the app tokens and webhook secrets
-/// (write-only). Empty values are ignored so you can set one without resending
-/// the others, and the raw secrets are never returned by the API.
+/// `POST /api/v1/settings/tokens` - store the GitHub/Jira tokens and webhook
+/// secrets (write-only). Empty values are ignored so you can set one without
+/// resending the others, and the raw secrets are never returned by the API. The
+/// Claude credential lives in `llm_credentials` now (issue #341), managed via the
+/// `/credentials` endpoints.
 pub async fn set_tokens(
     State(state): State<AppState>,
     Json(body): Json<TokensRequest>,
 ) -> ApiResult<Json<Settings>> {
     queries::set_tokens(
         &state.db,
-        body.claude_oauth_token.filter(|token| !token.is_empty()),
         body.github_token.filter(|token| !token.is_empty()),
         body.jira_api_token.filter(|token| !token.is_empty()),
         body.github_webhook_secret
@@ -148,93 +144,6 @@ pub async fn set_tokens(
         body.jira_webhook_secret.filter(|secret| !secret.is_empty()),
     )
     .await?;
-    Ok(Json(settings_view(&state).await?))
-}
-
-// --- Claude authentication ---------------------------------------------------
-
-#[derive(Debug, Serialize)]
-pub struct OauthStartResponse {
-    /// The consent URL to open in a new tab.
-    pub authorize_url: String,
-}
-
-/// `POST /api/v1/settings/claude/oauth/start` - begins a Claude subscription
-/// OAuth login. Returns the consent URL; the PKCE secrets are held server-side
-/// until the operator pastes the resulting code back via `.../oauth/finish`.
-pub async fn claude_oauth_start(
-    State(state): State<AppState>,
-) -> ApiResult<Json<OauthStartResponse>> {
-    info!("Claude OAuth login started; issuing authorize URL");
-    let (authorize_url, pending) = crate::claude::oauth::start();
-    state.set_pending_oauth(pending);
-    Ok(Json(OauthStartResponse { authorize_url }))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct OauthFinishRequest {
-    /// The value from the consent callback page (`<code>#<state>` or a bare code).
-    pub code: String,
-}
-
-/// `POST /api/v1/settings/claude/oauth/finish` - completes the login: exchanges
-/// the pasted code, mints the long-lived inference token the agent runs on, and
-/// stores it alongside the refreshing usage credentials (switching to
-/// subscription mode).
-pub async fn claude_oauth_finish(
-    State(state): State<AppState>,
-    Json(body): Json<OauthFinishRequest>,
-) -> ApiResult<Json<Settings>> {
-    info!("completing Claude OAuth login: exchanging code");
-    let Some(pending) = state.take_pending_oauth() else {
-        warn!("Claude OAuth finish called with no login in progress");
-        return Err(eyre::eyre!("no Claude login is in progress; start one first").into());
-    };
-    let tokens =
-        crate::claude::oauth::exchange_code(&body.code, &pending.verifier, &pending.state).await?;
-    // The OAuth access token IS the long-lived token the agent runs on (exactly
-    // what `claude setup-token` returns). There is no create_api_key mint step:
-    // that endpoint requires the `org:create_api_key` scope, which this user-scope
-    // consent does not grant (it 403s), and setup-token does not use it either.
-    info!(
-        expires_in = tokens.expires_in,
-        "Claude OAuth access token obtained; using it directly as the inference token"
-    );
-    let inference_token = tokens.access_token.clone();
-    let expires_at = chrono::Utc::now() + chrono::Duration::seconds(tokens.expires_in);
-    queries::set_subscription_credentials(
-        &state.db,
-        &inference_token,
-        &tokens.access_token,
-        &tokens.refresh_token,
-        expires_at,
-        &tokens.scopes,
-        &tokens.account_email,
-    )
-    .await?;
-    info!(
-        scopes = %tokens.scopes,
-        "Claude OAuth login completed; subscription credentials stored"
-    );
-    Ok(Json(settings_view(&state).await?))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ApiKeyRequest {
-    pub api_key: String,
-}
-
-/// `POST /api/v1/settings/claude/api-key` - stores an Anthropic API key and
-/// switches the agent to API-key auth (no subscription usage gauge applies).
-pub async fn claude_api_key(
-    State(state): State<AppState>,
-    Json(body): Json<ApiKeyRequest>,
-) -> ApiResult<Json<Settings>> {
-    let key = body.api_key.trim();
-    if key.is_empty() {
-        return Err(eyre::eyre!("the API key is empty").into());
-    }
-    queries::set_api_key(&state.db, key).await?;
     Ok(Json(settings_view(&state).await?))
 }
 

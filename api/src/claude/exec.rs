@@ -12,7 +12,7 @@ use eyre::{eyre, Result};
 use futures::{Stream, StreamExt};
 
 use super::events::{parse_line, AgentEvent};
-use crate::db::models::ClaudeAuthMode;
+use crate::db::models::CredentialKind;
 
 /// Everything needed to run one turn of the long-lived conversation.
 #[derive(Debug, Clone)]
@@ -27,12 +27,17 @@ pub struct TurnArgs {
     pub resume_session_id: Option<String>,
     /// Model id, e.g. `claude-opus-4-8[1m]`.
     pub model: String,
-    /// How [`Self::oauth_token`] is injected: a subscription token becomes
-    /// `CLAUDE_CODE_OAUTH_TOKEN`; an API key becomes `ANTHROPIC_API_KEY`.
-    pub auth_mode: ClaudeAuthMode,
-    /// The Claude credential (subscription token or API key), injected into the
-    /// exec env per [`Self::auth_mode`] (never baked into the container).
+    /// The kind of the active credential (issue #341): the two subscription kinds
+    /// inject [`Self::oauth_token`] as `CLAUDE_CODE_OAUTH_TOKEN`; an API key injects
+    /// it as `ANTHROPIC_API_KEY`.
+    pub credential_kind: CredentialKind,
+    /// The resolved Claude credential (subscription token or API key), injected into
+    /// the exec env per [`Self::credential_kind`] (never baked into the container).
     pub oauth_token: String,
+    /// Anthropic-compatible base URL for a non-Anthropic credential routed through
+    /// the `LiteLLM` sidecar (exported as `ANTHROPIC_BASE_URL`); empty = Anthropic
+    /// direct, so nothing is exported.
+    pub base_url: String,
     /// GitHub token, so the agent's `gh`/`git` are authed for this turn.
     pub github_token: String,
     /// The task being worked, so the agent's helpers (`seraphim-ask`,
@@ -53,9 +58,10 @@ pub struct TurnArgs {
 /// any user-defined variables. User variables come last so they cannot shadow
 /// the tokens and wiring we control.
 fn build_env(args: &TurnArgs) -> Vec<String> {
-    let credential = match args.auth_mode {
-        ClaudeAuthMode::Subscription => format!("CLAUDE_CODE_OAUTH_TOKEN={}", args.oauth_token),
-        ClaudeAuthMode::ApiKey => format!("ANTHROPIC_API_KEY={}", args.oauth_token),
+    let credential = if args.credential_kind.uses_oauth_token_env() {
+        format!("CLAUDE_CODE_OAUTH_TOKEN={}", args.oauth_token)
+    } else {
+        format!("ANTHROPIC_API_KEY={}", args.oauth_token)
     };
     let mut env = vec![
         credential,
@@ -63,6 +69,11 @@ fn build_env(args: &TurnArgs) -> Vec<String> {
         format!("SERAPHIM_TASK_ID={}", args.task_id),
         format!("SERAPHIM_API_URL={}", args.internal_api_url),
     ];
+    // A non-Anthropic credential is reached through the LiteLLM sidecar; point the
+    // CLI at it. Empty means talk to Anthropic directly, so nothing is exported.
+    if !args.base_url.is_empty() {
+        env.push(format!("ANTHROPIC_BASE_URL={}", args.base_url));
+    }
     for (key, value) in &args.env {
         env.push(format!("{key}={value}"));
     }
@@ -200,8 +211,9 @@ mod tests {
             prompt: "do the thing".to_string(),
             resume_session_id: Some("sess-1".to_string()),
             model: "claude-opus-4-8[1m]".to_string(),
-            auth_mode: ClaudeAuthMode::Subscription,
+            credential_kind: CredentialKind::SubscriptionOauth,
             oauth_token: "tok".to_string(),
+            base_url: String::new(),
             github_token: "gh".to_string(),
             task_id: "task-1".to_string(),
             internal_api_url: "http://api:27182".to_string(),
@@ -224,8 +236,9 @@ mod tests {
             prompt: "start".to_string(),
             resume_session_id: None,
             model: "claude-opus-4-8[1m]".to_string(),
-            auth_mode: ClaudeAuthMode::Subscription,
+            credential_kind: CredentialKind::SubscriptionOauth,
             oauth_token: "tok".to_string(),
+            base_url: String::new(),
             github_token: "gh".to_string(),
             task_id: "task-1".to_string(),
             internal_api_url: "http://api:27182".to_string(),

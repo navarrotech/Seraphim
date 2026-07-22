@@ -53,18 +53,52 @@ pub enum NetworkAccessLevel {
     Custom,
 }
 
-/// How the agent authenticates to Claude.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "claude_auth_mode", rename_all = "snake_case")]
+/// The kind of a stored LLM credential, deciding how it authenticates the Claude
+/// Code CLI (issue #341). Stored as the `llm_credentials.kind` TEXT column.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ClaudeAuthMode {
-    /// A Claude subscription token (the long-lived inference token, from the
-    /// OAuth login or a manual `setup-token`), injected as
-    /// `CLAUDE_CODE_OAUTH_TOKEN`. The default and the historical behavior.
-    Subscription,
-    /// An Anthropic API key, injected as `ANTHROPIC_API_KEY`. No subscription
-    /// usage gauge applies in this mode.
+pub enum CredentialKind {
+    /// A Claude subscription OAuth login: a refreshing access/refresh pair whose
+    /// access token runs the agent (injected as `CLAUDE_CODE_OAUTH_TOKEN`). The
+    /// only kind whose usage the gauge can read.
+    SubscriptionOauth,
+    /// A long-lived pasted subscription token (`claude setup-token`), injected as
+    /// `CLAUDE_CODE_OAUTH_TOKEN`. No refresh and no usage reporting.
+    SetupToken,
+    /// An Anthropic API key, injected as `ANTHROPIC_API_KEY`.
     ApiKey,
+}
+
+impl CredentialKind {
+    /// The `llm_credentials.kind` string this maps to.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::SubscriptionOauth => "subscription_oauth",
+            Self::SetupToken => "setup_token",
+            Self::ApiKey => "api_key",
+        }
+    }
+
+    /// Parses a stored `kind` string, returning `None` for an unknown value.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "subscription_oauth" => Some(Self::SubscriptionOauth),
+            "setup_token" => Some(Self::SetupToken),
+            "api_key" => Some(Self::ApiKey),
+            _ => None,
+        }
+    }
+
+    /// Whether the secret is injected as `CLAUDE_CODE_OAUTH_TOKEN` (both Claude
+    /// subscription kinds) rather than `ANTHROPIC_API_KEY` (an API key).
+    pub fn uses_oauth_token_env(self) -> bool {
+        !matches!(self, Self::ApiKey)
+    }
+
+    /// Whether this kind refreshes an OAuth token pair (subscription OAuth only).
+    pub fn refreshes_oauth(self) -> bool {
+        matches!(self, Self::SubscriptionOauth)
+    }
 }
 
 /// Which Jira deployment we are talking to, which decides both the auth scheme
@@ -203,18 +237,6 @@ pub struct Settings {
     /// no longer read or written as the live session. A later migration drops it.
     pub current_session_id: Option<String>,
     pub updated_at: DateTime<Utc>,
-    /// Whether a Claude OAuth token is stored (the token itself is never sent).
-    pub claude_token_set: bool,
-    /// How the agent authenticates to Claude (subscription token vs API key).
-    pub claude_auth_mode: ClaudeAuthMode,
-    /// The connected Claude account's email, shown next to the environment name on
-    /// the board (issue #269). Captured from the OAuth token response; empty for a
-    /// manually pasted setup-token or API key, where no account identity is known.
-    pub claude_account_email: String,
-    /// Whether subscription usage credentials are stored (the refreshing
-    /// access/refresh pair used only to poll the usage gauge). Only meaningful in
-    /// `subscription` mode; the tokens themselves are never sent.
-    pub claude_usage_token_set: bool,
     /// Whether a GitHub token is stored (the token itself is never sent).
     pub github_token_set: bool,
     /// When true, the agent only works during [`Self::availability_windows`].
@@ -284,16 +306,12 @@ pub struct Settings {
     /// [`Self::attention_sound_custom`]).
     pub completion_sound_custom: bool,
     /// Masked preview of the stored Jira API token. Filled like
-    /// [`Self::claude_token_preview`].
+    /// [`Self::github_token_preview`].
     #[sqlx(default)]
     pub jira_token_preview: Option<String>,
-    /// Masked preview of the stored Claude token, e.g. `sk-ant-****abcd`. Not a
-    /// DB column; the settings handler fills it from the raw token so an operator
-    /// can recognize what is stored without it being revealed.
-    #[sqlx(default)]
-    pub claude_token_preview: Option<String>,
-    /// Masked preview of the stored GitHub token. Filled like
-    /// [`Self::claude_token_preview`].
+    /// Masked preview of the stored GitHub token. Not a DB column; the settings
+    /// handler fills it from the raw token so an operator can recognize what is
+    /// stored without it being revealed.
     #[sqlx(default)]
     pub github_token_preview: Option<String>,
     /// Runtime UI signal: while set and in the future, the agent is in a brief
@@ -304,17 +322,75 @@ pub struct Settings {
     pub cooldown_until: Option<DateTime<Utc>>,
 }
 
-/// The refreshing OAuth credentials from a subscription login: the short-lived
-/// access token the agent runs on, its long-lived refresh token, and the expiry.
-/// All-empty when no subscription login is configured. Never serialized to clients.
+/// A stored LLM credential (issue #341): one entry in the priority-ordered
+/// `llm_credentials` table the agent rotates through. Holds the raw secret and
+/// OAuth material, so it is NEVER serialized to clients ([`LlmCredentialView`] is).
 #[derive(Debug, Clone, sqlx::FromRow)]
-pub struct ClaudeUsageCredentials {
-    pub access_token: String,
-    pub refresh_token: String,
-    pub expires_at: Option<DateTime<Utc>>,
-    /// The scopes the consent granted, space-separated. Used to decide whether the
-    /// usage gauge (`/api/oauth/usage`, needs `user:profile`) can be polled.
-    pub scopes: String,
+pub struct LlmCredential {
+    pub id: Uuid,
+    /// Logical provider (`anthropic` today; other LLMs later via the `LiteLLM` sidecar).
+    pub provider: String,
+    /// The [`CredentialKind`] string: `subscription_oauth` / `setup_token` / `api_key`.
+    pub kind: String,
+    pub label: String,
+    /// Priority rank; lower runs first.
+    pub position: f64,
+    pub enabled: bool,
+    /// The inference credential the agent runs on (the sk-ant-oat token or API key).
+    pub secret: String,
+    /// Refreshing OAuth material (subscription OAuth only; empty otherwise).
+    pub oauth_access_token: String,
+    pub oauth_refresh_token: String,
+    pub oauth_expires_at: Option<DateTime<Utc>>,
+    /// Scopes the consent granted, space-separated. `user:profile` authorizes the
+    /// usage gauge.
+    pub oauth_scopes: String,
+    pub account_email: String,
+    /// Anthropic-compatible endpoint for a non-Anthropic credential (`ANTHROPIC_BASE_URL`);
+    /// empty = Anthropic direct.
+    pub base_url: String,
+    /// When set and in the future, this credential is out of quota until then.
+    pub exhausted_until: Option<DateTime<Utc>>,
+    /// Last failure reason (exhausted window, dead refresh token); `None` = healthy.
+    pub last_error: Option<String>,
+}
+
+impl LlmCredential {
+    /// The parsed [`CredentialKind`], or `None` if the stored string is unknown.
+    pub fn parsed_kind(&self) -> Option<CredentialKind> {
+        CredentialKind::parse(&self.kind)
+    }
+
+    /// Whether the credential can be used right now: enabled, has a secret, and is
+    /// not currently exhausted (its window has reset, or it never hit one).
+    pub fn is_available(&self, now: DateTime<Utc>) -> bool {
+        self.enabled
+            && !self.secret.is_empty()
+            && self.exhausted_until.is_none_or(|until| until <= now)
+    }
+}
+
+/// The masked, client-facing view of an [`LlmCredential`] (issue #341). Carries no
+/// raw secret or OAuth material, mirroring how [`Settings`] exposes only previews.
+/// `token_preview` / `available` / `active` are filled by the handler.
+#[derive(Debug, Clone, Serialize)]
+pub struct LlmCredentialView {
+    pub id: Uuid,
+    pub provider: String,
+    pub kind: String,
+    pub label: String,
+    pub position: f64,
+    pub enabled: bool,
+    /// Masked preview of the stored secret, e.g. `sk-ant-****abcd`.
+    pub token_preview: Option<String>,
+    pub account_email: String,
+    pub base_url: String,
+    pub exhausted_until: Option<DateTime<Utc>>,
+    pub last_error: Option<String>,
+    /// Usable right now (enabled, has a secret, not exhausted).
+    pub available: bool,
+    /// The credential the agent is currently running on (highest-priority available).
+    pub active: bool,
 }
 
 /// A user-defined environment variable injected into the agent's execs.

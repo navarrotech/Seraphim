@@ -15,7 +15,6 @@ use futures::StreamExt;
 use tokio::time::timeout;
 use tracing::warn;
 
-use super::subscription;
 use super::COMPOSE_PID_FILE;
 use crate::claude::run_turn as run_claude_turn;
 use crate::claude::{AgentEventKind, TurnArgs};
@@ -91,14 +90,21 @@ async fn run_inner(state: &AppState, message: String) -> Result<()> {
         .map(|variable| (variable.key, variable.value))
         .collect();
 
+    // Run on the active credential (issue #341); skip cleanly if none is usable.
+    let Some(active) = super::credentials::active_credential(state).await? else {
+        warn!("compose turn skipped: no usable Claude credential");
+        return Ok(());
+    };
+
     let args = TurnArgs {
         container: state.workspace.container().to_string(),
         working_dir: "/workspace".to_string(),
         prompt,
         resume_session_id: resume.clone(),
         model: settings.claude_model.clone(),
-        auth_mode: settings.claude_auth_mode,
-        oauth_token: subscription::fresh_inference_token(state).await?,
+        credential_kind: active.kind,
+        oauth_token: active.token,
+        base_url: active.base_url,
         github_token: queries::get_github_token(&state.db).await?,
         // No task backs the compose chat; its helper (`seraphim-draft`) posts to a
         // task-agnostic endpoint, so a label is enough here.
