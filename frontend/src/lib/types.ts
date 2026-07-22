@@ -165,8 +165,41 @@ export type AvailabilityWindow = {
   end_minute: number
 }
 
-// How the agent authenticates to Claude.
-export type ClaudeAuthMode = 'subscription' | 'api_key'
+// The kind of a stored LLM credential (issue #341), deciding how it authenticates
+// the Claude Code CLI.
+export type CredentialKind = 'subscription_oauth' | 'setup_token' | 'api_key'
+
+// A stored Claude credential as the LLMs settings page sees it (issue #341). The
+// raw secret is never sent; only a masked preview. Ordered by `position` (lower
+// runs first); the agent rotates to the next when the active one is rate-limited.
+export type LlmCredential = {
+  id: string
+  provider: string
+  kind: CredentialKind
+  label: string
+  position: number
+  enabled: boolean
+  // Masked preview of the stored secret, e.g. "sk-ant-****abcd"; null when unset.
+  token_preview: string | null
+  account_email: string
+  base_url: string
+  // While set and in the future, this credential is out of quota until then (ISO).
+  exhausted_until: string | null
+  // Last failure reason (an exhausted window, a dead refresh token); null = healthy.
+  last_error: string | null
+  // Usable right now (enabled, has a secret, not exhausted).
+  available: boolean
+  // The credential the agent is currently running on (highest-priority available).
+  active: boolean
+}
+
+// A compact summary of the active credential for the board header (issue #341).
+export type ActiveCredential = {
+  id: string
+  kind: CredentialKind
+  label: string
+  account_email: string
+}
 
 export type Settings = {
   org_name: string
@@ -181,14 +214,6 @@ export type Settings = {
   config_repo_error: string | null
   current_session_id: string | null
   updated_at: string
-  claude_token_set: boolean
-  // How the agent authenticates to Claude (subscription token vs API key).
-  claude_auth_mode: ClaudeAuthMode
-  // The connected Claude account's email (issue #269); empty when unknown
-  // (a manually pasted setup-token or API key returns no account identity).
-  claude_account_email: string
-  // Whether subscription usage credentials are stored (powers the usage gauge).
-  claude_usage_token_set: boolean
   github_token_set: boolean
   availability_enabled: boolean
   availability_timezone: string
@@ -236,8 +261,8 @@ export type Settings = {
   attention_sound_custom: boolean
   completion_sound_custom: boolean
   // Masked previews of the stored tokens (e.g. "sk-ant-****abcd"), or null when
-  // unset. The raw tokens are never sent.
-  claude_token_preview: string | null
+  // unset. The raw tokens are never sent. The Claude credentials live on the LLMs
+  // page now (issue #341), not here.
   github_token_preview: string | null
   jira_token_preview: string | null
   // Runtime signal: while set and in the future, the agent is in a brief global
@@ -569,6 +594,9 @@ export type BoardResponse = {
   // Setup-script edits the agent made to itself (issue #340), unacknowledged, for
   // the board banner that keeps the operator aware of the change.
   setup_script_changes: SetupScriptChange[]
+  // The Claude credential the agent is currently running on (issue #341), so the
+  // board header can show its account/label. Null when none is usable.
+  active_credential: ActiveCredential | null
 }
 
 // A pull request the task has opened. A task may span several repos, so it can

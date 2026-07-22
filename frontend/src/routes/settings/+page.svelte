@@ -41,9 +41,6 @@
     runUpdate,
     setEnvVars,
     setTokens,
-    startClaudeOauth,
-    finishClaudeOauth,
-    setClaudeApiKey,
     resumeUsage,
     testJira,
     updateJiraBoard,
@@ -68,6 +65,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Switch } from '$lib/components/ui/switch'
   import TimezonePicker from '$lib/components/TimezonePicker.svelte'
+  import LlmCredentials from '$lib/components/LlmCredentials.svelte'
 
   const CUSTOM_MODEL = '__custom__'
 
@@ -75,6 +73,7 @@
   // {#if active === '...'} wrapper; only the selected subpage is rendered.
   const SECTIONS = [
     { id: 'profile', label: 'Profile' },
+    { id: 'llms', label: 'LLMs' },
     { id: 'secrets', label: 'Secrets' },
     { id: 'config', label: 'Config repo' },
     { id: 'jira', label: 'Jira' },
@@ -119,14 +118,6 @@
   let githubWebhookSecretInput = $state('')
   let jiraWebhookSecretInput = $state('')
   let tokensMessage = $state<string | null>(null)
-
-  // Claude authentication (subscription OAuth vs API key).
-  let claudeAuthBusy = $state(false)
-  let claudeAuthError = $state<string | null>(null)
-  let claudeAuthMessage = $state<string | null>(null)
-  let oauthAuthorizeUrl = $state<string | null>(null)
-  let oauthCodeInput = $state('')
-  let claudeApiKeyInput = $state('')
 
   // Model picker: a dropdown of known ids plus a custom free-text fallback.
   let modelChoice = $state<string>(KNOWN_MODELS[0].value)
@@ -588,70 +579,6 @@
     tokensMessage = 'Saved to the database.'
   }
 
-  // Opens the Claude consent screen in a new tab; the operator pastes the code
-  // back to complete the login.
-  async function connectClaudeSubscription() {
-    claudeAuthError = null
-    claudeAuthMessage = null
-    claudeAuthBusy = true
-    try {
-      const { authorize_url } = await startClaudeOauth()
-      oauthAuthorizeUrl = authorize_url
-      window.open(authorize_url, '_blank', 'noopener,noreferrer')
-    }
-    catch (error) {
-      console.debug('startClaudeOauth failed', error)
-      claudeAuthError = 'Could not start the login. Check the API logs.'
-    }
-    finally {
-      claudeAuthBusy = false
-    }
-  }
-
-  async function completeClaudeLogin() {
-    const code = oauthCodeInput.trim()
-    if (!code) {
-      return
-    }
-    claudeAuthError = null
-    claudeAuthBusy = true
-    try {
-      settings = await finishClaudeOauth(code)
-      oauthAuthorizeUrl = null
-      oauthCodeInput = ''
-      claudeAuthMessage = 'Connected your Claude subscription.'
-    }
-    catch (error) {
-      console.debug('finishClaudeOauth failed', error)
-      claudeAuthError = 'Login failed. Paste the full code from the consent page, then try again.'
-    }
-    finally {
-      claudeAuthBusy = false
-    }
-  }
-
-  async function saveClaudeApiKey() {
-    const key = claudeApiKeyInput.trim()
-    if (!key) {
-      return
-    }
-    claudeAuthError = null
-    claudeAuthMessage = null
-    claudeAuthBusy = true
-    try {
-      settings = await setClaudeApiKey(key)
-      claudeApiKeyInput = ''
-      claudeAuthMessage = 'Saved your Anthropic API key.'
-    }
-    catch (error) {
-      console.debug('setClaudeApiKey failed', error)
-      claudeAuthError = 'Could not save the API key.'
-    }
-    finally {
-      claudeAuthBusy = false
-    }
-  }
-
   async function runRestart() {
     workspaceMessage = 'Restarting…'
     await restartWorkspace()
@@ -988,6 +915,21 @@
     </Card.Root>
     {/if}
 
+    {#if active === 'llms'}
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>LLMs</Card.Title>
+        <Card.Description>
+          The Claude credentials the agent runs on (issue #341). Add any number of subscriptions,
+          long-lived tokens, or API keys, and drag to set which is used first.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <LlmCredentials />
+      </Card.Content>
+    </Card.Root>
+    {/if}
+
     {#if active === 'secrets'}
     <Card.Root>
       <Card.Header>
@@ -999,91 +941,12 @@
         </Card.Description>
       </Card.Header>
       <Card.Content class="space-y-5">
-        <div class="space-y-2">
-          <Label class="flex flex-wrap items-center gap-2">
-            Claude authentication
-            <Badge variant="outline" class={settings.claude_token_set ? 'border-success/40 text-success' : 'text-muted-foreground'}>
-              {#if !settings.claude_token_set}
-                not set
-              {:else if settings.claude_auth_mode === 'api_key'}
-                API key
-              {:else}
-                subscription
-              {/if}
-            </Badge>
-            {#if settings.claude_auth_mode === 'subscription' && settings.claude_usage_token_set}
-              <Badge variant="outline" class="border-success/40 text-success">usage gauge on</Badge>
-            {/if}
-          </Label>
-          <p class="text-sm text-muted-foreground">
-            Connect a Claude subscription (recommended) to run the agent and light up the live usage
-            gauge, or use an Anthropic API key. The subscription path is the same one-click login the
-            Claude Code CLI uses.
-          </p>
-
-          <!-- Claude subscription OAuth: opens consent, then paste the code back. -->
-          <div class="space-y-2 rounded-md border border-border p-3">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-sm font-medium">Claude subscription</span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={claudeAuthBusy}
-                onclick={connectClaudeSubscription}
-              >
-                {settings.claude_token_set && settings.claude_auth_mode === 'subscription'
-                  ? 'Reconnect'
-                  : 'Connect'}
-              </Button>
-            </div>
-            {#if oauthAuthorizeUrl}
-              <p class="text-xs text-muted-foreground">
-                A consent tab opened. Approve it, copy the code it shows, and paste it below.
-                <a href={oauthAuthorizeUrl} target="_blank" rel="noopener noreferrer" class="underline">
-                  Reopen the tab
-                </a>.
-              </p>
-              <div class="flex gap-2">
-                <Input placeholder="paste the code here" autocomplete="off" bind:value={oauthCodeInput} />
-                <Button
-                  size="sm"
-                  disabled={claudeAuthBusy || !oauthCodeInput.trim()}
-                  onclick={completeClaudeLogin}
-                >
-                  Complete
-                </Button>
-              </div>
-            {/if}
-          </div>
-
-          <!-- Anthropic API key (no subscription usage gauge in this mode). -->
-          <div class="space-y-2 rounded-md border border-border p-3">
-            <span class="text-sm font-medium">Anthropic API key</span>
-            <div class="flex gap-2">
-              <Input
-                type="password"
-                autocomplete="off"
-                placeholder="sk-ant-api03-…"
-                bind:value={claudeApiKeyInput}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={claudeAuthBusy || !claudeApiKeyInput.trim()}
-                onclick={saveClaudeApiKey}
-              >
-                Save
-              </Button>
-            </div>
-            <p class="text-xs text-muted-foreground">No subscription usage gauge applies in this mode.</p>
-          </div>
-
-          {#if claudeAuthError}
-            <p class="text-sm text-destructive">{claudeAuthError}</p>
-          {/if}
-          {#if claudeAuthMessage}
-            <p class="text-sm text-success">{claudeAuthMessage}</p>
-          {/if}
+        <div class="rounded-md border border-border p-3 text-sm text-muted-foreground">
+          Claude credentials moved to the
+          <button type="button" class="font-medium text-primary underline" onclick={() => (active = 'llms')}>
+            LLMs
+          </button>
+          tab, where you can add and prioritize several subscriptions, tokens, or API keys.
         </div>
         <div class="space-y-1.5">
           <Label for="gh-token" class="flex items-center gap-2">

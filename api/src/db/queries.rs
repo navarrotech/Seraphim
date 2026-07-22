@@ -13,8 +13,8 @@ use uuid::Uuid;
 
 use super::models::{
     AggregatedSuggestion, AnomalousEmptyPr, AnswerKind, AutomationRule, AvailabilityWindow,
-    ClaudeUsageCredentials, DependencyCandidate, EnvSuggestion, EnvVar, EnvVarWrite, HeartAttack,
-    InternalComment, JiraBoard, JiraDeployment, NetworkAccessLevel, PendingPlacement,
+    DependencyCandidate, EnvSuggestion, EnvVar, EnvVarWrite, HeartAttack, InternalComment,
+    JiraBoard, JiraDeployment, LlmCredential, NetworkAccessLevel, PendingPlacement,
     PendingQuestion, Question, QuestionOption, QuestionStatus, Railway, RepoDeletionImpact,
     RepoSyncError, ReposDeletionImpact, Repository, ReviewPolicy, Settings, SetupScriptChange,
     SourceKind, StatsAggregate, Task, TaskAttachment, TaskColumn, TaskPullRequest, TaskScreenshot,
@@ -31,9 +31,6 @@ const SETTINGS_COLUMNS: &str =
     "org_name, global_instructions, default_review_policy, agent_paused, \
      claude_model, workspace_image_tag, base_setup_script, config_repo_url, \
      default_branch_template, config_repo_error, current_session_id, updated_at, \
-     (claude_oauth_token <> '') AS claude_token_set, \
-     claude_auth_mode, claude_account_email, \
-     (claude_usage_refresh_token <> '') AS claude_usage_token_set, \
      (github_token <> '') AS github_token_set, \
      availability_enabled, availability_timezone, availability_windows, \
      availability_skip_dates, network_access_level, network_access_domains, \
@@ -222,13 +219,6 @@ pub async fn set_config_repo_error(pool: &PgPool, error: Option<&str>) -> sqlx::
     Ok(())
 }
 
-/// The stored Claude OAuth token (empty string if unset). Internal use only.
-pub async fn get_claude_token(pool: &PgPool) -> sqlx::Result<String> {
-    sqlx::query_scalar("SELECT claude_oauth_token FROM settings WHERE id = 1")
-        .fetch_one(pool)
-        .await
-}
-
 /// The stored GitHub token (empty string if unset). Internal use only.
 pub async fn get_github_token(pool: &PgPool) -> sqlx::Result<String> {
     sqlx::query_scalar("SELECT github_token FROM settings WHERE id = 1")
@@ -258,10 +248,10 @@ pub async fn get_jira_webhook_secret(pool: &PgPool) -> sqlx::Result<String> {
 }
 
 /// Writes the app tokens and webhook secrets; `None` leaves the existing value
-/// untouched (so the UI can update one without resending the others).
+/// untouched (so the UI can update one without resending the others). The Claude
+/// credential is no longer here: it lives in `llm_credentials` (issue #341).
 pub async fn set_tokens(
     pool: &PgPool,
-    claude_oauth_token: Option<String>,
     github_token: Option<String>,
     jira_api_token: Option<String>,
     github_webhook_secret: Option<String>,
@@ -269,14 +259,12 @@ pub async fn set_tokens(
 ) -> sqlx::Result<()> {
     sqlx::query(
         "UPDATE settings SET \
-         claude_oauth_token = COALESCE($1, claude_oauth_token), \
-         github_token = COALESCE($2, github_token), \
-         jira_api_token = COALESCE($3, jira_api_token), \
-         github_webhook_secret = COALESCE($4, github_webhook_secret), \
-         jira_webhook_secret = COALESCE($5, jira_webhook_secret), \
+         github_token = COALESCE($1, github_token), \
+         jira_api_token = COALESCE($2, jira_api_token), \
+         github_webhook_secret = COALESCE($3, github_webhook_secret), \
+         jira_webhook_secret = COALESCE($4, jira_webhook_secret), \
          updated_at = now() WHERE id = 1",
     )
-    .bind(claude_oauth_token)
     .bind(github_token)
     .bind(jira_api_token)
     .bind(github_webhook_secret)
@@ -286,97 +274,184 @@ pub async fn set_tokens(
     Ok(())
 }
 
-/// The refreshing OAuth credentials from a subscription login (all-empty when none
-/// is configured). Drives both the on-demand inference-token refresh and the usage
-/// gauge. Internal use only.
-pub async fn get_usage_credentials(pool: &PgPool) -> sqlx::Result<ClaudeUsageCredentials> {
-    sqlx::query_as::<_, ClaudeUsageCredentials>(
-        "SELECT claude_usage_access_token AS access_token, \
-         claude_usage_refresh_token AS refresh_token, \
-         claude_usage_expires_at AS expires_at, \
-         claude_usage_scopes AS scopes FROM settings WHERE id = 1",
+// --- LLM credentials (issue #341) --------------------------------------------
+//
+// The priority-ordered credentials the agent rotates through. Rows carry the raw
+// secret + OAuth material, so these are internal; the HTTP layer masks them into
+// `LlmCredentialView`. Ordered by `position` ascending (lower runs first).
+
+/// Every stored credential, highest priority first. Internal use only.
+pub async fn list_llm_credentials(pool: &PgPool) -> sqlx::Result<Vec<LlmCredential>> {
+    sqlx::query_as::<_, LlmCredential>("SELECT * FROM llm_credentials ORDER BY position ASC")
+        .fetch_all(pool)
+        .await
+}
+
+/// One credential by id, or `None` if it was deleted. Internal use only.
+pub async fn get_llm_credential(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<LlmCredential>> {
+    sqlx::query_as::<_, LlmCredential>("SELECT * FROM llm_credentials WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
+/// Appends a new credential at the bottom of the priority list (lowest priority).
+/// Returns the created row.
+#[allow(clippy::too_many_arguments)]
+pub async fn create_llm_credential(
+    pool: &PgPool,
+    provider: &str,
+    kind: &str,
+    label: &str,
+    secret: &str,
+    oauth_access_token: &str,
+    oauth_refresh_token: &str,
+    oauth_expires_at: Option<DateTime<Utc>>,
+    oauth_scopes: &str,
+    account_email: &str,
+) -> sqlx::Result<LlmCredential> {
+    // Land after the current last entry, leaving room so a later reorder is cheap.
+    sqlx::query_as::<_, LlmCredential>(
+        "INSERT INTO llm_credentials \
+           (provider, kind, label, position, secret, oauth_access_token, \
+            oauth_refresh_token, oauth_expires_at, oauth_scopes, account_email) \
+         VALUES ($1, $2, $3, \
+           COALESCE((SELECT MAX(position) FROM llm_credentials), 0) + 1000, \
+           $4, $5, $6, $7, $8, $9) \
+         RETURNING *",
+    )
+    .bind(provider)
+    .bind(kind)
+    .bind(label)
+    .bind(secret)
+    .bind(oauth_access_token)
+    .bind(oauth_refresh_token)
+    .bind(oauth_expires_at)
+    .bind(oauth_scopes)
+    .bind(account_email)
+    .fetch_one(pool)
+    .await
+}
+
+/// Updates a credential's editable metadata (label and/or enabled). A `None`
+/// argument leaves that field unchanged. Returns the updated row.
+pub async fn update_llm_credential(
+    pool: &PgPool,
+    id: Uuid,
+    label: Option<&str>,
+    enabled: Option<bool>,
+) -> sqlx::Result<LlmCredential> {
+    sqlx::query_as::<_, LlmCredential>(
+        "UPDATE llm_credentials SET \
+         label = COALESCE($2, label), \
+         enabled = COALESCE($3, enabled), \
+         updated_at = now() WHERE id = $1 RETURNING *",
+    )
+    .bind(id)
+    .bind(label)
+    .bind(enabled)
+    .fetch_one(pool)
+    .await
+}
+
+/// Deletes a credential. Returns whether a row was removed.
+pub async fn delete_llm_credential(pool: &PgPool, id: Uuid) -> sqlx::Result<bool> {
+    let result = sqlx::query("DELETE FROM llm_credentials WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// Rewrites the priority order: each id's `position` becomes its index in the list
+/// (times a step, leaving room), so the agent tries them in exactly this order.
+pub async fn reorder_llm_credentials(pool: &PgPool, ids: &[Uuid]) -> sqlx::Result<()> {
+    let mut tx = pool.begin().await?;
+    for (index, id) in ids.iter().enumerate() {
+        // f64 from a small index is exact; the step keeps room for a future insert.
+        let position = (index as f64) * 1000.0;
+        sqlx::query("UPDATE llm_credentials SET position = $2, updated_at = now() WHERE id = $1")
+            .bind(id)
+            .bind(position)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Persists a refreshed subscription OAuth token on one credential: the new access
+/// token becomes both the inference `secret` and the usage copy, the rotated
+/// refresh token is kept when returned (empty keeps the existing one), and a
+/// successful refresh clears any recorded error. Mirrors the old `set_oauth_tokens`.
+pub async fn set_credential_oauth_tokens(
+    pool: &PgPool,
+    id: Uuid,
+    access_token: &str,
+    refresh_token: &str,
+    expires_at: DateTime<Utc>,
+    account_email: &str,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "UPDATE llm_credentials SET secret = $2, oauth_access_token = $2, \
+         oauth_refresh_token = COALESCE(NULLIF($3, ''), oauth_refresh_token), \
+         oauth_expires_at = $4, \
+         account_email = COALESCE(NULLIF($5, ''), account_email), \
+         last_error = NULL, updated_at = now() WHERE id = $1",
+    )
+    .bind(id)
+    .bind(access_token)
+    .bind(refresh_token)
+    .bind(expires_at)
+    .bind(account_email)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Marks a credential unavailable until `until`, recording why. Used both for a
+/// usage-limit window (the reset time) and a failed refresh (a short cooldown).
+pub async fn set_credential_exhausted(
+    pool: &PgPool,
+    id: Uuid,
+    until: DateTime<Utc>,
+    reason: &str,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "UPDATE llm_credentials SET exhausted_until = $2, last_error = $3, \
+         updated_at = now() WHERE id = $1",
+    )
+    .bind(id)
+    .bind(until)
+    .bind(reason)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Whether any credential is usable right now: enabled, has a secret, and not
+/// currently exhausted. A cheap gate the agent loop checks before pulling work, so
+/// it stays idle when nothing is configured or everything is exhausted.
+pub async fn has_usable_credential(pool: &PgPool) -> sqlx::Result<bool> {
+    sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM llm_credentials \
+         WHERE enabled = TRUE AND secret <> '' \
+         AND (exhausted_until IS NULL OR exhausted_until <= now()))",
     )
     .fetch_one(pool)
     .await
 }
 
-/// Persists a completed subscription OAuth login: the long-lived inference token
-/// the agent runs on, plus the refreshing usage credentials, switching auth mode
-/// to `subscription`.
-pub async fn set_subscription_credentials(
-    pool: &PgPool,
-    inference_token: &str,
-    access_token: &str,
-    refresh_token: &str,
-    expires_at: DateTime<Utc>,
-    scopes: &str,
-    account_email: &str,
-) -> sqlx::Result<()> {
-    // An empty `account_email` keeps the stored one rather than wiping it, so a
-    // response that happens to omit the account never blanks a known email.
-    sqlx::query(
-        "UPDATE settings SET claude_oauth_token = $1, claude_auth_mode = 'subscription', \
-         claude_usage_access_token = $2, claude_usage_refresh_token = $3, \
-         claude_usage_expires_at = $4, claude_usage_scopes = $5, \
-         claude_account_email = COALESCE(NULLIF($6, ''), claude_account_email), \
-         updated_at = now() WHERE id = 1",
+/// The soonest `exhausted_until` across enabled, exhausted credentials, i.e. when
+/// the first one frees up. `None` when no enabled credential is exhausted. Drives
+/// the global usage pause once every credential is exhausted.
+pub async fn earliest_credential_reset(pool: &PgPool) -> sqlx::Result<Option<DateTime<Utc>>> {
+    sqlx::query_scalar(
+        "SELECT MIN(exhausted_until) FROM llm_credentials \
+         WHERE enabled = TRUE AND exhausted_until IS NOT NULL",
     )
-    .bind(inference_token)
-    .bind(access_token)
-    .bind(refresh_token)
-    .bind(expires_at)
-    .bind(scopes)
-    .bind(account_email)
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
-/// Persists a refreshed subscription token. The new access token becomes both the
-/// inference credential the agent runs on (`claude_oauth_token`) and the usage
-/// copy, keeping them in lockstep; the rotated refresh token is stored when the
-/// endpoint returned one (an empty `refresh_token` keeps the existing one).
-pub async fn set_oauth_tokens(
-    pool: &PgPool,
-    access_token: &str,
-    refresh_token: &str,
-    expires_at: DateTime<Utc>,
-    account_email: &str,
-) -> sqlx::Result<()> {
-    // Like the refresh token, an empty `account_email` keeps the existing value, so
-    // a refresh response that omits the account never blanks a known email. This is
-    // also how an install that connected before #269 backfills its email: the first
-    // refresh that returns an account populates it without a reconnect.
-    sqlx::query(
-        "UPDATE settings SET claude_oauth_token = $1, claude_usage_access_token = $1, \
-         claude_usage_refresh_token = COALESCE(NULLIF($2, ''), claude_usage_refresh_token), \
-         claude_usage_expires_at = $3, \
-         claude_account_email = COALESCE(NULLIF($4, ''), claude_account_email), \
-         updated_at = now() WHERE id = 1",
-    )
-    .bind(access_token)
-    .bind(refresh_token)
-    .bind(expires_at)
-    .bind(account_email)
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
-/// Switches to API-key auth: stores the key as the inference credential and clears
-/// the subscription usage credentials (the gauge does not apply).
-pub async fn set_api_key(pool: &PgPool, api_key: &str) -> sqlx::Result<()> {
-    sqlx::query(
-        "UPDATE settings SET claude_oauth_token = $1, claude_auth_mode = 'api_key', \
-         claude_usage_access_token = '', claude_usage_refresh_token = '', \
-         claude_usage_expires_at = NULL, claude_usage_scopes = '', \
-         claude_account_email = '', updated_at = now() \
-         WHERE id = 1",
-    )
-    .bind(api_key)
-    .execute(pool)
-    .await?;
-    Ok(())
+    .fetch_one(pool)
+    .await
 }
 
 // --- Notification sounds ------------------------------------------------------
@@ -441,21 +516,21 @@ pub async fn list_environment_variables(pool: &PgPool) -> sqlx::Result<Vec<EnvVa
 }
 
 /// Every secret value that should be scrubbed from agent output: the secret
-/// environment variables plus the stored Claude, GitHub, and Jira tokens. Empty
-/// values are omitted.
+/// environment variables, the GitHub and Jira tokens, and every stored LLM
+/// credential's secret + OAuth material (issue #341). Empty values are omitted.
 pub async fn list_secret_values(pool: &PgPool) -> sqlx::Result<Vec<String>> {
     let values: Vec<String> = sqlx::query_scalar(
         "SELECT value FROM environment_variables WHERE is_secret = TRUE AND value <> '' \
-         UNION ALL \
-         SELECT claude_oauth_token FROM settings WHERE id = 1 AND claude_oauth_token <> '' \
          UNION ALL \
          SELECT github_token FROM settings WHERE id = 1 AND github_token <> '' \
          UNION ALL \
          SELECT jira_api_token FROM settings WHERE id = 1 AND jira_api_token <> '' \
          UNION ALL \
-         SELECT claude_usage_access_token FROM settings WHERE id = 1 AND claude_usage_access_token <> '' \
+         SELECT secret FROM llm_credentials WHERE secret <> '' \
          UNION ALL \
-         SELECT claude_usage_refresh_token FROM settings WHERE id = 1 AND claude_usage_refresh_token <> ''",
+         SELECT oauth_access_token FROM llm_credentials WHERE oauth_access_token <> '' \
+         UNION ALL \
+         SELECT oauth_refresh_token FROM llm_credentials WHERE oauth_refresh_token <> ''",
     )
     .fetch_all(pool)
     .await?;

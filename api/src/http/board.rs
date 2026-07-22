@@ -47,6 +47,9 @@ pub struct BoardResponse {
     /// newest first, so the board banner shows what changed until the operator
     /// clears it.
     pub setup_script_changes: Vec<SetupScriptChange>,
+    /// The Claude credential the agent is currently running on (issue #341), so the
+    /// board header can show its account/label. `None` when none is usable.
+    pub active_credential: Option<orchestrator::credentials::ActiveCredentialSummary>,
 }
 
 /// `GET /api/v1/board` - every card, the org/pause settings, per-card counts of
@@ -65,6 +68,7 @@ pub async fn get_board(State(state): State<AppState>) -> ApiResult<Json<BoardRes
     let repo_sync_errors = queries::list_repo_sync_errors(&state.db).await?;
     let anomalous_empty_prs = queries::list_anomalous_empty_prs(&state.db).await?;
     let setup_script_changes = queries::list_unacknowledged_setup_changes(&state.db).await?;
+    let active_credential = orchestrator::credentials::active_summary(&state).await?;
     Ok(Json(BoardResponse {
         tasks,
         settings,
@@ -74,6 +78,7 @@ pub async fn get_board(State(state): State<AppState>) -> ApiResult<Json<BoardRes
         repo_sync_errors,
         anomalous_empty_prs,
         setup_script_changes,
+        active_credential,
     }))
 }
 

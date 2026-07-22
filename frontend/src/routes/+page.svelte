@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DndEvent } from 'svelte-dnd-action'
-  import type { AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, SetupScriptChange, Settings, SourceKind, Task, TaskColumn } from '$lib/types'
+  import type { ActiveCredential, AnomalousEmptyPr, HeartAttack, Railway, RepoSyncError, SetupScriptChange, Settings, SourceKind, Task, TaskColumn } from '$lib/types'
 
   import { onMount, onDestroy } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
@@ -67,6 +67,9 @@
   const FLIP_MS = 150
 
   let settings = $state<Settings | null>(null)
+  // The Claude credential the agent is currently running on (issue #341), shown in
+  // the board header. Null when none is usable.
+  let activeCredential = $state<ActiveCredential | null>(null)
   let suggestionCounts = $state<Record<string, number>>({})
   // Unacknowledged heart attacks (dead turns) the defibrillator recorded; shown
   // as a dismissible alert banner so the operator notices and can read the logs.
@@ -446,6 +449,7 @@
       }
     }
     setupScriptChanges = board.setup_script_changes
+    activeCredential = board.active_credential
     repoNames = Object.fromEntries(repos.map((repo) => [repo.id, repo.full_name]))
 
     // Group every card by railway, then by column. A lane with no cards still gets
@@ -1109,12 +1113,12 @@
     <div class="flex items-baseline gap-2">
       {#if settings}
         <strong class="text-base">{settings.org_name}</strong>
-        {#if settings.claude_account_email}
+        {#if activeCredential && (activeCredential.account_email || activeCredential.label)}
           <span
             class="text-sm text-muted-foreground"
-            title="Connected Claude account"
+            title="The Claude credential the agent is currently running on"
           >
-            • ({settings.claude_account_email})
+            • ({activeCredential.account_email || activeCredential.label})
           </span>
         {/if}
         {#if outsideSchedule}

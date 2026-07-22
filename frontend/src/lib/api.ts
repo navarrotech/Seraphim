@@ -22,6 +22,7 @@ import type {
   IssueThread,
   JiraBoard,
   JiraDeployment,
+  LlmCredential,
   NetworkAccessLevel,
   PendingQuestion,
   Question,
@@ -507,7 +508,6 @@ export function resumeUsage() {
 }
 
 export type TokensRequest = {
-  claude_oauth_token?: string
   github_token?: string
   jira_api_token?: string
   github_webhook_secret?: string
@@ -518,25 +518,50 @@ export function setTokens(body: TokensRequest) {
   return apiClient.post('settings/tokens', { json: body }).json<Settings>()
 }
 
-// --- Claude authentication ---------------------------------------------------
+// --- LLM credentials (issue #341) --------------------------------------------
+// Multiple Claude credentials the agent rotates through by priority. The list
+// mutators all return the refreshed, masked list so the LLMs page re-renders.
+
+export function listCredentials() {
+  return apiClient.get('credentials').json<LlmCredential[]>()
+}
+
+// Persists a new priority order (first = highest priority) after a drag-drop.
+export function reorderCredentials(ids: string[]) {
+  return apiClient.post('credentials/reorder', { json: { ids } }).json<LlmCredential[]>()
+}
 
 export type OauthStartResponse = {
   authorize_url: string
 }
 
 // Begins a Claude subscription OAuth login; returns the consent URL to open.
-export function startClaudeOauth() {
-  return apiClient.post('settings/claude/oauth/start').json<OauthStartResponse>()
+export function startCredentialOauth() {
+  return apiClient.post('credentials/oauth/start').json<OauthStartResponse>()
 }
 
-// Completes the login with the code pasted from the consent callback page.
-export function finishClaudeOauth(code: string) {
-  return apiClient.post('settings/claude/oauth/finish', { json: { code } }).json<Settings>()
+// Completes the login with the pasted code, adding a subscription credential.
+export function finishCredentialOauth(code: string, label: string) {
+  return apiClient.post('credentials/oauth/finish', { json: { code, label } }).json<LlmCredential[]>()
 }
 
-// Stores an Anthropic API key and switches the agent to API-key auth.
-export function setClaudeApiKey(apiKey: string) {
-  return apiClient.post('settings/claude/api-key', { json: { api_key: apiKey } }).json<Settings>()
+// Adds a long-lived pasted subscription token (`claude setup-token`).
+export function addSetupTokenCredential(token: string, label: string) {
+  return apiClient.post('credentials/token', { json: { token, label } }).json<LlmCredential[]>()
+}
+
+// Adds an Anthropic API key.
+export function addApiKeyCredential(apiKey: string, label: string) {
+  return apiClient.post('credentials/api-key', { json: { api_key: apiKey, label } }).json<LlmCredential[]>()
+}
+
+// Renames or enables/disables a credential.
+export function updateCredential(id: string, body: { label?: string; enabled?: boolean }) {
+  return apiClient.patch(`credentials/${id}`, { json: body }).json<LlmCredential[]>()
+}
+
+export function deleteCredential(id: string) {
+  return apiClient.delete(`credentials/${id}`).json<{ deleted: boolean }>()
 }
 
 // --- Jira --------------------------------------------------------------------

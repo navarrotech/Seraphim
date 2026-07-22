@@ -12,6 +12,9 @@
 mod availability;
 mod ci_watch;
 pub mod compose;
+// Multiple Claude credentials with priority rotation (issue #341). Crate-visible so
+// the HTTP layer's LLMs page can resolve the active credential for the board.
+pub(crate) mod credentials;
 mod dependencies;
 mod network;
 mod placement;
@@ -1396,14 +1399,20 @@ async fn next_actionable_task(
     if settings.agent_paused || railway.paused {
         return Ok(None);
     }
-    // Automatic usage-limit pause: hold all new work until the subscription
-    // window resets, then clear the pause and resume pulling.
+    // Automatic usage-limit pause: hold all new work until a credential frees up (the
+    // soonest exhaustion reset), then clear the pause and resume pulling (issue #341).
     if let Some(until) = settings.usage_paused_until {
         if Utc::now() < until {
             return Ok(None);
         }
         queries::set_usage_paused_until(&state.db, None).await?;
         state.notify_board();
+    }
+    // No usable Claude credential (none configured, all disabled, or all exhausted):
+    // stay idle rather than pull work we cannot run. Cheap check; the exhaustion case
+    // is also covered by the pause above, but this also covers an unconfigured install.
+    if !queries::has_usable_credential(&state.db).await? {
+        return Ok(None);
     }
     // Hard halt: a configured config repo that failed to set up means the agent
     // is missing its instructions/skills. Refuse to pull work until it's fixed.
@@ -2330,16 +2339,30 @@ async fn stream_turn(
         serde_json::json!({ "type": "prompt", "payload": prompt_event, "created_at": Utc::now() }),
     );
 
+    // Resolve the active credential for this turn (issue #341): the highest-priority
+    // usable one, its OAuth token refreshed if near expiry. `None` means no usable
+    // credential (the loop's gate normally prevents pulling work in that case, but a
+    // refresh can fail between the gate and here); skip the turn rather than run
+    // with no auth. The id lets a mid-turn rate-limit mark THIS credential exhausted.
+    let Some(active) = credentials::active_credential(state).await? else {
+        warn!(task = %task.id, "turn skipped: no usable Claude credential");
+        return Ok(TurnOutcome {
+            session_id: resume_session_id.clone(),
+            error: None,
+            heart_attack: false,
+            epoch: reset_epoch,
+        });
+    };
+    let active_credential_id = active.id;
     let args = TurnArgs {
         container: handle.container().to_string(),
         working_dir,
         prompt,
         resume_session_id: resume_session_id.clone(),
         model: settings.claude_model.clone(),
-        auth_mode: settings.claude_auth_mode,
-        // Refresh the subscription token if it is near expiry, so a turn never runs
-        // on an expired token, even the first turn after a long downtime.
-        oauth_token: subscription::fresh_inference_token(state).await?,
+        credential_kind: active.kind,
+        oauth_token: active.token,
+        base_url: active.base_url,
         github_token: queries::get_github_token(&state.db).await?,
         task_id: task.id.to_string(),
         internal_api_url: state.internal_api_url.clone(),
@@ -2475,9 +2498,11 @@ async fn stream_turn(
         }
 
         // Watch the periodic `rate_limit_event` notices: once a usage window is
-        // (nearly) exhausted, park new work until it resets. This never aborts the
-        // current task - the agent loop only consults the pause before the *next*
-        // pull - so the running task always finishes first.
+        // (nearly) exhausted, mark THIS credential exhausted and rotate to the next
+        // by priority; only when every credential is exhausted does the agent pause,
+        // until the soonest reset (issue #341). This never aborts the current task -
+        // the agent loop only consults the pause/rotation before the *next* pull - so
+        // the running task always finishes first.
         if settings.usage_limit_pause_enabled
             && event.raw.get("type").and_then(serde_json::Value::as_str) == Some("rate_limit_event")
         {
@@ -2485,13 +2510,25 @@ async fn stream_turn(
                 if let Some(reset) = usage::pause_until(info, settings.usage_limit_threshold) {
                     if usage_pause_reset != Some(reset) {
                         if let Some(until) = chrono::DateTime::from_timestamp(reset, 0) {
-                            queries::set_usage_paused_until(&state.db, Some(until)).await?;
-                            state.notify_board();
+                            let rotated = credentials::mark_exhausted_and_reconcile(
+                                state,
+                                active_credential_id,
+                                until,
+                                "subscription usage limit reached",
+                            )
+                            .await?;
                             usage_pause_reset = Some(reset);
-                            warn!(
-                                resets_at = %until,
-                                "subscription usage limit reached; pausing new work until reset"
-                            );
+                            if rotated {
+                                warn!(
+                                    resets_at = %until,
+                                    "usage limit reached; rotating to the next credential"
+                                );
+                            } else {
+                                warn!(
+                                    resets_at = %until,
+                                    "usage limit reached on every credential; pausing until reset"
+                                );
+                            }
                         }
                     }
                 }
