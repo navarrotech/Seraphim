@@ -25,7 +25,8 @@
     Paperclip,
     Pause,
     Play,
-    RotateCcw
+    RotateCcw,
+    TriangleAlert
   } from '@lucide/svelte'
 
   import {
@@ -619,6 +620,18 @@
           that makes the ticket auto-pullable; the agent gets the whole list as context and opens a
           PR in each repo it changes. Leave empty to keep the ticket tracking-only.
         </p>
+        {#if task.source_kind === 'jira' && task.target_repo_ids.length === 0}
+          <!-- A synced Jira ticket lands with no repo, so the agent will not work
+               it until one is set. Surface that clearly (issue #337). -->
+          <Alert.Root variant="warning" class="mt-2">
+            <TriangleAlert />
+            <Alert.Title>No target repository set</Alert.Title>
+            <Alert.Description>
+              The agent will not work this Jira ticket until it has at least one target repo. Pick
+              the primary repo below and save to make it workable.
+            </Alert.Description>
+          </Alert.Root>
+        {/if}
         <div class="mt-2">
           <RepoMultiSelect {repos} bind:selected={targetRepoIds} />
         </div>

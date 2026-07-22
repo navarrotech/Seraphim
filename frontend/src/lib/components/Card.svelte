@@ -20,7 +20,8 @@
     CircleSlash,
     RotateCcw,
     Trash2,
-    Search
+    Search,
+    TriangleAlert
   } from '@lucide/svelte'
   import { toast } from 'svelte-sonner'
 
@@ -145,6 +146,10 @@
 
   // The source ticket's open/closed (GitHub) or workflow (Jira) state, or null.
   const ticketState = $derived(ticketStateBadge(task))
+
+  // A Jira ticket with no target repo is skipped by the agent (it has nothing to
+  // branch in), so warn the operator that it needs a repo to be worked (issue #337).
+  const needsTargetRepo = $derived(task.source_kind === 'jira' && task.target_repo_ids.length === 0)
 
   // The label for the "open the external issue" action, per source. Internal
   // tasks have no external issue, so the item is disabled regardless of label.
@@ -357,6 +362,17 @@
       {/if}
       <div class="min-w-0 text-sm leading-snug">{task.title}</div>
     </div>
+
+    <!-- A Jira ticket without a target repo is never auto-pulled, so flag it (issue #337). -->
+    {#if needsTargetRepo}
+      <div
+        class="mt-2 flex items-center gap-1.5 rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-xs font-medium text-warning"
+        title="This Jira ticket has no target repository, so the agent will not work it. Open the task and set one."
+      >
+        <TriangleAlert class="size-3.5 flex-none" />
+        <span>No target repo — agent will skip this</span>
+      </div>
+    {/if}
 
     <!-- Loud on purpose: pulses until the user acknowledges the suggestions on the task. -->
     {#if suggestionCount > 0}

@@ -704,7 +704,11 @@ Playwright MCP, check layout via computed styles at 375px and 1280px).
   renders the Jira key + summary + description + link, and the same branch -> PR ->
   review-gate -> merge flow runs (multi-repo: a PR per target repo, all-merge-to-
   Done via `task_pull_requests`). A repo-less Jira ticket stays on the board,
-  skipped, until a repo is assigned. On PR open and on Done the agent posts a
+  skipped, until a repo is assigned; since that skip is otherwise silent, both the
+  board card and the task view flag it (issue #337): the card shows an amber "No
+  target repo" warning label and the task's Target repositories section shows a
+  warning banner. Both are pure frontend derivations of `source_kind === 'jira'`
+  with an empty `target_repo_ids`, so nothing new is stored. On PR open and on Done the agent posts a
   comment back to the Jira issue (PR link(s) + outcome) via `JiraClient::add_comment`,
   and the agent-driven move to Done transitions the ticket through the board's
   column->status map (`orchestrator::transition_jira_to_column`, shared with the
