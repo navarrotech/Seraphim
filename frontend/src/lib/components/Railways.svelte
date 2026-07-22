@@ -1,11 +1,15 @@
 <script lang="ts">
-  // The Railways management page. Railways are the parallel agent lanes: each has
+  // The Railways management panel. Railways are the parallel agent lanes: each has
   // its own workspace container, agent loop, Claude session, and set of repos. A
   // repository belongs to exactly one railway, so a task's lane always follows its
   // repo. The `main` railway holds everything by default and cannot be deleted or
-  // stopped. This page is where the operator creates lanes, renames them, pauses a
-  // lane independently of the global master pause, starts or stops a lane's
-  // container, deletes a lane, and assigns repos between lanes.
+  // stopped. This is where the operator creates lanes, renames them, pauses a lane
+  // independently of the global master pause, starts or stops a lane's container,
+  // deletes a lane, and assigns repos between lanes.
+  //
+  // Rendered both standalone (the `/railways` route) and inside the Settings UI, so
+  // it owns no page title or full-page padding: the host supplies the heading and
+  // the outer container. It loads its own data on mount and needs no props.
   import type { Railway, RailwayState, Repository, Settings } from '$lib/types'
   import type { DndEvent } from 'svelte-dnd-action'
 
@@ -270,17 +274,14 @@
   onMount(load)
 </script>
 
-<div class="mx-auto max-w-4xl space-y-6 p-6">
-  <header>
-    <h1 class="text-2xl font-bold tracking-tight">Railways</h1>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-      Railways are parallel agent lanes. Each has its own workspace container, agent loop, Claude
-      session, and set of repositories. A repository belongs to exactly one railway, so a task's
-      lane always follows its repo. The <strong>main</strong> railway holds everything by default
-      and cannot be deleted or stopped. Lane containers start lazily on first work and idle-stop on
-      their own; you can also start or stop them by hand here.
-    </p>
-  </header>
+<div class="space-y-6">
+  <p class="max-w-2xl text-sm text-muted-foreground">
+    Railways are parallel agent lanes. Each has its own workspace container, agent loop, Claude
+    session, and set of repositories. A repository belongs to exactly one railway, so a task's
+    lane always follows its repo. The <strong>main</strong> railway holds everything by default
+    and cannot be deleted or stopped. Lane containers start lazily on first work and idle-stop on
+    their own; you can also start or stop them by hand here.
+  </p>
 
   {#if settings}
   <Card.Root>
