@@ -27,6 +27,7 @@ import type {
   Question,
   Railway,
   RepoDeletionImpact,
+  ReposDeletionImpact,
   Repository,
   ResetSummary,
   ReviewPolicy,
@@ -342,6 +343,28 @@ export function repoDeletionImpact(repoId: string) {
 
 export function deleteRepo(repoId: string) {
   return apiClient.delete(`repos/${repoId}`).json()
+}
+
+// --- Bulk edit (repositories multi-select, issue #331) -----------------------
+
+// Set `enabled` and/or `sync_issues` across a selection of repos. Omitted fields
+// are left untouched.
+export function bulkSetRepoFields(
+  ids: string[],
+  fields: { enabled?: boolean; sync_issues?: boolean }
+) {
+  return apiClient.post('repos/bulk/fields', { json: { ids, ...fields } }).json<{ updated: number }>()
+}
+
+// Delete a selection of repos and everything synced from them.
+export function bulkDeleteRepos(ids: string[]) {
+  return apiClient.post('repos/bulk/delete', { json: { ids } }).json<{ deleted: number }>()
+}
+
+// Aggregate what deleting a selection would purge, so the bulk confirmation can
+// spell out the full blast radius first.
+export function bulkRepoDeletionImpact(ids: string[]) {
+  return apiClient.post('repos/bulk/deletion-impact', { json: { ids } }).json<ReposDeletionImpact>()
 }
 
 export function importOrg(owner: string, issueLabels: string[] = []) {

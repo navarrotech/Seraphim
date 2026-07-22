@@ -432,6 +432,18 @@ pub struct RepoDeletionImpact {
     pub suggestions: i64,
 }
 
+/// What deleting a selection of repositories will purge, aggregated across the
+/// set so the bulk-delete confirmation can spell out the full blast radius.
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct ReposDeletionImpact {
+    pub repos: i64,
+    pub tasks: i64,
+    pub turns: i64,
+    pub events: i64,
+    pub questions: i64,
+    pub suggestions: i64,
+}
+
 /// Aggregated agent usage (for a task or globally) over turns since the reset
 /// marker. Cost and tokens sum the turns; `worked_ms` sums their elapsed time.
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]

@@ -3,15 +3,27 @@
   import type { UpsertRepoRequest } from '$lib/api'
 
   import { onMount } from 'svelte'
+  import { SvelteSet } from 'svelte/reactivity'
   import { toast } from 'svelte-sonner'
-  import { CircleCheck, CircleOff, GitBranch, Pencil, Plus, Trash2 } from '@lucide/svelte'
+  import { CircleCheck, CircleOff, GitBranch, ListChecks, Pencil, Plus, Trash2 } from '@lucide/svelte'
 
-  import { deleteRepo, importOrg, listRepos, repoDeletionImpact, updateRepo } from '$lib/api'
+  import {
+    bulkDeleteRepos,
+    bulkRepoDeletionImpact,
+    bulkSetRepoFields,
+    deleteRepo,
+    importOrg,
+    listRepos,
+    repoDeletionImpact,
+    updateRepo
+  } from '$lib/api'
   import * as Card from '$lib/components/ui/card'
   import * as AlertDialog from '$lib/components/ui/alert-dialog'
   import { Button, buttonVariants } from '$lib/components/ui/button'
+  import { Checkbox } from '$lib/components/ui/checkbox'
   import { Input } from '$lib/components/ui/input'
   import { Switch } from '$lib/components/ui/switch'
+  import RepoBulkActionBar from '$lib/components/RepoBulkActionBar.svelte'
 
   let repos = $state<Repository[]>([])
   let importOwner = $state('')
@@ -44,9 +56,83 @@
     repo.sync_issues = value
     try {
       await updateRepo(repo.id, repoToBody(repo))
-    } catch {
+    }
+    catch {
       repo.sync_issues = previous
       toast.error('Could not update issue sync')
+    }
+  }
+
+  // --- Multi-select (bulk edit, issue #331) ----------------------------------
+  // In bulk mode a row click selects a repo instead of doing nothing; the
+  // floating RepoBulkActionBar then edits or deletes the whole selection at once,
+  // mirroring the board's multi-select.
+  let bulkMode = $state(false)
+  let selected = new SvelteSet<string>()
+  // True while the bulk bar has a modal open, so Escape closes that first rather
+  // than exiting bulk mode out from under it.
+  let bulkDialogOpen = $state(false)
+
+  const allSelected = $derived(repos.length > 0 && repos.every((repo) => selected.has(repo.id)))
+  const someSelected = $derived(repos.some((repo) => selected.has(repo.id)))
+
+  // Clear the selection and leave bulk mode (the bar's X and the Escape key).
+  function exitBulkMode() {
+    bulkMode = false
+    selected.clear()
+  }
+
+  function toggleSelected(id: string) {
+    if (selected.has(id)) {
+      selected.delete(id)
+    }
+    else {
+      selected.add(id)
+    }
+  }
+
+  // The header checkbox selects every repo, or clears them when all are already
+  // selected (a partial selection fills in to all).
+  function toggleAll() {
+    if (allSelected) {
+      selected.clear()
+      return
+    }
+    for (const repo of repos) {
+      selected.add(repo.id)
+    }
+  }
+
+  // Enter toggles a row; Space does too, without scrolling the page.
+  function onRowKeydown(event: KeyboardEvent, id: string) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      toggleSelected(id)
+    }
+  }
+
+  async function applyBulkFields(fields: { enabled?: boolean; sync_issues?: boolean }) {
+    const ids = [...selected]
+    await bulkSetRepoFields(ids, fields)
+    await load()
+    toast.success(`Updated ${ids.length} ${ids.length === 1 ? 'repository' : 'repositories'}`)
+  }
+
+  async function applyBulkDelete() {
+    const ids = [...selected]
+    const { deleted } = await bulkDeleteRepos(ids)
+    selected.clear()
+    await load()
+    toast.success(`Deleted ${deleted} ${deleted === 1 ? 'repository' : 'repositories'}`)
+  }
+
+  function fetchBulkImpact() {
+    return bulkRepoDeletionImpact([...selected])
+  }
+
+  function onWindowKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && bulkMode && !bulkDialogOpen) {
+      exitBulkMode()
     }
   }
 
@@ -80,7 +166,8 @@
       deleteTarget = null
       deleteImpact = null
       await load()
-    } finally {
+    }
+    finally {
       deleting = false
     }
   }
@@ -99,12 +186,26 @@
   onMount(load)
 </script>
 
-<div class="mx-auto max-w-6xl space-y-5 px-6 py-6">
-  <div class="flex items-center justify-between gap-3">
+<svelte:window onkeydown={onWindowKeydown} />
+
+<div class="mx-auto max-w-6xl space-y-5 px-6 py-6 {bulkMode ? 'pb-24' : ''}">
+  <div class="flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold">Repositories</h1>
-    <a href="/repos/new" class={buttonVariants({ variant: 'default' })}>
-      <Plus class="size-4" /> Add repository
-    </a>
+    <div class="flex items-center gap-2">
+      {#if repos.length > 0}
+        <Button
+          variant={bulkMode ? 'default' : 'outline'}
+          size="sm"
+          onclick={() => (bulkMode ? exitBulkMode() : (bulkMode = true))}
+        >
+          <ListChecks class="size-4" />
+          {bulkMode ? 'Done' : 'Bulk edit'}
+        </Button>
+      {/if}
+      <a href="/repos/new" class={buttonVariants({ variant: 'default' })}>
+        <Plus class="size-4" /> Add repository
+      </a>
+    </div>
   </div>
 
   <Card.Root>
@@ -126,7 +227,21 @@
 
   <Card.Root>
     <Card.Header>
-      <Card.Title>Managed repositories</Card.Title>
+      <div class="flex items-center justify-between gap-3">
+        <Card.Title>Managed repositories</Card.Title>
+        {#if bulkMode && repos.length > 0}
+          <!-- Select-all, with an indeterminate state for a partial selection. -->
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox
+              checked={allSelected}
+              indeterminate={someSelected && !allSelected}
+              onCheckedChange={toggleAll}
+              aria-label="Select all repositories"
+            />
+            Select all
+          </label>
+        {/if}
+      </div>
     </Card.Header>
     <Card.Content class="divide-y divide-border">
       {#if repos.length === 0}
@@ -135,8 +250,31 @@
         </p>
       {/if}
       {#each repos as repo (repo.id)}
-        <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-          <!-- Enabled / disabled indicator, furthest left. -->
+        {@const isSelected = selected.has(repo.id)}
+        <!-- The row is a button (role + tabindex) exactly in bulk mode; the
+             checker can't prove the dynamic role, so this warning is spurious. -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div
+          class="flex items-center gap-3 rounded-md py-3 first:pt-0 last:pb-0 {bulkMode
+            ? 'cursor-pointer px-2 -mx-2 transition-colors'
+            : ''} {bulkMode && isSelected ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : ''}"
+          role={bulkMode ? 'button' : undefined}
+          tabindex={bulkMode ? 0 : undefined}
+          aria-pressed={bulkMode ? isSelected : undefined}
+          onclick={bulkMode ? () => toggleSelected(repo.id) : undefined}
+          onkeydown={bulkMode ? (event) => onRowKeydown(event, repo.id) : undefined}
+        >
+          {#if bulkMode}
+            <!-- Visual selection indicator; the whole row is the toggle control. -->
+            <Checkbox
+              checked={isSelected}
+              tabindex={-1}
+              aria-hidden="true"
+              class="pointer-events-none flex-none"
+            />
+          {/if}
+
+          <!-- Enabled / disabled indicator. -->
           <span class="flex-none" title={repo.enabled ? 'Enabled' : 'Disabled'}>
             {#if repo.enabled}
               <CircleCheck class="size-4 text-success" aria-label="Enabled" />
@@ -145,17 +283,20 @@
             {/if}
           </span>
 
-          <!-- Quick issue-sync toggle. -->
-          <span
-            class="flex-none"
-            title={repo.sync_issues ? 'Syncing issues (toggle off)' : 'Not syncing issues (toggle on)'}
-          >
-            <Switch
-              checked={repo.sync_issues}
-              onCheckedChange={(value) => toggleSync(repo, value)}
-              aria-label="Sync issues"
-            />
-          </span>
+          <!-- Quick issue-sync toggle (hidden in bulk mode, where the whole row
+               is the selection target). -->
+          {#if !bulkMode}
+            <span
+              class="flex-none"
+              title={repo.sync_issues ? 'Syncing issues (toggle off)' : 'Not syncing issues (toggle on)'}
+            >
+              <Switch
+                checked={repo.sync_issues}
+                onCheckedChange={(value) => toggleSync(repo, value)}
+                aria-label="Sync issues"
+              />
+            </span>
+          {/if}
 
           <!-- Name + details. -->
           <div class="min-w-0 flex-1">
@@ -187,32 +328,45 @@
             {/if}
           </div>
 
-          <!-- Actions. -->
-          <div class="flex flex-none gap-1">
-            <a
-              href={`/repos/${repo.id}/edit`}
-              title="Edit"
-              aria-label="Edit"
-              class={buttonVariants({ variant: 'ghost', size: 'icon' })}
-            >
-              <Pencil class="size-4" />
-            </a>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Delete"
-              aria-label="Delete"
-              class="text-destructive hover:text-destructive"
-              onclick={() => askDelete(repo)}
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
+          <!-- Actions (hidden in bulk mode to keep the row a single toggle). -->
+          {#if !bulkMode}
+            <div class="flex flex-none gap-1">
+              <a
+                href={`/repos/${repo.id}/edit`}
+                title="Edit"
+                aria-label="Edit"
+                class={buttonVariants({ variant: 'ghost', size: 'icon' })}
+              >
+                <Pencil class="size-4" />
+              </a>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Delete"
+                aria-label="Delete"
+                class="text-destructive hover:text-destructive"
+                onclick={() => askDelete(repo)}
+              >
+                <Trash2 class="size-4" />
+              </Button>
+            </div>
+          {/if}
         </div>
       {/each}
     </Card.Content>
   </Card.Root>
 </div>
+
+{#if bulkMode}
+  <RepoBulkActionBar
+    count={selected.size}
+    bind:dialogOpen={bulkDialogOpen}
+    onClear={exitBulkMode}
+    onEditFields={applyBulkFields}
+    onDelete={applyBulkDelete}
+    fetchImpact={fetchBulkImpact}
+  />
+{/if}
 
 <AlertDialog.Root
   open={deleteTarget !== null}
