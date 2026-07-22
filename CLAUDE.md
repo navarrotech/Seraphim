@@ -112,6 +112,26 @@ SvelteKit, **SPA** (`src/routes/+layout.ts` sets `ssr = false`), adapter-node.
 in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
 `/api/*` to the API in production; `vite.config.ts` proxies it in dev.
 
+**Settings IA (issue #344):** a Stripe-style landing grid at `/settings`
+(`routes/settings/+page.svelte`) links to one dedicated page per category at
+`/settings/[section]`. The grid and each page header are driven by a single
+registry (`src/lib/settings/sections.ts`, `SETTINGS_GROUPS` + `SECTION_BY_ID`),
+which groups every section under at most three bold headings sized to fit a
+1920x1080 screen without scrolling: **Agent** (general, llms, workspace,
+availability, usage), **Workflow & integrations** (automation, railways, apps,
+secrets, notifications), and **System** (updates, backup, danger). The dynamic
+page (`routes/settings/[section]/+page.svelte`) renders the section matching the
+route param, fetching only that section's data, and falls back to "Not found" for
+an unknown id. Design decisions folded in: **Automation** and **Railways** moved
+off the top nav into settings (`/automation` and `/railways` 308-redirect to their
+`/settings/*` homes); **Jira** and **Tailscale** are opt-in integrations under a
+single **Apps** page, not native settings; the **Workspace** page groups agent
+instructions, the base setup script, the config repo, environment variables,
+network access, and container restart/recreate; destructive actions (hard reset)
+live in a single **Danger zone**; **Usage & stats** merges the usage-pause
+controls with the statistics reset. There is no settings notepad: the global
+operator notepad lives on the kanban board.
+
 ## The data model (Postgres)
 
 `board_column` (kanban lane: available / todo / in_progress / in_review / done /
@@ -709,7 +729,8 @@ fail-fast) on every PR and on `main`/`develop`.
 **Frontend dev server (for the agent's visual self-review, issue #244):**
 `cd frontend && npm run dev` serves the UI on `:5173` (`vite dev`, which proxies
 `/api` to the backend). Key routes to eyeball after a UI change: `/` (the kanban
-board), `/settings`, `/railways`, and `/task/<id>`. After any change to this
+board), `/settings` (the grid) plus its subpages (e.g. `/settings/workspace`,
+`/settings/railways`), and `/task/<id>`. After any change to this
 frontend, follow the visual self-review loop (open the affected route(s) with the
 Playwright MCP, check layout via computed styles at 375px and 1280px).
 
@@ -822,11 +843,11 @@ railway holds everything by default.
 
 - **Board:** swimlanes. One board, each railway a horizontal lane across the
   columns. Moving a card to another railway is a repo-reassign action, not a drag.
-- **Management UI:** a dedicated top-nav page (`/railways`), not a settings
-  subpage. It owns lane create/rename/describe, the per-railway pause + the global
-  master pause, start/stop, delete-with-confirm, the idle-stop timeout, and the
-  per-repo lane assignment. The board keeps the swimlanes; the global operator
-  notepad stays in settings.
+- **Management UI:** a Settings subpage (`/settings/railways`, issue #344). It owns
+  lane create/rename/describe, the per-railway pause + the global master pause,
+  start/stop, delete-with-confirm, the idle-stop timeout, and the per-repo lane
+  assignment. The board keeps the swimlanes; the global operator notepad lives on
+  the kanban board, not in settings.
 - **Loops:** one **agent loop per railway** (parallel); sync, review, and
   defibrillator stay single global loops that are railway-aware.
 - **Container lifecycle:** lazy start on first work; auto idle-STOP (stopped, not
@@ -835,8 +856,8 @@ railway holds everything by default.
   on that repo's current railway, otherwise the repo and all its tasks move.
 - **Per-railway:** session, pause, name, description, repo set, lifecycle state.
   **Global:** model, setup scripts, config repo, instructions, tokens, one
-  schedule, branch template, review policy, plus a new global **notepad**
-  (operator scratchpad, never injected into an agent).
+  schedule, branch template, review policy, plus the global **notepad**
+  (operator scratchpad on the kanban board, never injected into an agent).
 - **Deletion:** `main` is undeletable; deleting another railway auto-reassigns its
   repos (and their non-active tasks) to `main`, then tears down its container and
   session. Blocked while a live turn runs on it.

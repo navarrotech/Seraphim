@@ -1,7 +1,9 @@
 <script lang="ts">
-  // The Automation page: create rulesets that react to issue events (created /
+  // The Automation content: create rulesets that react to issue events (created /
   // updated / commented) and act on a match (today: move the card to To Do).
   // Each rule is an inline, always-open editor; saving creates or updates it.
+  // Rendered without its own page title so it can host both the standalone
+  // /automation route and the Settings subpage, which supply their own header.
   import type {
     AutomationRule,
     AutomationTrigger,
@@ -15,7 +17,7 @@
   import type { RuleRequest } from '$lib/api'
 
   import { onMount } from 'svelte'
-  import { Info, Plus, Trash2, X, Zap } from '@lucide/svelte'
+  import { Info, Plus, Trash2, X } from '@lucide/svelte'
 
   import {
     createAutomationRule,
@@ -215,21 +217,16 @@
   }
 </script>
 
-<div class="mx-auto max-w-4xl space-y-6 p-6">
+<div class="space-y-6">
   <header class="flex items-start justify-between gap-4">
-    <div>
-      <h1 class="flex items-center gap-2 text-2xl font-bold tracking-tight">
-        <Zap class="size-6 text-primary" /> Automation
-      </h1>
-      <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Rules react to issue events and, on a match, run their action (for example moving the card to
-        the top of To Do). Try: <em>labels has one of "automation, bug" AND author is exactly
-        navarrotech</em>, or a comment that contains "Jarvis, can you take this on?".
-        <strong>Created</strong> rules fire as issues sync onto the board, with or without a webhook;
-        <strong>Updated</strong> and <strong>Comment</strong> rules fire only from a configured GitHub
-        webhook.
-      </p>
-    </div>
+    <p class="max-w-2xl text-sm text-muted-foreground">
+      Rules react to issue events and, on a match, run their action (for example moving the card to
+      the top of To Do). Try: <em>labels has one of "automation, bug" AND author is exactly
+      navarrotech</em>, or a comment that contains "Jarvis, can you take this on?".
+      <strong>Created</strong> rules fire as issues sync onto the board, with or without a webhook;
+      <strong>Updated</strong> and <strong>Comment</strong> rules fire only from a configured GitHub
+      webhook.
+    </p>
     <Button onclick={addRule}><Plus class="size-4" /> New rule</Button>
   </header>
 
