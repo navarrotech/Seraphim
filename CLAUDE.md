@@ -271,7 +271,13 @@ operator notepad lives on the kanban board.
   `POST /agent/setup-scripts/{repo,base}` (`http/setup_scripts.rs`). Every edit
   replaces a repo's `setup_script` or the global `base_setup_script` and records a
   row here with the before/after, `target` (`repo`|`base`), `summary` (the agent's
-  one-line why), and the `task_id` it was working. The change is **never silent**:
+  one-line why), and the `task_id` it was working. `update_repo_setup_script` can
+  also toggle the repo's `setup_script_always_run` flag (issue #348): its
+  `setup_script` is optional and an `always_run` bool sets the flag, so the agent
+  can make its own setup edit re-run before every task on the existing clone, not
+  just on first clone. A flag toggle is recorded on the same row (`always_run`:
+  `NULL` when untouched, else the value set) so the audit and banner stay honest.
+  The change is **never silent**:
   the board shows the unacknowledged ones in a banner (via the board payload) and a
   one-time toast + native notification fires (`ServerEvent::SetupScriptChanged`),
   cleared by `POST /setup-changes/:id/ack`. No-op edits are rejected so the audit

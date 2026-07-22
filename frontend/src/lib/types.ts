@@ -358,6 +358,9 @@ export type SetupScriptChange = {
   repo_full_name: string | null
   old_script: string
   new_script: string
+  // When the change toggled the repo's setup_script_always_run flag (issue #348),
+  // the value it set it to; null when the flag was left untouched.
+  always_run: boolean | null
   // The agent's one-line reason for the change.
   summary: string
   acknowledged: boolean
