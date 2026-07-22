@@ -154,7 +154,14 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
   the most recent sync succeeded; set when listing the repo's issues fails, cleared
   on the next clean sync). There is **no** separate issue-source entity; a repo
   with `sync_issues` is its own source. Bulk onboarding is the one-shot **Import
-  from org** action (`POST /repos/import-org`).
+  from org** action (`POST /repos/import-org`). The repositories page also has a
+  **multi-select bulk edit** (issue #331), modeled on the board's: a "Bulk edit"
+  toggle turns each row into a checkbox target (with a select-all header), and a
+  floating action bar bulk-edits fields (`enabled` / `sync_issues`, three-way
+  keep/on/off, `POST /repos/bulk/fields`) or deletes the selection
+  (`POST /repos/bulk/delete`, with an aggregate blast-radius preview from
+  `POST /repos/bulk/deletion-impact`). All three mirror the board's
+  `/tasks/bulk/*` handlers and notify the board once per action.
 - **`tasks`** — the cards: `source_kind`, `external_id`, `repo_id`, `title`,
   `board_column`, `position` (fractional rank), `status`, `branch`, `pr_url`,
   `error`, `hold` (agent skips this card), `blocking` (serialize the queue while

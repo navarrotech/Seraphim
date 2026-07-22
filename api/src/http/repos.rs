@@ -7,7 +7,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use super::ApiResult;
-use crate::db::models::{RepoDeletionImpact, Repository, ReviewPolicy};
+use crate::db::models::{RepoDeletionImpact, ReposDeletionImpact, Repository, ReviewPolicy};
 use crate::db::queries;
 use crate::git;
 use crate::orchestrator::provision::repo_dir_name;
@@ -198,6 +198,60 @@ pub async fn delete(
     queries::delete_repository(&state.db, id).await?;
     state.notify_board();
     Ok(Json(json!({ "deleted": true })))
+}
+
+// --- Bulk edit (repositories multi-select, issue #331) -----------------------
+//
+// Back the repositories page's multi-select bar, mirroring the board's bulk edit.
+// Each takes a set of repo ids and notifies the board once at the end.
+
+#[derive(Debug, Deserialize)]
+pub struct BulkRepoIdsRequest {
+    pub ids: Vec<Uuid>,
+}
+
+/// `POST /api/v1/repos/bulk/deletion-impact` - aggregate what deleting a set of
+/// repos would purge, so the UI can spell it out before the user confirms.
+pub async fn bulk_deletion_impact(
+    State(state): State<AppState>,
+    Json(body): Json<BulkRepoIdsRequest>,
+) -> ApiResult<Json<ReposDeletionImpact>> {
+    Ok(Json(
+        queries::repos_deletion_impact(&state.db, &body.ids).await?,
+    ))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BulkRepoFieldsRequest {
+    pub ids: Vec<Uuid>,
+    /// Each is `None` ("keep as is") or `Some(value)` to set across the selection.
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub sync_issues: Option<bool>,
+}
+
+/// `POST /api/v1/repos/bulk/fields` - set `enabled` and/or `sync_issues` across a
+/// selection of repos. Omitted fields are left untouched.
+pub async fn bulk_fields(
+    State(state): State<AppState>,
+    Json(body): Json<BulkRepoFieldsRequest>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let updated =
+        queries::bulk_set_repo_fields(&state.db, &body.ids, body.enabled, body.sync_issues).await?;
+    state.notify_board();
+    Ok(Json(json!({ "updated": updated })))
+}
+
+/// `POST /api/v1/repos/bulk/delete` - delete a selection of repos and everything
+/// synced from them.
+pub async fn bulk_delete(
+    State(state): State<AppState>,
+    Json(body): Json<BulkRepoIdsRequest>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let deleted = queries::delete_repositories(&state.db, &body.ids).await?;
+    state.notify_board();
+    Ok(Json(json!({ "deleted": deleted })))
 }
 
 #[derive(Debug, Deserialize)]

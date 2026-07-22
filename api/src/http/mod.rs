@@ -141,6 +141,15 @@ pub fn router(state: AppState) -> Router {
             axum::routing::put(repos::update).delete(repos::delete),
         )
         .route("/repos/:id/deletion-impact", get(repos::deletion_impact))
+        // Bulk multi-select actions on the repositories page (issue #331). Static
+        // `bulk` beats the `:id` param at the same position, mirroring the board's
+        // `/tasks/bulk/*` alongside `/tasks/:id/*`.
+        .route("/repos/bulk/fields", post(repos::bulk_fields))
+        .route("/repos/bulk/delete", post(repos::bulk_delete))
+        .route(
+            "/repos/bulk/deletion-impact",
+            post(repos::bulk_deletion_impact),
+        )
         .route("/repos/import-org", post(repos::import_org))
         .route("/sync", post(repos::sync))
         // Railways: the parallel agent lanes (CRUD, repo assignment, per-railway

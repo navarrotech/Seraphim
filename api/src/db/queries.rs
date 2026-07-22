@@ -16,8 +16,9 @@ use super::models::{
     ClaudeUsageCredentials, DependencyCandidate, EnvSuggestion, EnvVar, EnvVarWrite, HeartAttack,
     InternalComment, JiraBoard, JiraDeployment, NetworkAccessLevel, PendingPlacement,
     PendingQuestion, Question, QuestionOption, QuestionStatus, Railway, RepoDeletionImpact,
-    RepoSyncError, Repository, ReviewPolicy, Settings, SourceKind, StatsAggregate, Task,
-    TaskAttachment, TaskColumn, TaskPullRequest, TaskScreenshot, TaskStatus, Turn,
+    RepoSyncError, ReposDeletionImpact, Repository, ReviewPolicy, Settings, SourceKind,
+    StatsAggregate, Task, TaskAttachment, TaskColumn, TaskPullRequest, TaskScreenshot, TaskStatus,
+    Turn,
 };
 use crate::automation::{RuleAction, RuleGroup, Trigger};
 
@@ -1033,6 +1034,88 @@ pub async fn delete_repository(pool: &PgPool, id: Uuid) -> sqlx::Result<()> {
         .await?;
     tx.commit().await?;
     Ok(())
+}
+
+// --- Bulk repository edit ----------------------------------------------------
+//
+// Back the repositories page's multi-select bulk actions (issue #331), mirroring
+// the board's bulk edit: each takes a set of repo ids and applies one change in a
+// single round-trip so a large selection ticks the UI once rather than per row.
+
+/// Aggregates everything deleting a set of repos would purge, so the bulk-delete
+/// confirmation can spell out the full blast radius across the selection.
+///
+/// Counts the repos themselves plus their tasks and the turns/events/questions/
+/// suggestions that cascade from them, the same subtree [`repo_deletion_impact`]
+/// reports for a single repo.
+pub async fn repos_deletion_impact(
+    pool: &PgPool,
+    ids: &[Uuid],
+) -> sqlx::Result<ReposDeletionImpact> {
+    sqlx::query_as::<_, ReposDeletionImpact>(
+        "SELECT \
+           (SELECT COUNT(*) FROM repositories WHERE id = ANY($1)) AS repos, \
+           (SELECT COUNT(*) FROM tasks WHERE repo_id = ANY($1)) AS tasks, \
+           (SELECT COUNT(*) FROM turns t \
+              JOIN tasks k ON t.task_id = k.id WHERE k.repo_id = ANY($1)) AS turns, \
+           (SELECT COUNT(*) FROM events e \
+              JOIN turns t ON e.turn_id = t.id \
+              JOIN tasks k ON t.task_id = k.id WHERE k.repo_id = ANY($1)) AS events, \
+           (SELECT COUNT(*) FROM questions q \
+              JOIN tasks k ON q.task_id = k.id WHERE k.repo_id = ANY($1)) AS questions, \
+           (SELECT COUNT(*) FROM environment_suggestions s \
+              JOIN tasks k ON s.task_id = k.id WHERE k.repo_id = ANY($1)) AS suggestions",
+    )
+    .bind(ids)
+    .fetch_one(pool)
+    .await
+}
+
+/// Sets `enabled` and/or `sync_issues` across a set of repositories. A `None`
+/// field is left as is (`COALESCE` keeps the existing value), so the caller
+/// changes only the fields the operator picked. Returns how many rows changed.
+pub async fn bulk_set_repo_fields(
+    pool: &PgPool,
+    ids: &[Uuid],
+    enabled: Option<bool>,
+    sync_issues: Option<bool>,
+) -> sqlx::Result<u64> {
+    let result = sqlx::query(
+        "UPDATE repositories SET enabled = COALESCE($2, enabled), \
+         sync_issues = COALESCE($3, sync_issues), updated_at = now() WHERE id = ANY($1)",
+    )
+    .bind(ids)
+    .bind(enabled)
+    .bind(sync_issues)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
+/// Deletes a set of repositories and everything synced from them, applying
+/// [`delete_repository`]'s cascade across the whole selection in one transaction.
+///
+/// The `tasks.repo_id` FK cascades each repo's tasks (and their turns/events/
+/// questions/suggestions); the Jira board associations are a JSON array with no
+/// FK, so each id is stripped from `jira_boards.repo_ids` first to avoid a
+/// dangling reference on the next sync. Returns how many repositories were removed.
+pub async fn delete_repositories(pool: &PgPool, ids: &[Uuid]) -> sqlx::Result<u64> {
+    let mut tx = pool.begin().await?;
+    for id in ids {
+        sqlx::query(
+            "UPDATE jira_boards SET repo_ids = repo_ids - $1, updated_at = now() \
+             WHERE jsonb_exists(repo_ids, $1)",
+        )
+        .bind(id.to_string())
+        .execute(&mut *tx)
+        .await?;
+    }
+    let result = sqlx::query("DELETE FROM repositories WHERE id = ANY($1)")
+        .bind(ids)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(result.rows_affected())
 }
 
 // --- Tasks -------------------------------------------------------------------

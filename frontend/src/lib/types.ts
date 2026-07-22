@@ -329,6 +329,17 @@ export type RepoDeletionImpact = {
   suggestions: number
 }
 
+// What deleting a selection of repositories will purge, aggregated across the
+// set, shown in the bulk-delete confirmation (issue #331).
+export type ReposDeletionImpact = {
+  repos: number
+  tasks: number
+  turns: number
+  events: number
+  questions: number
+  suggestions: number
+}
+
 // Live agent statistics (per task or global). Several fields are session/global
 // totals; Seraphim runs one shared Claude session, so they are not split per task.
 export type Stats = {
