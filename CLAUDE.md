@@ -101,6 +101,10 @@ scripts/    start.sh stop.sh restart.sh
   `/api/v1/tailscale/{status,up,down,reauth,restart}`): the tailnet URL, hosting
   status, connect/disconnect, and a login URL when the node needs auth. Status
   JSON parsing is pure + unit-tested. Container name from `TAILSCALE_CONTAINER`.
+  The compose service is always defined, but its entrypoint is guarded (issue
+  #353): a blank `TS_AUTHKEY` (the "skip Tailscale" case) idles the container with
+  `sleep infinity` instead of letting `containerboot` crash-loop against
+  `restart: unless-stopped`; a set key hands off to the normal `containerboot`.
 - `src/sources/` — `Source` enum (GitHub; Jira is a future variant), `github.rs`, `types.rs`.
 - `src/git/` — PR detection, CI-green check, squash-merge (octocrab).
 - `src/orchestrator/` — `mod.rs` (the loops), `provision.rs` (workspace provisioning), `prompt.rs`.

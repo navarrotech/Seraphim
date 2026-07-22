@@ -158,6 +158,22 @@ services:
     container_name: seraphim-tailscale
     image: tailscale/tailscale:latest
     restart: unless-stopped
+    # A blank TS_AUTHKEY means "skip Tailscale" (see .env.example), but the stock
+    # containerboot entrypoint keeps exiting when it cannot authenticate, and
+    # `restart: unless-stopped` then thrashes it in a ~2-minute crash loop
+    # (issue #353). Guard the entrypoint: with no auth key, idle cleanly instead
+    # of looping; with one, hand off to the normal containerboot. The `$$` defers
+    # expansion to container runtime, so the key is read from the environment and
+    # never baked into the image's inspectable command.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$${TS_AUTHKEY:-}" ]; then
+          echo "seraphim: TS_AUTHKEY is blank; Tailscale disabled, idling (set TS_AUTHKEY in .env to enable)." >&2
+          exec sleep infinity
+        fi
+        exec /usr/local/bin/containerboot
     hostname: ${TS_HOSTNAME}
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY}
