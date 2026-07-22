@@ -148,15 +148,21 @@
   }
 </script>
 
+<!-- Mobile-safe (issue #350): cap the bar at the viewport width (matching
+     RepoBulkActionBar, issue #331). This bar has more actions than that one, so
+     capping alone still overflows; below sm it takes the full capped width and
+     wraps its actions onto multiple rows, then reverts to a single auto-width row
+     from sm up. -->
 <div
-  class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl"
+  class="fixed bottom-6 left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl sm:w-auto sm:flex-nowrap"
   role="toolbar"
   aria-label="Bulk actions"
 >
-  <!-- Far left: count badge + the word "selected". -->
+  <!-- Far left: count badge + the word "selected" (label drops on narrow screens
+       so the compact bar stays within a 375px viewport). -->
   <div class="flex items-center gap-2 pl-1 pr-1">
     <Badge variant="default" class="tabular-nums">{count}</Badge>
-    <span class="text-sm text-muted-foreground">selected</span>
+    <span class="hidden text-sm text-muted-foreground sm:inline">selected</span>
   </div>
 
   <div class="mx-1 h-6 w-px bg-border" aria-hidden="true"></div>
