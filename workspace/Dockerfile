@@ -4,9 +4,10 @@
 # Java, .NET, PHP, Ruby, plus version managers, out of the box. On top we add the
 # tools the agents need that it doesn't ship: Rust/Cargo, the Claude Code CLI, the
 # GitHub CLI, a Docker client, Earthly, actionlint, the org cloud CLIs (jira,
-# doctl, gcloud, wrangler, bunny), and Playwright's Chromium for Plunder's e2e
-# suite. Work runs as the image's non-root `codespace` user; the API drives it
-# via `docker exec`, the container itself just idles.
+# doctl, gcloud, wrangler, bunny), Playwright's Chromium for Plunder's e2e suite,
+# and shellcheck plus PowerShell for linting the host scripts. Work runs as the
+# image's non-root `codespace` user; the API drives it via `docker exec`, the
+# container itself just idles.
 
 FROM mcr.microsoft.com/devcontainers/universal:latest
 
@@ -220,6 +221,48 @@ RUN node_dir="$(runuser -l codespace -c 'command -v node' | xargs dirname)" \
     && test -x /usr/local/bin/playwright-mcp \
     && runuser -l codespace -c 'command -v playwright-mcp >/dev/null' \
     && rm -rf /home/codespace/.npm/_npx /tmp/*
+
+# --- Host-script linting: shellcheck + PowerShell (issue #379) ----------------
+# The host scripts ship in two flavors: bash (scripts/*.sh) and Windows
+# PowerShell (scripts/*.ps1). Bake shellcheck and pwsh so an agent working a
+# host-script task can lint the shell and parse-check the PowerShell as real
+# checks (`shellcheck scripts/*.sh`, and
+# `pwsh -Command '[System.Management.Automation.Language.Parser]::ParseFile(...)'`),
+# instead of a manual, error-prone read. Pinned, prebuilt release tarballs with no
+# apt source, matching the gh/actionlint pattern above. Placed late so a bump here
+# never invalidates the expensive Rust and Playwright layers above.
+#
+# pwsh runs only for headless parse checks, so opt out of its telemetry and update
+# check: no runtime network calls, no data collection.
+ENV POWERSHELL_TELEMETRY_OPTOUT=1 \
+    POWERSHELL_UPDATECHECK=Off
+
+ARG SHELLCHECK_VERSION=0.11.0
+RUN curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" -o /tmp/shellcheck.tar.xz \
+    && tar -xJf /tmp/shellcheck.tar.xz -C /tmp \
+    && install -m 0755 "/tmp/shellcheck-v${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/shellcheck \
+    && rm -rf /tmp/shellcheck*
+
+# PowerShell 7 as the self-contained linux-x64 archive: it bundles its own .NET
+# runtime, so no dotnet install is needed. The archive extracts flat, so it is
+# unpacked into a versioned dir under /opt and symlinked onto PATH, mirroring the
+# gcloud layout above.
+ARG POWERSHELL_VERSION=7.6.4
+RUN curl -fsSL "https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/powershell-${POWERSHELL_VERSION}-linux-x64.tar.gz" -o /tmp/powershell.tar.gz \
+    && mkdir -p /opt/microsoft/powershell/7 \
+    && tar -xzf /tmp/powershell.tar.gz -C /opt/microsoft/powershell/7 \
+    && chmod +x /opt/microsoft/powershell/7/pwsh \
+    && ln -sf /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh \
+    && rm -f /tmp/powershell.tar.gz
+
+# Verification gate (mirrors the actionlint gate, issue #252): fail the BUILD
+# unless both tools resolve on PATH for root (the default docker exec user) and
+# for the codespace agent user, so a binary that lands off PATH can never ship
+# silently.
+RUN shellcheck --version \
+    && pwsh --version \
+    && runuser -l codespace -c 'shellcheck --version' \
+    && runuser -l codespace -c 'pwsh --version'
 
 # --- Seraphim agent helpers (post to the API; env injected per turn) ---------
 COPY seraphim-suggest /usr/local/bin/seraphim-suggest
