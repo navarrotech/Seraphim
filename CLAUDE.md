@@ -124,6 +124,15 @@ in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
 API must be up. Key routes: `/` (kanban board), `/suggestions`, `/settings`,
 `/task/<id>`. Checks: `yarn check` (svelte-check), `yarn test` (vitest), `yarn build`.
 
+**Component preview (issue #374):** `/__components` is a dev-only gallery
+(`routes/__components/+page.svelte`, guarded by `dev` from `$app/environment`, inert
+in production) for the floating and conditional components that only appear in
+specific app states, so their visual self-review needs no seeded backend. It renders
+the bulk action bars (board, repositories, suggestions) with stub props and a
+selectable count, one at a time since they share a fixed bottom position, plus
+representative board banners. Extend it when adding a new floating/conditional
+component.
+
 **Settings IA (issue #344):** a Stripe-style landing grid at `/settings`
 (`routes/settings/+page.svelte`) links to one dedicated page per category at
 `/settings/[section]`. The grid and each page header are driven by a single
@@ -797,9 +806,12 @@ fail-fast) on every PR and on `main`/`develop`.
 `cd frontend && npm run dev` serves the UI on `:5173` (`vite dev`, which proxies
 `/api` to the backend). Key routes to eyeball after a UI change: `/` (the kanban
 board), `/settings` (the grid) plus its subpages (e.g. `/settings/workspace`,
-`/settings/railways`), and `/task/<id>`. After any change to this
-frontend, follow the visual self-review loop (open the affected route(s) with the
-Playwright MCP, check layout via computed styles at 375px and 1280px).
+`/settings/railways`), and `/task/<id>`. Floating/conditional components (the bulk
+action bars, board banners) also render with stub props at the dev-only
+`/__components` gallery (issue #374), so reviewing them needs no seeded backend.
+After any change to this frontend, follow the visual self-review loop (open the
+affected route(s) with the Playwright MCP, check layout via computed styles at 375px
+and 1280px).
 
 For a **data-backed** page (repositories, board, task views), boot a throwaway
 backend with `scripts/dev-api.sh up` (issue #351): it starts an ephemeral
