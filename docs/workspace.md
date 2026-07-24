@@ -33,8 +33,9 @@ as the non-root `codespace` user.
   entrypoint writes a system-wide git identity from `GIT_USER_NAME` and
   `GIT_USER_EMAIL` so commits work in every clone.
 - **Baked tooling.** The image preinstalls the pinned Rust toolchains, Postgres 17
-  plus `pg-ephemeral` for local migration checks, and Playwright's Chromium, so a
-  fresh workspace has no first-run download stall.
+  plus `pg-ephemeral` for local migration checks (use `pg-ephemeral --fresh` for a
+  clean database to apply the whole chain from `0001`, issue #386), and Playwright's
+  Chromium, so a fresh workspace has no first-run download stall.
 - **Two MCPs, at user scope.** The Playwright MCP is the agent's eyes for visual
   self-review, and the Seraphim MCP lets the agent edit its own setup scripts
   (recorded in `setup_script_changes`). Both are registered at user scope so

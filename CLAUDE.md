@@ -504,8 +504,12 @@ operator notepad lives on the kanban board.
   workspace image, and `pg-ephemeral` boots a throwaway PG17 on `127.0.0.1` and
   prints a `DATABASE_URL` (`export DATABASE_URL="$(pg-ephemeral)"`), so the agent
   can verify migrations / integration tests against the same major as CI and
-  prod without a daemon. The entrypoint also aligns the agent to the mounted host
-  Docker socket's group, so `docker` / `earthly` work without `sudo` too.
+  prod without a daemon. Its default `app` database persists between runs, so to
+  apply the whole migration chain from `0001` use `pg-ephemeral --fresh` (issue
+  #386): it prints a URL to a brand-new empty database each call, avoiding the
+  `type "..." already exists` failure re-applying `0001` to a used database hits.
+  The entrypoint also aligns the agent to the mounted host Docker socket's group,
+  so `docker` / `earthly` work without `sudo` too.
 - **Host-script linting baked (issue #379):** shellcheck and PowerShell (`pwsh`)
   are baked into the workspace image (pinned release tarballs plus a build-time
   PATH gate, like actionlint), so an agent working the host scripts can lint the
