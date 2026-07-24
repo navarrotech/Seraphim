@@ -501,7 +501,13 @@ operator notepad lives on the kanban board.
   can verify migrations / integration tests against the same major as CI and
   prod without a daemon. The entrypoint also aligns the agent to the mounted host
   Docker socket's group, so `docker` / `earthly` work without `sudo` too.
-- **Browser e2e (issue #215):** Playwright's Chromium plus its OS libraries are
+- **Host-script linting baked (issue #379):** shellcheck and PowerShell (`pwsh`)
+  are baked into the workspace image (pinned release tarballs plus a build-time
+  PATH gate, like actionlint), so an agent working the host scripts can lint the
+  bash (`shellcheck scripts/*.sh`) and parse-check the Windows PowerShell
+  (`pwsh -Command '[System.Management.Automation.Language.Parser]::ParseFile(...)'`)
+  as real checks instead of a manual read. A CI `scripts` job runs shellcheck on
+  `scripts/*.sh` to guard the bash side going forward.
   baked into the workspace image, into a shared world-readable
   `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` (the official Playwright-in-Docker
   convention) so any user finds it, so the agent can run Plunder's `yarn test:e2e`

@@ -148,14 +148,14 @@ seed_tasks() {
   local todo_id
   todo_id="$(create_task "Fix the flaky checkout integration test" \
     "The checkout test fails intermittently in CI, roughly one run in five. Track down the race and make it deterministic.")"
-  move_card "$todo_id" todo 1.0
+  move_card "$todo_id" "todo" 1.0
   log "  seeded 1 card in To Do"
 
   # In Progress: the rich card, with a comment thread and notes to review.
   local wip_id
   wip_id="$(create_task "Migrate file uploads to object storage" \
     "Uploads currently sit on the API host's local disk, which does not survive a redeploy. Move them to object storage and stream through a signed URL.")"
-  move_card "$wip_id" in_progress 1.0
+  move_card "$wip_id" "in_progress" 1.0
   comment_on "$wip_id" agent \
     "Starting on this. Plan: add an object-storage client behind the existing upload trait, then backfill the on-disk files in a one-off migration."
   comment_on "$wip_id" user \
@@ -169,14 +169,14 @@ seed_tasks() {
   local review_id
   review_id="$(create_task "Add rate limiting to the public API" \
     "The public endpoints have no throttle. Add a per-client rate limit with a clear 429 response so a single caller cannot starve the others.")"
-  move_card "$review_id" in_review 1.0
+  move_card "$review_id" "in_review" 1.0
   log "  seeded 1 card in In Review"
 
   # Done: a finished card, so the terminal lane is not empty.
   local done_id
   done_id="$(create_task "Upgrade the database to Postgres 17" \
     "Move the stack from Postgres 16 to 17 and confirm the migrations, extensions, and backups all still work.")"
-  move_card "$done_id" done 1.0
+  move_card "$done_id" "done" 1.0
   log "  seeded 1 card in Done"
 
   log "Seeded 6 dev board tasks across every column."
