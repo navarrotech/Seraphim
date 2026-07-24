@@ -896,7 +896,11 @@ has live data to review. Then `cd frontend && yarn dev` and open the route;
   `scripts/check-control-chars.py`, which fails the PR if any tracked text file
   (binary assets and the vendored `.yarn/` bundle excluded) contains a NUL byte or
   other control character besides tab / newline / carriage return. Run it locally
-  the same way: `python3 scripts/check-control-chars.py`.
+  the same way: `python3 scripts/check-control-chars.py`. A committed pre-commit
+  hook (`.githooks/pre-commit`) runs that exact script on every commit so a paste
+  artifact is caught before push, not after a CI round-trip (issue #394); enable it
+  once per clone with `scripts/install-git-hooks.sh` (sets `core.hooksPath`).
+  Bypass a single commit with `git commit --no-verify`.
 - **Rust toolchain is pinned to 1.88** (`api/rust-toolchain.toml`) because some
   transitive deps ship edition2024 crates. The host default may be older — always
   use `cargo +1.88`.
