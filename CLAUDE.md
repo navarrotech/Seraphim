@@ -469,6 +469,13 @@ operator notepad lives on the kanban board.
   (`.env`, with a safe `Seraphim` fallback), so the agent can commit in every flat
   clone under `/workspace` without per-repo setup. A repo-local `user.*` still
   overrides it.
+- **Rust toolchains baked (issue #370):** the workspace image preinstalls rustup +
+  stable, the pinned `1.88` build toolchain (with `rustfmt` + `clippy`), and the
+  date-pinned nightly (with `rustfmt`) that a repo's nightly-only fmt gate uses
+  (crew's `Format (nightly)`, `cargo +$NIGHTLY fmt`), so both `cargo +1.88 fmt` and
+  `cargo +<nightly> fmt` run on a fresh workspace with no first-run "component not
+  installed" stall. The nightly is the `RUST_NIGHTLY` Dockerfile build arg; keep it
+  in sync with that repo's `.github/workflows/ci.yml` `NIGHTLY`.
 - **Local DB validation:** PostgreSQL 17 (client + server) is baked into the
   workspace image, and `pg-ephemeral` boots a throwaway PG17 on `127.0.0.1` and
   prints a `DATABASE_URL` (`export DATABASE_URL="$(pg-ephemeral)"`), so the agent
