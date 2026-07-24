@@ -10,6 +10,21 @@ Wrappers the operator runs on the host that hosts the Docker stack.
 | `uninstall.sh` / `uninstall.ps1` | Linux / Windows | Remove the scheduled updater. |
 | `dev-api.sh` | Linux, macOS, Git Bash | Boot a throwaway backend (ephemeral PG + API + seeded dev repos) for UI review. |
 
+## Contributor git hooks (issue #394)
+
+`install-git-hooks.sh` points this clone at the committed `.githooks/` directory
+(`git config core.hooksPath .githooks`), so the `pre-commit` hook runs
+`check-control-chars.py` on every commit. That catches a stray NUL or other
+control byte from a paste artifact locally, before a push round-trips through
+CI's **Source hygiene** job. Run it once per clone:
+
+```sh
+scripts/install-git-hooks.sh
+```
+
+The hook mirrors CI exactly (same script, same exit codes) and skips cleanly when
+`python3` is absent. Bypass a single commit with `git commit --no-verify`.
+
 ## Self-updater (issue #346)
 
 Keeps a deployment current with its branch. One pass:

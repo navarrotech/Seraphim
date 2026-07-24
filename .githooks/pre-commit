@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Pre-commit hook: reject NUL bytes and stray control characters locally, the
+# same guard the CI "Source hygiene" job runs (issues #295, #394).
+#
+# A literal NUL pasted into a source file compiles fine but makes git, grep, and
+# ripgrep treat the file as binary and silently skip it in code search. Running
+# the check here shifts it left, so a paste artifact is caught before the commit
+# instead of after a push round-trips through CI.
+#
+# It runs the exact same script CI does (scripts/check-control-chars.py), which
+# scans every tracked text source in the working tree, so local and CI never
+# disagree. Bypass with `git commit --no-verify` if you must.
+#
+# Enable it once per clone with: scripts/install-git-hooks.sh
+set -euo pipefail
+
+# Run from the repository root so the relative script path resolves no matter
+# where git invoked the hook from.
+cd "$(git rev-parse --show-toplevel)"
+
+# The check is a stdlib Python scan. If python3 is absent, warn and allow the
+# commit rather than blocking it: CI's Source hygiene job is still the gate, and
+# a hard block on a missing interpreter would only push devs to disable the hook.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "pre-commit: python3 not found; skipping the control-character check." >&2
+  echo "pre-commit: CI still enforces it. Install python3 for instant local feedback." >&2
+  exit 0
+fi
+
+# The script exits non-zero (with a per-file report) on a violation, which aborts
+# the commit; exec so that exit code is the hook's.
+exec python3 scripts/check-control-chars.py
