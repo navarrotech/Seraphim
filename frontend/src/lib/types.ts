@@ -476,6 +476,13 @@ export type AggregatedSuggestion = EnvSuggestion & {
   task_title: string
   task_source: SourceKind
   task_repo_linked: boolean
+  // The linked repo's `owner/name`, so the Suggestions page groups by repo (issue
+  // #364). `null` for a task with no linked repo.
+  repo_full_name: string | null
+  // The originating task's issue number or key (GitHub `#123`, a Jira key), shown
+  // as a compact badge, plus the source-ticket URL for a direct link.
+  task_external_id: string
+  task_url: string
 }
 
 // A decision the agent escalated to the user.

@@ -855,6 +855,14 @@ pub struct AggregatedSuggestion {
     pub task_source: SourceKind,
     /// Whether that task has a linked repo (a GitHub issue needs one).
     pub task_repo_linked: bool,
+    /// The linked repo's `owner/name`, so the Suggestions page groups by repo
+    /// (issue #364). `None` for a task with no linked repo.
+    pub repo_full_name: Option<String>,
+    /// The originating task's issue number or key (GitHub `#123`, a Jira key),
+    /// shown as a compact badge so the suggestion's origin is unambiguous.
+    pub task_external_id: String,
+    /// The originating task's source-ticket URL, for a direct link to the issue.
+    pub task_url: String,
 }
 
 /// A recorded "heart attack": a turn that died mid-flight (the agent hung with no

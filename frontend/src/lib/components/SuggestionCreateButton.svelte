@@ -7,7 +7,7 @@
   import type { EnvSuggestion, SourceKind } from '$lib/types'
   import type { CreateIssueTarget } from '$lib/api'
 
-  import { ChevronDown, LoaderCircle } from '@lucide/svelte'
+  import { Check, ChevronDown, LoaderCircle, RotateCcw } from '@lucide/svelte'
   import { toast } from 'svelte-sonner'
 
   import { createIssueFromSuggestion } from '$lib/api'
@@ -16,14 +16,22 @@
     suggestion,
     source,
     repoLinked = false,
-    oncreated
+    acknowledged = false,
+    oncreated,
+    onacknowledge
   }: {
     suggestion: EnvSuggestion
     // Where the ticket was originally created from; the default action mirrors it.
     source: SourceKind
     // Whether the task has a linked repo (a GitHub issue needs one).
     repoLinked?: boolean
+    // The suggestion's current done state, so the ack item reads "Mark as
+    // complete" or "Reopen". Only consulted when `onacknowledge` is given.
+    acknowledged?: boolean
     oncreated: (updated: EnvSuggestion) => void
+    // When provided, the dropdown gains a mark-complete / reopen action, so the
+    // Suggestions page can retire the separate toggle switch (issue #364).
+    onacknowledge?: (next: boolean) => void
   } = $props()
 
   const LABELS: Record<CreateIssueTarget, string> = {
@@ -81,6 +89,11 @@
     }
   }
 
+  function acknowledgeFromMenu() {
+    open = false
+    onacknowledge?.(!acknowledged)
+  }
+
   function onWindowPointerDown(event: MouseEvent) {
     if (open && wrapper && !wrapper.contains(event.target as Node)) open = false
   }
@@ -122,6 +135,24 @@
       role="menu"
       class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] overflow-hidden rounded-md border border-border bg-card py-1 text-xs shadow-lg"
     >
+      {#if onacknowledge}
+        <!-- The done toggle lives here now, not as a switch on the row (issue #364). -->
+        <button
+          type="button"
+          role="menuitem"
+          onclick={acknowledgeFromMenu}
+          class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-foreground transition-colors hover:bg-secondary"
+        >
+          {#if acknowledged}
+            <RotateCcw class="size-3.5 flex-none text-muted-foreground" />
+            <span>Reopen</span>
+          {:else}
+            <Check class="size-3.5 flex-none text-muted-foreground" />
+            <span>Mark as complete</span>
+          {/if}
+        </button>
+        <div class="my-1 h-px bg-border" role="separator"></div>
+      {/if}
       {#each OPTIONS as target (target)}
         <button
           type="button"
