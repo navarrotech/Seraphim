@@ -34,6 +34,27 @@ pub struct AskRequest {
     pub questions: Vec<AskQuestion>,
 }
 
+/// Why a batch of questions must be rejected with a 400, or `None` when it is
+/// postable (issue #368).
+///
+/// A blank-prompt question is the durable hazard: a question with no text can
+/// never be answered, so it silently blocks the task in `waiting_for_input`
+/// forever and pollutes the notifications sidebar. This guards the server against
+/// any buggy client (a `seraphim-ask --help` slip, a mangled JSON payload), not
+/// just today's, so a junk question is never persisted.
+fn rejection_reason(questions: &[AskQuestion]) -> Option<&'static str> {
+    if questions.is_empty() {
+        return Some("no questions provided");
+    }
+    if questions
+        .iter()
+        .any(|question| question.prompt.trim().is_empty())
+    {
+        return Some("a question prompt must not be empty");
+    }
+    None
+}
+
 /// `POST /api/v1/agent/questions` - the agent escalates one or more questions.
 ///
 /// Called from inside the workspace by `seraphim-ask`. The task is parked in
@@ -50,12 +71,8 @@ pub async fn ask(
         )
             .into_response());
     };
-    if body.questions.is_empty() {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "no questions provided" })),
-        )
-            .into_response());
+    if let Some(reason) = rejection_reason(&body.questions) {
+        return Ok((StatusCode::BAD_REQUEST, Json(json!({ "error": reason }))).into_response());
     }
 
     let mut ids = Vec::with_capacity(body.questions.len());
@@ -63,8 +80,9 @@ pub async fn ask(
         // Keep at most the first few options; the UI always adds its own
         // "something else" and "decline" choices.
         let options: Vec<QuestionOption> = question.options.into_iter().take(MAX_OPTIONS).collect();
+        // Store the trimmed prompt so surrounding whitespace never persists.
         let created =
-            queries::create_question(&state.db, task.id, &question.prompt, &options).await?;
+            queries::create_question(&state.db, task.id, question.prompt.trim(), &options).await?;
         state.notify_question(task.id, task.title.clone(), created.prompt.clone());
         ids.push(created.id);
     }
@@ -126,4 +144,51 @@ pub async fn answer(
     state.notify_board();
 
     Ok(Json(answered).into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{rejection_reason, AskQuestion};
+
+    fn question(prompt: &str) -> AskQuestion {
+        AskQuestion {
+            prompt: prompt.to_owned(),
+            options: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_real_question_is_accepted() {
+        assert_eq!(rejection_reason(&[question("Which database?")]), None);
+    }
+
+    #[test]
+    fn an_empty_batch_is_rejected() {
+        assert_eq!(rejection_reason(&[]), Some("no questions provided"));
+    }
+
+    #[test]
+    fn a_blank_prompt_is_rejected() {
+        // The core of issue #368: a `--help` slip or a mangled payload can post a
+        // question with no real text, which would block the task forever. An empty
+        // or whitespace-only prompt is refused before it is ever persisted.
+        assert_eq!(
+            rejection_reason(&[question("")]),
+            Some("a question prompt must not be empty")
+        );
+        assert_eq!(
+            rejection_reason(&[question("   \n\t ")]),
+            Some("a question prompt must not be empty")
+        );
+    }
+
+    #[test]
+    fn one_blank_prompt_rejects_the_whole_batch() {
+        // A well-formed client never mixes in a blank prompt, so a blank anywhere
+        // signals a client bug worth surfacing loudly rather than silently dropping.
+        assert_eq!(
+            rejection_reason(&[question("Which database?"), question("  ")]),
+            Some("a question prompt must not be empty")
+        );
+    }
 }
