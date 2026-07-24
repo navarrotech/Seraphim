@@ -2743,11 +2743,19 @@ pub async fn list_open_task_prs(pool: &PgPool) -> sqlx::Result<Vec<TaskPullReque
 /// blocker (issue #304) and is excluded; only the unexpected ones surface. Derived
 /// live from the tracked PR rows, so the banner clears itself the moment a PR gains
 /// changes, is closed, or is marked draft, with no separate state to reconcile.
+///
+/// PRs on tasks in a terminal column (`done`, `ignored`) are excluded (issue #369).
+/// `pr_state` is only refreshed while the review loop still gates a task, so once a
+/// task settles the loop stops refreshing its PR rows; a PR closed outside Seraphim
+/// then leaves `pr_state` stuck at `'open'` and the banner could never self-clear.
+/// A settled task's PR is not an anomaly, so scoping the query to still-active tasks
+/// keeps the banner self-clearing without adding any dismiss state to reconcile.
 pub async fn list_anomalous_empty_prs(pool: &PgPool) -> sqlx::Result<Vec<AnomalousEmptyPr>> {
     sqlx::query_as::<_, AnomalousEmptyPr>(
         "SELECT pr.task_id, t.title AS task_title, pr.repo_full_name, pr.pr_number, pr.pr_url \
          FROM task_pull_requests pr JOIN tasks t ON t.id = pr.task_id \
          WHERE pr.pr_state = 'open' AND pr.is_empty = TRUE AND pr.is_draft = FALSE \
+           AND t.board_column NOT IN ('done'::task_column, 'ignored'::task_column) \
          ORDER BY pr.updated_at DESC",
     )
     .fetch_all(pool)
@@ -4364,6 +4372,83 @@ mod tests {
         assert_eq!(
             get_task(&pool, task.id).await.unwrap().unwrap().status,
             TaskStatus::Working,
+        );
+
+        db.teardown().await;
+    }
+
+    /// An empty open PR raises the anomaly banner only while its task is still active;
+    /// once the task settles into a terminal column (`done`, `ignored`) the banner
+    /// self-clears (issue #369). Without this, a task whose PR is closed outside
+    /// Seraphim after the review loop stops refreshing it would leave `pr_state` stuck
+    /// at `'open'` and the banner permanently raised, with no dismiss affordance.
+    ///
+    /// DB-gated: runs only when `DATABASE_URL` is set (the CI test job's throwaway
+    /// Postgres, or `pg-ephemeral` locally); otherwise it skips.
+    #[tokio::test]
+    async fn a_terminal_task_never_raises_the_empty_pr_banner() {
+        let Some(db) = setup_throwaway_db("seraphim_issue369_test").await else {
+            return;
+        };
+        let pool = db.pool.clone();
+
+        // A task in review with an open, non-draft, empty PR: the exact anomaly the
+        // banner exists to surface.
+        let task = create_internal_task(&pool, "empty-pr anomaly", "", "open", &[], 1.0)
+            .await
+            .expect("create the task");
+        move_task(&pool, task.id, TaskColumn::InReview, task.position)
+            .await
+            .expect("move it into In Review");
+        upsert_task_pr(
+            &pool,
+            task.id,
+            None,
+            "JalapenoLabs/crew",
+            64,
+            "https://github.com/JalapenoLabs/crew/pull/64",
+            "deadbeef",
+            "passing",
+            "open",
+            false,
+            true,
+        )
+        .await
+        .expect("record the empty open PR");
+
+        let anomalies = list_anomalous_empty_prs(&pool)
+            .await
+            .expect("list anomalies");
+        assert_eq!(
+            anomalies.iter().map(|pr| pr.task_id).collect::<Vec<_>>(),
+            vec![task.id],
+            "an active task's empty open PR is an anomaly and raises the banner",
+        );
+
+        // The task settles into Done. The review loop stops refreshing its PR rows, so
+        // `pr_state` stays `'open'`, yet the banner must clear: a settled task's PR is
+        // not an anomaly.
+        move_task(&pool, task.id, TaskColumn::Done, task.position)
+            .await
+            .expect("move it into Done");
+        assert!(
+            list_anomalous_empty_prs(&pool)
+                .await
+                .expect("list anomalies")
+                .is_empty(),
+            "a task in Done never raises the empty-PR banner, even with a stale open PR",
+        );
+
+        // Same for a deliberately parked task: an Ignored task's PR is not an anomaly.
+        move_task(&pool, task.id, TaskColumn::Ignored, task.position)
+            .await
+            .expect("move it into Ignored");
+        assert!(
+            list_anomalous_empty_prs(&pool)
+                .await
+                .expect("list anomalies")
+                .is_empty(),
+            "a task in Ignored never raises the empty-PR banner",
         );
 
         db.teardown().await;
