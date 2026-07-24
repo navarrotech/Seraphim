@@ -116,6 +116,11 @@ SvelteKit, **SPA** (`src/routes/+layout.ts` sets `ssr = false`), adapter-node.
 in `src/lib/components/`, pages in `src/routes/`. `src/hooks.server.ts` proxies
 `/api/*` to the API in production; `vite.config.ts` proxies it in dev.
 
+**Dev server / visual review:** `cd frontend && yarn dev` runs Vite on
+`http://localhost:5173`, proxying `/api/*` to the API (`localhost:27182`), so the
+API must be up. Key routes: `/` (kanban board), `/suggestions`, `/settings`,
+`/task/<id>`. Checks: `yarn check` (svelte-check), `yarn test` (vitest), `yarn build`.
+
 **Settings IA (issue #344):** a Stripe-style landing grid at `/settings`
 (`routes/settings/+page.svelte`) links to one dedicated page per category at
 `/settings/[section]`. The grid and each page header are driven by a single
@@ -261,9 +266,15 @@ operator notepad lives on the kanban board.
   per-task checkboxes, a top-nav **Suggestions** tab (`/suggestions`, issue #324)
   aggregates every recommendation across all tasks for bulk triage:
   `GET /suggestions` (`queries::list_all_suggestions`) returns each suggestion plus
-  its task's title/source/repo link (`AggregatedSuggestion`), and the page reuses
-  the same ack and create-issue actions, with open items on top and acknowledged
-  ones in a greyed, hover-revealed bottom section.
+  its task's title/source/repo-link and its repo `full_name` + issue ref/url
+  (`AggregatedSuggestion`). The page (reworked in issue #364) groups the list by
+  **repo, then by originating task** (`lib/suggestions.ts`, pure + unit-tested), each
+  task headed by a clickable issue badge (`#123`) and its full name. Each suggestion
+  is a `SuggestionCard`: title-first, a three-line clamped description that expands on
+  click, small kind badge, and the `SuggestionCreateButton` split dropdown, which now
+  also carries the mark-complete / reopen action (the old left toggle is gone). Rows
+  multi-select with shift-click range like the board, and a `SuggestionBulkBar` marks
+  a batch complete or reopens it. Open items on top, acknowledged ones greyed below.
 - **`setup_script_changes`** (issue #340) — setup-script edits the agent made to
   **itself** through the **Seraphim MCP** (`workspace/seraphim-mcp`), so it can
   apply an environment optimization it spots (e.g. "add `cd frontend && yarn

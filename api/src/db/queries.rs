@@ -3224,8 +3224,11 @@ pub async fn list_all_suggestions(pool: &PgPool) -> sqlx::Result<Vec<AggregatedS
         "SELECT s.id, s.task_id, s.title, s.detail, s.kind, s.acknowledged, \
                 s.created_at, s.acknowledged_at, \
                 t.title AS task_title, t.source_kind AS task_source, \
-                (t.repo_id IS NOT NULL) AS task_repo_linked \
+                (t.repo_id IS NOT NULL) AS task_repo_linked, \
+                r.full_name AS repo_full_name, \
+                t.external_id AS task_external_id, t.url AS task_url \
          FROM environment_suggestions s JOIN tasks t ON t.id = s.task_id \
+         LEFT JOIN repositories r ON r.id = t.repo_id \
          ORDER BY s.created_at DESC",
     )
     .fetch_all(pool)
