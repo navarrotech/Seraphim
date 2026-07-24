@@ -680,13 +680,15 @@ export const COLUMNS: { key: TaskColumn; label: string }[] = [
 
 // Known Claude models for the settings dropdown: friendly labels shown to the
 // user, coded model ids sent to the agent. Custom ids are still allowed.
-// Fable 5, Opus 4.x, and Sonnet 4.6 are 1M-context; Haiku 4.5 is 200K. The
-// `[1m]` suffix is Claude Code's way to opt Opus into its 1M window.
+// Fable 5, Opus 4.x, and the Sonnet models are 1M-context; Haiku 4.5 is 200K.
+// The `[1m]` suffix is Claude Code's way to opt Opus into its 1M window; the
+// plain ids are what `claude -p --model` accepts, so they are passed verbatim.
 export const KNOWN_MODELS: { value: string; label: string }[] = [
   { value: 'claude-opus-4-8[1m]', label: 'Claude Opus 4.8 (1M)' },
   { value: 'claude-opus-4-8', label: 'Claude Opus 4.8 (200K)' },
   { value: 'claude-opus-4-7[1m]', label: 'Claude Opus 4.7 (1M)' },
   { value: 'claude-fable-5', label: 'Claude Fable 5 (1M)' },
+  { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 (1M)' },
   { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (1M)' },
   { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (200K)' }
 ]
