@@ -19,8 +19,11 @@
   `exhausted_until` its reset and the agent rotates to the next credential. Only
   when every credential is exhausted does it set `settings.usage_paused_until` to
   the soonest reset and hold all new work until then, clearing automatically at
-  reset. Escape hatches: a "Resume now" button clears the pause immediately, and
-  raising the threshold or disabling the toggle lifts an active pause.
+  reset. Escape hatches: a "Resume now" button clears the pause immediately, and a
+  settings change re-derives the pause from current credential availability (the
+  reevaluate delegates to the same reconcile the rotation path uses, so both share
+  one source of truth), lifting it once a credential frees rather than off a stale
+  usage event.
 - **The board reflects the active credential.** The board header shows the active
   credential's email or label, and the usage gauge polls the active subscription
   credential when its consent granted `user:profile`.

@@ -1368,44 +1368,28 @@ async fn agent_loop(state: AppState, handle: RailwayHandle) {
     }
 }
 
-/// Re-evaluates an active usage auto-pause after a settings change and lifts it if
-/// it no longer applies (issue #292).
+/// Re-derives an active usage auto-pause from the current credential state after a
+/// settings change (issues #292, #381).
 ///
-/// The auto-pause keys only to the window reset time, so without this neither a
-/// raised `usage_limit_threshold` nor a disabled `usage_limit_pause_enabled` would
-/// take effect until the reset. Called on every settings update: when there is an
-/// active (future) pause and [`usage::should_lift_pause`] says it no longer holds
-/// (the feature was turned off, or the latest utilization is now under the raised
-/// threshold), it clears `usage_paused_until` so the agent resumes immediately. A
-/// genuinely exhausted window still stands until reset. Best-effort and idempotent;
-/// when no pause is active it does nothing.
+/// Since issue #341, `usage_paused_until` means "every credential is exhausted" and
+/// is owned solely by [`credentials::reconcile_pause`]. So on a settings change this
+/// delegates to that same reconcile instead of re-judging one stale `rate_limit_event`
+/// against the threshold: if a credential is available now the pause lifts and the
+/// agent resumes, otherwise it stands until the soonest reset. Both the rotation
+/// path and this escape hatch thus share one source of truth, and an all-exhausted
+/// pause can never be lifted off a single old event. Best-effort and idempotent;
+/// when no pause is active it does nothing (and it never creates a pause here).
 pub(crate) async fn reevaluate_usage_pause(
     state: &AppState,
     settings: &crate::db::models::Settings,
 ) -> Result<()> {
-    let Some(until) = settings.usage_paused_until else {
-        return Ok(());
-    };
-    // An already-lapsed pause is cleared by the gate on the next tick; nothing to do.
-    if Utc::now() >= until {
+    // Only reconcile an already-active pause; reconciling with no pause set could
+    // otherwise create one from an all-exhausted credential state, which is the
+    // rotation path's job, not this escape hatch's.
+    if settings.usage_paused_until.is_none() {
         return Ok(());
     }
-    // Re-judge against the latest rate-limit signal at the current threshold. The
-    // stored payload may wrap the info under `rate_limit_info` (the event) or be the
-    // info object itself, so accept either shape.
-    let payload = queries::latest_rate_limit(&state.db).await?;
-    let info = payload
-        .as_ref()
-        .map(|value| value.get("rate_limit_info").unwrap_or(value));
-    if usage::should_lift_pause(
-        info,
-        settings.usage_limit_pause_enabled,
-        settings.usage_limit_threshold,
-    ) {
-        queries::set_usage_paused_until(&state.db, None).await?;
-        state.notify_board();
-        info!("usage auto-pause lifted after a settings change (disabled or threshold raised)");
-    }
+    credentials::reconcile_pause(state).await?;
     Ok(())
 }
 
