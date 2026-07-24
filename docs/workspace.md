@@ -19,6 +19,9 @@ as the non-root `codespace` user.
   an empty desired set so a transient empty read never mass-deletes.
 - **Instructions become files.** Global instructions write to
   `/workspace/AGENTS.md`, per-repo instructions to `/workspace/{repo}/CLAUDE.md`.
+  A repo that commits its own `CLAUDE.md` is never clobbered (issue #385):
+  provisioning writes or clears that path only for repos that do not track one, so
+  it can no longer delete a repo's committed `CLAUDE.md` between tasks.
 - **Config repo for `~/.claude`.** The agent's `~/.claude` comes from cloning
   `settings.config_repo_url` into `CLAUDE_CONFIG_DIR=/workspace/.claude`, not a
   host mount. This is a dedicated, hard-failing step: on failure it records

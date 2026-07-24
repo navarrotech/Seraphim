@@ -409,7 +409,11 @@ operator notepad lives on the kanban board.
 - **Every enabled repo** is cloned flat at `/workspace/{repo-name}` (name = part
   after `/`), so cross-repo work is natural. The task names a focus repo + branch.
 - **Instructions become files:** global → `/workspace/AGENTS.md`; per-repo →
-  `/workspace/{repo}/CLAUDE.md` (Claude auto-loads them).
+  `/workspace/{repo}/CLAUDE.md` (Claude auto-loads them). A repo that commits its
+  own `CLAUDE.md` is never clobbered (issue #385): provisioning only writes or
+  clears that path for repos that do not track one, so it can no longer delete a
+  repo's committed `CLAUDE.md` and leave it staged for deletion. Per-repo operator
+  instructions therefore do not apply to a repo that ships its own `CLAUDE.md`.
 - **Visual self-review (issues #244, #245):** every task prompt carries a standing
   instruction (`prompt::VISUAL_SELF_REVIEW`, in the shared header so it applies on
   fresh work and fix/revisit turns alike) to look at any UI change in a real

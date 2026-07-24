@@ -47,6 +47,33 @@ fn write_file_snippet(path: &str, content: &str) -> String {
     }
 }
 
+/// Bash that installs the operator's per-repo `instructions` as `{dir}/CLAUDE.md`
+/// (so Claude auto-loads them) WITHOUT ever clobbering a `CLAUDE.md` the repo
+/// commits itself (issue #385).
+///
+/// Per-repo instructions ride in the repo's own `CLAUDE.md` path, but many repos
+/// (Seraphim included) track their own `CLAUDE.md`. Managing that path
+/// unconditionally deleted it whenever `instructions` was empty (the common case),
+/// leaving the repo's tracked file staged for deletion, which a later `git add -A`
+/// then swept into the commit. So the write-or-clear only runs when the repo does
+/// NOT track a `CLAUDE.md` of its own; a committed one is left untouched. A repo
+/// that ships its own `CLAUDE.md` therefore ignores per-repo instructions here,
+/// the safe trade against destroying its file.
+fn per_repo_claude_md_snippet(dir: &str, instructions: &str) -> String {
+    let manage = write_file_snippet(&format!("{dir}/CLAUDE.md"), instructions);
+    // `git ls-files --error-unmatch` exits non-zero for an untracked path; it sits
+    // in an `if` condition, so it is safe under the outer script's `set -e`.
+    format!(
+        "if git -C \"{dir}\" ls-files --error-unmatch CLAUDE.md >/dev/null 2>&1; then\n\
+         \x20 : # the repo commits its own CLAUDE.md; never clobber it (issue #385)\n\
+         else\n\
+         {manage}\
+         fi\n",
+        dir = dir,
+        manage = manage,
+    )
+}
+
 /// Clone-or-update the `~/.claude` config repo into `CLAUDE_CONFIG_DIR`. Uses
 /// init+fetch+checkout so a non-empty dir (with a persisted `projects/`) is fine.
 fn config_repo_snippet(config_repo_url: &str) -> String {
@@ -547,7 +574,7 @@ fn repo_block(repo: &Repository, always_setup: bool) -> String {
         dir = dir,
         clone_url = repo.clone_url,
         submodules = submodules,
-        claude_md = write_file_snippet(&format!("{dir}/CLAUDE.md"), &repo.instructions),
+        claude_md = per_repo_claude_md_snippet(&dir, &repo.instructions),
     )
 }
 
@@ -588,8 +615,9 @@ async fn run(state: &AppState, container: &str, script: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        branch_prep_snippet, is_safe_repo_dir, orphan_repo_dirs, parse_listed_dirs, removal_script,
-        repo_block, submodule_update_snippet, REPO_DIR_LIST_SCRIPT,
+        branch_prep_snippet, is_safe_repo_dir, orphan_repo_dirs, parse_listed_dirs,
+        per_repo_claude_md_snippet, removal_script, repo_block, submodule_update_snippet,
+        REPO_DIR_LIST_SCRIPT,
     };
     use crate::db::models::Repository;
     use chrono::Utc;
@@ -803,5 +831,32 @@ mod tests {
         assert!(REPO_DIR_LIST_SCRIPT.contains("${path}.git"));
         assert!(REPO_DIR_LIST_SCRIPT.contains("REPODIR:"));
         assert!(REPO_DIR_LIST_SCRIPT.contains("nullglob"));
+    }
+
+    #[test]
+    fn per_repo_claude_md_never_clobbers_a_committed_claude_md() {
+        // Empty instructions: the write_file_snippet form is the destructive
+        // `rm -f`, but it must sit behind the tracked-file guard so a repo that
+        // commits its own CLAUDE.md is never deleted (issue #385).
+        let empty = per_repo_claude_md_snippet("/workspace/Seraphim", "");
+        assert!(empty.contains("git -C \"/workspace/Seraphim\" ls-files --error-unmatch CLAUDE.md"));
+        let guard_pos = empty.find("ls-files --error-unmatch").unwrap();
+        let rm_pos = empty.find("rm -f").unwrap();
+        assert!(
+            rm_pos > guard_pos,
+            "the rm must run only in the untracked (else) branch, after the guard"
+        );
+        assert!(empty.contains("else"));
+
+        // Non-empty instructions are written to the repo's CLAUDE.md, still behind
+        // the same guard so a committed one is left untouched.
+        let with = per_repo_claude_md_snippet("/workspace/Repo", "Do the thing.");
+        assert!(with.contains("ls-files --error-unmatch CLAUDE.md"));
+        assert!(with.contains("base64 -d > \"/workspace/Repo/CLAUDE.md\""));
+        // The base64 write is likewise inside the else branch, not run for a
+        // repo that tracks its own CLAUDE.md.
+        let with_guard = with.find("ls-files --error-unmatch").unwrap();
+        let with_write = with.find("base64 -d").unwrap();
+        assert!(with_write > with_guard);
     }
 }
