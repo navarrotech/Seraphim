@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+# Boot a throwaway, isolated Docker daemon for compose/infra validation (#383).
+#
+# The workspace mounts the HOST Docker socket, and that daemon runs the operator's
+# real Seraphim stack. So `docker compose up` from the agent's checkout targets the
+# SAME project name (`seraphim`) and `seraphim-*` container names as the live stack,
+# and can create, recreate, or clobber the operator's running containers. This boots
+# a disposable Docker-in-Docker sidecar on the host daemon and prints a `DOCKER_HOST`
+# the agent exports, so every `docker` / `docker compose` command runs against the
+# sidecar's OWN, empty daemon instead. Nothing the agent does inside it can reach the
+# live stack: the sidecar is a separate daemon with its own images, containers, and
+# networks.
+#
+# The sidecar is PRIVILEGED (a nested daemon needs it, and the zero-capability
+# workspace cannot host one itself), so it is treated as strictly disposable:
+#   - a UNIQUE, random name every boot, never a fixed or `seraphim-*` name;
+#   - reachable only by this workspace over a dedicated throwaway network, never by
+#     the live `seraphim-api` / `-postgres` / `-frontend` containers;
+#   - torn down by `stop` (or `reap`), never left as a long-lived daemon.
+# Its teardown refuses to remove anything it did not create: it only ever touches
+# resources it labelled, and it hard-refuses any `seraphim`-named target, so a bug
+# can never make it delete a live-stack container or network.
+#
+# Usage:
+#   docker-sandbox [start]  boot it if needed and print its DOCKER_HOST (default)
+#   docker-sandbox host     print the running sandbox's DOCKER_HOST (no boot)
+#   docker-sandbox status   report whether a sandbox is up (exit 0 up, 1 down)
+#   docker-sandbox stop     tear the sandbox down (also `down`)
+#   docker-sandbox reap     force-remove every sandbox this helper ever created
+#
+# Typical use:
+#   export DOCKER_HOST="$(docker-sandbox)"
+#   docker compose -f docker-compose.yml build     # runs against the sandbox daemon
+#   docker compose up -d                           # cannot touch the live stack
+#   docker-sandbox stop                            # tear the sidecar down when done
+#
+# Note: the agent's `docker` CLI still reads compose files and streams build contexts
+# from the workspace, so image and build validation is complete. A service that bind
+# mounts a HOST source path resolves against the sidecar daemon's filesystem (empty),
+# the same Docker-in-Docker trait the live socket already has; validate those with
+# `docker compose build` / `docker compose config`.
+set -euo pipefail
+
+# The Docker-in-Docker image, pinned to the workspace's Docker client major (27.3.1)
+# so client and daemon agree. Pulled by the host daemon on first boot. Override with
+# DOCKER_SANDBOX_IMAGE. Bump deliberately, per the version-pinning rule.
+DIND_IMAGE="${DOCKER_SANDBOX_IMAGE:-docker:27.3.1-dind}"
+
+# The sidecar daemon's plaintext TCP port. With DOCKER_TLS_CERTDIR="" the dind
+# entrypoint serves plaintext on 2375 by default; we reach it only over the
+# dedicated network below, never a published host port.
+DIND_PORT=2375
+
+# Every resource this helper creates carries this label, so teardown can find its own
+# and only its own, never a live-stack container that happens to be running.
+LABEL="seraphim.docker-sandbox=1"
+
+# One sandbox at a time; its random name and network are recorded here so a later
+# `stop` finds them. A stale file for a vanished sandbox is reconciled on next use.
+STATE_FILE="${DOCKER_SANDBOX_STATE:-/tmp/seraphim-docker-sandbox.state}"
+
+# How long to wait for the nested daemon to accept connections before giving up.
+READY_TIMEOUT="${DOCKER_SANDBOX_READY_TIMEOUT:-45}"
+
+die() {
+  echo "docker-sandbox: $*" >&2
+  exit 1
+}
+
+note() {
+  echo "docker-sandbox: $*" >&2
+}
+
+# Refuse any resource name tied to the live stack, so no code path here can ever
+# remove or recreate a `seraphim` project resource or a `seraphim-*` container. Our
+# own names are generated `docker-sandbox-*`, so this only ever fires on a bug or a
+# hand-forced argument.
+assert_not_seraphim() {
+  case "$1" in
+    seraphim | seraphim-* | seraphim_*)
+      die "refusing to touch the live-stack resource '$1'"
+      ;;
+  esac
+}
+
+# Whether a container or network carries our label, matched by exact name. Uses the
+# label filter (robust across containers and networks, unlike the inspect templates
+# whose label path differs), so teardown only ever removes resources this helper
+# created.
+is_ours() {
+  local kind="$1" ref="$2" out
+  case "${kind}" in
+    container) out="$(docker ps -aq --filter "label=${LABEL}" --filter "name=^${ref}$")" ;;
+    network) out="$(docker network ls -q --filter "label=${LABEL}" --filter "name=^${ref}$")" ;;
+    *) return 1 ;;
+  esac
+  [ -n "${out}" ]
+}
+
+assert_ours() {
+  is_ours "$1" "$2" || die "refusing to remove '$2': not a docker-sandbox resource"
+}
+
+require_docker() {
+  command -v docker >/dev/null 2>&1 || die "the docker CLI is not installed in this workspace"
+  docker version >/dev/null 2>&1 \
+    || die "cannot reach the Docker daemon; is /var/run/docker.sock mounted and is this user in its group?"
+}
+
+# This workspace's own container id, so the sidecar network can be wired to reach it
+# without ever naming the `seraphim-workspace` container. The compose service sets no
+# custom hostname, so the container hostname is its id.
+self_container() {
+  local id
+  id="$(docker inspect -f '{{.Id}}' "$(cat /etc/hostname)" 2>/dev/null || true)"
+  [ -n "${id}" ] || die "could not resolve this workspace's own container to wire up the sandbox network"
+  printf '%s' "${id}"
+}
+
+load_state() {
+  SANDBOX_NAME=""
+  SANDBOX_NET=""
+  if [ -f "${STATE_FILE}" ]; then
+    # shellcheck disable=SC1090
+    . "${STATE_FILE}" || true
+  fi
+}
+
+running() {
+  [ -n "${SANDBOX_NAME:-}" ] \
+    && [ "$(docker inspect -f '{{.State.Running}}' "${SANDBOX_NAME}" 2>/dev/null || echo false)" = "true" ]
+}
+
+docker_host() {
+  printf 'tcp://%s:%s\n' "${SANDBOX_NAME}" "${DIND_PORT}"
+}
+
+# Remove a sandbox container and network (label-verified), and disconnect this
+# workspace from the network first so the bridge is free to delete.
+teardown() {
+  local name="$1" net="$2"
+  if [ -n "${name}" ] && docker inspect "${name}" >/dev/null 2>&1; then
+    assert_not_seraphim "${name}"
+    assert_ours container "${name}"
+    docker rm -f "${name}" >/dev/null 2>&1 || true
+  fi
+  if [ -n "${net}" ] && docker network inspect "${net}" >/dev/null 2>&1; then
+    assert_not_seraphim "${net}"
+    assert_ours network "${net}"
+    docker network disconnect -f "${net}" "$(self_container)" >/dev/null 2>&1 || true
+    docker network rm "${net}" >/dev/null 2>&1 || true
+  fi
+}
+
+start() {
+  load_state
+  if running; then
+    # Idempotent: a boot already exists, so hand back its DOCKER_HOST. Re-assert this
+    # workspace is on the network in case an earlier connect was undone.
+    docker network connect "${SANDBOX_NET}" "$(self_container)" >/dev/null 2>&1 || true
+    docker_host
+    return 0
+  fi
+
+  # A stale record for a vanished sandbox: clean it up before booting a fresh one.
+  [ -n "${SANDBOX_NAME:-}" ] && teardown "${SANDBOX_NAME}" "${SANDBOX_NET:-}"
+
+  local rand name net
+  # 12 hex chars of randomness. `od` reads a fixed 6 bytes straight from the device
+  # (no pipe that a downstream `head` could close early and SIGPIPE under pipefail).
+  rand="$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
+  name="docker-sandbox-${rand}"
+  net="docker-sandbox-net-${rand}"
+  assert_not_seraphim "${name}"
+  assert_not_seraphim "${net}"
+
+  # A dedicated throwaway bridge only this workspace joins, so the privileged daemon
+  # is reachable here and NOWHERE else: the live-stack containers are on the
+  # `seraphim` network and never on this one.
+  docker network create --label "${LABEL}" "${net}" >/dev/null \
+    || die "could not create the sandbox network"
+
+  # The privileged nested daemon. Disposable and isolated: unique name, our label,
+  # TLS off so its entrypoint serves plaintext on ${DIND_PORT} over the dedicated
+  # network only, and no bind mounts, so nothing from the host or the live stack is
+  # exposed to it.
+  if ! docker run -d \
+    --privileged \
+    --name "${name}" \
+    --label "${LABEL}" \
+    --network "${net}" \
+    -e DOCKER_TLS_CERTDIR="" \
+    "${DIND_IMAGE}" >/dev/null; then
+    docker network rm "${net}" >/dev/null 2>&1 || true
+    die "could not start the sandbox daemon (image ${DIND_IMAGE})"
+  fi
+
+  # Join this workspace to the sandbox network so it can reach the daemon by name.
+  # This only ever adds a throwaway network to this workspace's own container, undone
+  # on teardown; it never alters a live-stack container.
+  docker network connect "${net}" "$(self_container)" >/dev/null 2>&1 \
+    || { teardown "${name}" "${net}"; die "could not attach the workspace to the sandbox network"; }
+
+  # Record before the readiness wait so a timeout still leaves a tearable sandbox.
+  printf 'SANDBOX_NAME=%s\nSANDBOX_NET=%s\n' "${name}" "${net}" > "${STATE_FILE}"
+
+  # Wait for the nested daemon to accept connections.
+  local host deadline
+  host="tcp://${name}:${DIND_PORT}"
+  deadline=$(( SECONDS + READY_TIMEOUT ))
+  until docker -H "${host}" version >/dev/null 2>&1; do
+    if [ "${SECONDS}" -ge "${deadline}" ]; then
+      docker logs --tail 20 "${name}" >&2 2>/dev/null || true
+      teardown "${name}" "${net}"
+      rm -f "${STATE_FILE}"
+      die "the sandbox daemon did not become ready within ${READY_TIMEOUT}s"
+    fi
+    sleep 1
+  done
+
+  note "isolated daemon ready at ${host} (privileged, throwaway; run 'docker-sandbox stop' when done)"
+  printf '%s\n' "${host}"
+}
+
+stop() {
+  load_state
+  if [ -z "${SANDBOX_NAME:-}" ]; then
+    note "no sandbox to stop"
+    return 0
+  fi
+  teardown "${SANDBOX_NAME}" "${SANDBOX_NET:-}"
+  rm -f "${STATE_FILE}"
+  note "sandbox torn down"
+}
+
+# Belt-and-suspenders: remove EVERY sandbox this helper ever created (found by our
+# label), for the rare case a stop was missed. Label-scoped, so it can only ever
+# touch docker-sandbox resources, never the live stack.
+reap() {
+  local self ref
+  self="$(self_container)"
+  for ref in $(docker ps -aq --filter "label=${LABEL}" 2>/dev/null); do
+    docker rm -f "${ref}" >/dev/null 2>&1 || true
+  done
+  for ref in $(docker network ls -q --filter "label=${LABEL}" 2>/dev/null); do
+    docker network disconnect -f "${ref}" "${self}" >/dev/null 2>&1 || true
+    docker network rm "${ref}" >/dev/null 2>&1 || true
+  done
+  rm -f "${STATE_FILE}"
+  note "reaped all docker-sandbox resources"
+}
+
+require_docker
+
+case "${1:-start}" in
+  start | "")
+    start
+    ;;
+  host | url)
+    load_state
+    running || die "no sandbox is running; run 'docker-sandbox' first"
+    docker_host
+    ;;
+  status)
+    load_state
+    if running; then
+      note "sandbox up: $(docker_host)"
+    else
+      note "no sandbox running"
+      exit 1
+    fi
+    ;;
+  stop | down)
+    stop
+    ;;
+  reap)
+    reap
+    ;;
+  *)
+    die "usage: docker-sandbox [start|host|status|stop|reap]"
+    ;;
+esac

@@ -538,6 +538,18 @@ operator notepad lives on the kanban board.
   `type "..." already exists` failure re-applying `0001` to a used database hits.
   The entrypoint also aligns the agent to the mounted host Docker socket's group,
   so `docker` / `earthly` work without `sudo` too.
+- **Safe infra validation:** the mounted host socket's daemon runs the operator's
+  live `seraphim` stack, so a bare `docker compose up` from the agent's checkout can
+  clobber it. `docker-sandbox` boots a privileged, throwaway `docker:dind` sidecar
+  and prints a `DOCKER_HOST` (`export DOCKER_HOST="$(docker-sandbox)"`), so `docker`
+  / `docker compose` run against a separate, empty daemon that cannot reach the live
+  stack (issue #383). The sidecar is disposable: a unique random name per boot,
+  reachable only by the workspace over a dedicated throwaway network, torn down with
+  `docker-sandbox stop`, and a label-scoped teardown that hard-refuses any
+  `seraphim`-named target so it can never remove a live-stack resource. Image and
+  build validation is complete; a host-source bind mount resolves against the
+  sidecar's own filesystem (the usual Docker-in-Docker trait). It is defence for
+  validation and does not replace the network-isolation work in #396.
 - **Host-script linting baked (issue #379):** shellcheck and PowerShell (`pwsh`)
   are baked into the workspace image (pinned release tarballs plus a build-time
   PATH gate, like actionlint), so an agent working the host scripts can lint the

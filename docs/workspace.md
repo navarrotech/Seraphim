@@ -39,6 +39,21 @@ as the non-root `codespace` user.
   plus `pg-ephemeral` for local migration checks (use `pg-ephemeral --fresh` for a
   clean database to apply the whole chain from `0001`, issue #386), and Playwright's
   Chromium, so a fresh workspace has no first-run download stall.
+- **Safe infra validation (issue #383).** The workspace mounts the host Docker
+  socket, whose daemon runs the operator's live `seraphim` stack, so a bare
+  `docker compose up` from the agent's checkout targets the same project and
+  `seraphim-*` container names and can clobber the running stack. `docker-sandbox`
+  boots a privileged, throwaway `docker:dind` sidecar on that host daemon and
+  prints a `DOCKER_HOST` the agent exports (`export DOCKER_HOST="$(docker-sandbox)"`),
+  so `docker` / `docker compose` then run against that separate, empty daemon and
+  cannot reach the live stack. The sidecar takes a unique random name every boot,
+  is reachable only by this workspace over a dedicated throwaway network (never by
+  the live containers), and is torn down by `docker-sandbox stop`; its teardown is
+  label-scoped and hard-refuses any `seraphim`-named target, so it can never remove
+  a live-stack resource. Image and build validation is complete; a host-source bind
+  mount resolves against the sidecar's own filesystem, the usual Docker-in-Docker
+  trait, so validate those with `docker compose build` / `config`. This is
+  defence for validation and does not replace the network-isolation work in #396.
 - **Two MCPs, at user scope.** The Playwright MCP is the agent's eyes for visual
   self-review, and the Seraphim MCP lets the agent edit its own setup scripts
   (recorded in `setup_script_changes`). Both are registered at user scope so

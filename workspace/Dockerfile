@@ -307,6 +307,14 @@ COPY design-system.md /usr/local/share/seraphim/design-system.md
 COPY pg-ephemeral /usr/local/bin/pg-ephemeral
 RUN chmod +x /usr/local/bin/pg-ephemeral
 
+# --- Throwaway isolated Docker daemon helper (safe compose/infra validation) --
+# Boots a privileged, disposable docker:dind sidecar on the host daemon and prints
+# a DOCKER_HOST the agent exports, so `docker compose up` runs against that empty,
+# isolated daemon instead of the host daemon that runs the operator's live stack
+# (issue #383). The sidecar image is pulled by the host daemon on first use.
+COPY docker-sandbox /usr/local/bin/docker-sandbox
+RUN chmod +x /usr/local/bin/docker-sandbox
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
