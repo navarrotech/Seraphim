@@ -120,6 +120,13 @@ const RATE_LIMIT_COOLDOWN: Duration = Duration::from_secs(8);
 /// transient rate limit is treated as a real failure and surfaced on the card.
 /// Bounds the wait at roughly `RATE_LIMIT_COOLDOWN * RATE_LIMIT_RETRY_MAX`.
 const RATE_LIMIT_RETRY_MAX: u32 = 5;
+/// How long a credential is sidelined after it fails to authenticate (a revoked
+/// or invalid token, issue #367), before the agent tries it again. It matches the
+/// failed-OAuth-refresh cooldown: long enough to stop hammering a dead credential
+/// task after task, short enough that a transient auth blip recovers on its own.
+/// Reconnecting a credential in Settings adds a fresh one and resumes the agent at
+/// once, so this only bounds the dead one's retry.
+const AUTH_FAILURE_COOLDOWN_MINUTES: i64 = 30;
 /// Minimum spacing between live token-usage SSE ticks during a turn. The partial
 /// stream updates the in-memory counter on every chunk; this throttles only the
 /// "refetch the gauges" nudge so a smooth-but-not-flooding ~3 ticks/second reach
@@ -1952,6 +1959,12 @@ async fn work_fresh(
             .unwrap_or("the agent stopped responding");
         return defibrillate(state, handle, &task, "working", detail).await;
     }
+    // An auth failure (a revoked/invalid credential) is not this task's fault: the
+    // credential was already sidelined, so re-queue the task to To Do for retry once
+    // auth is restored, rather than burning it (issue #367).
+    if outcome.auth_failed {
+        return requeue_after_auth_failure(state, &task, TaskColumn::Todo).await;
+    }
     // Surface a turn failure (e.g. "Not logged in") on the task itself, instead
     // of letting it fall through to the generic "no pull request" message.
     if let Some(message) = outcome.error {
@@ -2141,6 +2154,12 @@ async fn work_pr_fix(
             .unwrap_or("the agent stopped responding");
         return defibrillate(state, handle, &task, "working", detail).await;
     }
+    // An auth failure on an existing-PR turn (CI fix / review addressing) is a dead
+    // credential, not the work: the credential was sidelined, so return the task to
+    // In Review for the review loop to retry once auth is restored (issue #367).
+    if outcome.auth_failed {
+        return requeue_after_auth_failure(state, &task, TaskColumn::InReview).await;
+    }
     if let Some(message) = outcome.error {
         return fail(state, &task, &message).await;
     }
@@ -2232,6 +2251,11 @@ struct TurnOutcome {
     /// no output past the heartbeat, or its stream broke. These are routed to the
     /// defibrillator (kill the orphan, revive, alert) instead of a plain failure.
     heart_attack: bool,
+    /// Whether the turn failed to authenticate (a revoked or invalid credential),
+    /// so the credential was already sidelined and the agent paused or rotated
+    /// (issue #367). The caller re-queues the task for retry rather than failing
+    /// it, since a dead credential is not the task's fault.
+    auth_failed: bool,
     /// The hard-reset epoch captured when the turn started, so the caller can tell
     /// whether a reset interrupted it.
     epoch: u64,
@@ -2302,6 +2326,36 @@ fn is_transient_rate_limit(message: &str) -> bool {
         || (lower.contains("rate limited") && lower.contains("api error"))
 }
 
+/// Whether a turn's error message is an authentication failure: the active
+/// credential is dead (revoked, invalid, or logged out), not the task's fault
+/// (issue #367).
+///
+/// Claude Code surfaces these as e.g. "Failed to authenticate. API Error: 401
+/// OAuth access token has been revoked", "Not logged in", or an
+/// `authentication_error`. A match means the credential should be sidelined so
+/// the agent pauses or rotates, rather than slamming the next task on the same
+/// dead token. The phrases are auth-specific to avoid mistaking an ordinary
+/// failure that merely mentions a status code for a credential problem.
+fn is_auth_failure(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("failed to authenticate")
+        || lower.contains("token has been revoked")
+        || lower.contains("not logged in")
+        || lower.contains("authentication_error")
+        || lower.contains("authentication error")
+        || lower.contains("invalid_api_key")
+        || lower.contains("invalid api key")
+        // Anthropic's literal message for a bad API key; the `x-api-key` header name
+        // is always auth-specific.
+        || lower.contains("x-api-key")
+        || lower.contains("oauth token has expired")
+        || (lower.contains("401")
+            && (lower.contains("oauth")
+                || lower.contains("unauthorized")
+                || lower.contains("authenticate")
+                || lower.contains("api key")))
+}
+
 /// Streams one Claude turn for `prompt`, persisting every event and pushing it
 /// to the UI. The caller composes the prompt (fresh work or a CI fix).
 async fn stream_turn(
@@ -2370,6 +2424,7 @@ async fn stream_turn(
             session_id: resume_session_id.clone(),
             error: None,
             heart_attack: false,
+            auth_failed: false,
             epoch: reset_epoch,
         });
     };
@@ -2604,10 +2659,35 @@ async fn stream_turn(
         warn!(error = %error, task = %task.id, "failed to post reasoning summary to the issue");
     }
 
+    // An authentication failure (revoked/invalid token, "Not logged in") means THIS
+    // credential is dead, not the task. Sideline it so the agent rotates to the next
+    // credential or pauses (issue #367), instead of slamming task after task on the
+    // same dead token; the caller re-queues the task rather than failing it. A dead
+    // credential is treated like a failed OAuth refresh: sidelined for a cooldown
+    // with a "reconnect it" reason on the LLMs page.
+    let auth_failed = error_message.as_deref().is_some_and(is_auth_failure);
+    if auth_failed {
+        let until = Utc::now() + chrono::Duration::minutes(AUTH_FAILURE_COOLDOWN_MINUTES);
+        let rotated = credentials::mark_exhausted_and_reconcile(
+            state,
+            active_credential_id,
+            until,
+            "authentication failed (token revoked or invalid); reconnect this credential in \
+             Settings -> LLMs",
+        )
+        .await?;
+        if rotated {
+            warn!(task = %task.id, "authentication failed; sidelined the credential and rotated to the next");
+        } else {
+            warn!(task = %task.id, "authentication failed on the only usable credential; pausing the agent");
+        }
+    }
+
     Ok(TurnOutcome {
         session_id,
         error: error_message,
         heart_attack,
+        auth_failed,
         epoch: reset_epoch,
     })
 }
@@ -3601,6 +3681,32 @@ async fn fail(state: &AppState, task: &Task, message: &str) -> Result<()> {
     Ok(())
 }
 
+/// Re-queues a task the agent could not even start because its credential failed
+/// to authenticate (issue #367).
+///
+/// A dead credential is not the task's fault, so the task is returned to `column`
+/// to be retried once auth is restored, rather than marked failed: fresh work goes
+/// back to **To Do** (a clean re-queue), and a turn on an existing PR returns to
+/// **In Review** for the review loop to retry. The credential has already been
+/// sidelined (so the agent paused or rotated), and the auth error is surfaced on
+/// the LLMs page, so the card stays clean rather than showing a scary failure the
+/// operator cannot act on from the board.
+async fn requeue_after_auth_failure(
+    state: &AppState,
+    task: &Task,
+    column: TaskColumn,
+) -> Result<()> {
+    warn!(task_id = %task.id, ?column, "authentication failed; re-queuing the task for retry");
+    queries::move_task(&state.db, task.id, column, task.position).await?;
+    // Moving into To Do / Available already re-queues (status `queued`, error cleared);
+    // a return to In Review settles the card back for the review loop.
+    if column == TaskColumn::InReview {
+        queries::set_task_status(&state.db, task.id, TaskStatus::AwaitingReview).await?;
+    }
+    state.notify_board();
+    Ok(())
+}
+
 /// Leaves an open PR in review for a human, recording why the agent stopped on
 /// CI. Unlike [`fail`], the card keeps its `In Review` lane and PR; only the
 /// status and the note change.
@@ -4034,6 +4140,35 @@ mod tests {
         assert!(!is_transient_rate_limit(
             "the agent finished without opening a pull request"
         ));
+    }
+
+    #[test]
+    fn auth_failure_matches_a_dead_credential_only() {
+        // The exact wording from the reported incident (issue #367), plus the other
+        // dead-credential shapes Claude Code emits.
+        assert!(is_auth_failure(
+            "Failed to authenticate. API Error: 401 OAuth access token has been revoked."
+        ));
+        assert!(is_auth_failure("Not logged in"));
+        assert!(is_auth_failure(
+            "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"}}"
+        ));
+        assert!(is_auth_failure("API Error: 401 invalid x-api-key"));
+        assert!(is_auth_failure("OAuth token has expired"));
+
+        // A transient server throttle and ordinary failures are not auth problems,
+        // so a good credential is never sidelined for them.
+        assert!(!is_auth_failure(
+            "API Error: Server is temporarily limiting requests (not your usage limit)"
+        ));
+        assert!(!is_auth_failure(
+            "Usage limit reached. Your limit resets at 5pm."
+        ));
+        assert!(!is_auth_failure(
+            "the agent finished without opening a pull request"
+        ));
+        // A bare 404 or an unrelated status code must not read as an auth failure.
+        assert!(!is_auth_failure("API Error: 404 not found"));
     }
 
     #[test]
