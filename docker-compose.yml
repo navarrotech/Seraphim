@@ -19,8 +19,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    # Only the `db` network, and only the API joins it: the production database is
+    # NOT reachable from the workspace/agent, frontend, or tailscale. This removes
+    # the capability the agent abused to migrate production and break the API
+    # (issue #396), rather than relying on an instruction alone.
     networks:
-      - seraphim
+      - db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -65,8 +69,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # `seraphim` for the frontend/workspace/tailscale to reach the API, and `db`
+    # for the API (the only service that needs it) to reach Postgres (issue #396).
     networks:
       - seraphim
+      - db
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:27182/api/v1/ping || exit 1"]
       interval: 10s
@@ -197,6 +204,13 @@ services:
 networks:
   seraphim:
     driver: bridge
+  # Isolates Postgres so only the API (which joins both networks) can reach it.
+  # `internal: true` gives it no gateway, so the database is unreachable from the
+  # workspace/agent and has no outbound path either; the API still reaches the
+  # internet over `seraphim` (issue #396).
+  db:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres-data:

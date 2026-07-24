@@ -535,6 +535,9 @@ fn context_header(
     // a prior session's lockfile rewrite that `git add -A` would otherwise sweep in
     // (issue #385). Shared by every mode this header serves.
     prompt.push_str(WORKING_TREE_HYGIENE);
+    // A hard safety rule: the workspace can reach the live database, so forbid
+    // touching it and route DB work to pg-ephemeral (issue #396). Every mode.
+    prompt.push_str(DATABASE_SAFETY);
     prompt
 }
 
@@ -823,6 +826,24 @@ const WORKING_TREE_HYGIENE: &str = "\n\
     promptly, since uncommitted changes can be reverted when a task is resumed or \
     the workspace is re-provisioned.\n";
 
+/// A hard safety rule (issue #396): the workspace can reach the live
+/// `seraphim-postgres`, and an agent doing backend work once migrated it and took
+/// the running API down. This standing instruction routes DB work to the
+/// throwaway `pg-ephemeral` and forbids touching the production database. Shared by
+/// every mode, so it rides the common header and the resume path alike.
+const DATABASE_SAFETY: &str = "\n\
+    # Never touch the production database\n\
+    The `seraphim-postgres` container is the LIVE production database the running \
+    API owns. Never connect to it, run migrations against it, or point tests at it, \
+    and never reverse-engineer its address or credentials (for example via `docker \
+    inspect` or `docker exec`) to reach it: a stray migration run against it once \
+    dropped a column the running API still queried and took the API down (issue \
+    #396). For any DB-gated test or migration check, use the throwaway PostgreSQL \
+    baked into the workspace, which never touches production: `export \
+    DATABASE_URL=\"$(pg-ephemeral)\"` (add `--fresh` for a clean, empty database to \
+    apply the whole migration chain from `0001`). If you genuinely need the real \
+    database's state, ask with `seraphim-ask` rather than connecting to it.\n";
+
 /// Builds the prompt that resumes a parked task once the user has answered.
 ///
 /// The shared Claude session is also used by other tasks while this one is
@@ -867,6 +888,9 @@ pub fn build_resume(repo: &Repository, task: &Task, branch: &str, answers: &[Que
     // A resume prep deliberately does not reset the tree (it preserves the agent's
     // parked work), so cross-task dirt is most likely to surface here (issue #385).
     prompt.push_str(WORKING_TREE_HYGIENE);
+    // The resume path bypasses the shared header, so it must carry the DB-safety
+    // rule on its own too: a resumed backend task can still run DB tests (#396).
+    prompt.push_str(DATABASE_SAFETY);
     prompt.push_str(
         "When you are finished, open the pull request as described in your original \
          working agreement. If you need another decision, you may ask again with \
@@ -1043,10 +1067,13 @@ mod tests {
         );
 
         // An internal ticket has no upstream issue, so the brief and the PR step
-        // must not reference a (meaningless, possibly colliding) issue number.
+        // must not reference a (meaningless, possibly colliding) issue number. Check
+        // the two places a number would render (the brief line and the PR step)
+        // rather than a bare "issue #3" substring, which a standing instruction's
+        // own issue citation (e.g. "(issue #396)") would otherwise trip.
         assert!(prompt.contains("Work this task: Port over the PDF docs"));
         assert!(prompt.contains("Move the docs from DebugAgent."));
-        assert!(!prompt.contains("issue #3"));
+        assert!(!prompt.contains("Work issue #"));
         assert!(!prompt.contains("referencing issue"));
         // The PR step is still present, just without the issue reference.
         assert!(prompt.contains("Open a pull request against `v3.0.0` with `gh pr create`."));
@@ -1147,6 +1174,42 @@ mod tests {
         let resume = build_resume(&sample_repo(), &sample_task(), "seraphim/issue-57", &[]);
         assert!(resume.contains("Keep the commit to your own changes"));
         assert!(resume.contains("yarn.lock"));
+    }
+
+    #[test]
+    fn fresh_and_resume_prompts_forbid_touching_the_production_database() {
+        // The DB-safety rule (issue #396) is a standing instruction, so every brief
+        // and the resume path carry it: use pg-ephemeral, never seraphim-postgres.
+        let fresh = build(
+            &sample_settings(),
+            &sample_repo(),
+            &sample_task(),
+            "seraphim/issue-396",
+            &[],
+            &[],
+            &[],
+            &[],
+        );
+        assert!(fresh.contains("Never touch the production database"));
+        assert!(fresh.contains("seraphim-postgres"));
+        assert!(fresh.contains("pg-ephemeral"));
+
+        // A CI-fix run shares the header, so it carries the rule too.
+        let ci_fix = build_ci_fix(
+            &sample_settings(),
+            &sample_repo(),
+            &sample_task(),
+            "seraphim/issue-396",
+            &[],
+            &[],
+        );
+        assert!(ci_fix.contains("Never touch the production database"));
+
+        // The resume path bypasses the shared header, so it must carry the rule on
+        // its own: a resumed backend task can still run DB-gated tests.
+        let resume = build_resume(&sample_repo(), &sample_task(), "seraphim/issue-396", &[]);
+        assert!(resume.contains("Never touch the production database"));
+        assert!(resume.contains("pg-ephemeral"));
     }
 
     #[test]
