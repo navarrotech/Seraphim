@@ -9,6 +9,9 @@
 #
 # Usage:
 #   pg-ephemeral [start]   start it if needed and print the DATABASE_URL (default)
+#   pg-ephemeral fresh     start if needed, then print a URL to a BRAND-NEW empty
+#                          database (also `--fresh`); apply the whole migration chain
+#                          from scratch without the default `app` DB's state colliding
 #   pg-ephemeral url       print the DATABASE_URL without touching the cluster
 #   pg-ephemeral stop      stop the cluster (keeps the data dir)
 #   pg-ephemeral reset     stop and delete the data dir for a clean slate
@@ -16,6 +19,11 @@
 # Typical use:
 #   export DATABASE_URL="$(pg-ephemeral)"
 #   psql "$DATABASE_URL" -f migration.sql
+#
+#   # Validate the full migration chain from 0001 (issue #386): each `fresh` call
+#   # gives a clean, empty database, so re-applying 0001 never hits "already exists".
+#   DATABASE_URL="$(pg-ephemeral --fresh)"
+#   for f in api/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
 #
 # PostgreSQL refuses to run as root, so run this as the non-root workspace agent
 # user (codespace); everything lives under a writable temp dir it owns.
@@ -78,9 +86,34 @@ start() {
   echo "${URL}"
 }
 
+# Create a brand-new, empty database on the running cluster and print its URL, so a
+# caller can apply the full migration chain (0001..N) from scratch (issue #386). The
+# default `app` database persists state between runs, so re-applying 0001 there fails
+# with `type "..." already exists`; a fresh database sidesteps that. Each call yields
+# a distinct database (a nanosecond-stamped name), so repeated validations never
+# collide, and the default `app` database is left untouched.
+fresh() {
+  # Ensure the cluster is up. `start` prints the default URL on stdout, which we
+  # drop here so only the fresh URL below reaches the caller; its status/log lines
+  # already go to stderr.
+  start >/dev/null
+
+  local name
+  name="fresh_$(date +%s%N)"
+  PGPASSWORD="${PGSUPERPASS}" "${PG_BIN}/createdb" \
+    -h 127.0.0.1 -p "${PGPORT}" -U "${PGSUPERUSER}" "${name}" >/dev/null \
+    || die "failed to create the fresh database ${name}"
+
+  echo "pg-ephemeral: fresh database ready at ${name}" >&2
+  echo "postgresql://${PGSUPERUSER}:${PGSUPERPASS}@127.0.0.1:${PGPORT}/${name}"
+}
+
 case "${1:-start}" in
   start | "")
     start
+    ;;
+  fresh | --fresh)
+    fresh
     ;;
   url)
     echo "${URL}"
@@ -93,6 +126,6 @@ case "${1:-start}" in
     rm -rf "${PGDATA}"
     ;;
   *)
-    die "usage: pg-ephemeral [start|url|stop|reset]"
+    die "usage: pg-ephemeral [start|fresh|url|stop|reset]"
     ;;
 esac
