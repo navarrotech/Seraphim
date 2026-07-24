@@ -50,6 +50,7 @@
   import { isWithinSchedule } from '$lib/schedule'
   import { subscribeBoardStream } from '$lib/boardStream'
   import { type SortKey, sortTasks, loadSort, saveSort } from '$lib/columnSort'
+  import BoardBanner from '$lib/components/BoardBanner.svelte'
   import BulkActionBar from '$lib/components/BulkActionBar.svelte'
   import Card from '$lib/components/Card.svelte'
   import ColumnSort from '$lib/components/ColumnSort.svelte'
@@ -928,81 +929,66 @@
          visible (monospaced) so the operator can patch the underlying cause, with
          a dismiss once they have read it. The banner stays global but is tagged
          with the railway it belongs to. -->
-    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <Alert.Title class="flex items-center gap-1.5">
-          <HeartPulse class="size-4 flex-none" />
-          Agent heart attack: "{incident.task_title}"
-          {#if lane}
-            <span class="rounded border border-current/40 px-1.5 py-0 text-[10px] font-normal opacity-80">
-              {lane}
-            </span>
-          {/if}
-        </Alert.Title>
-        <Alert.Description class="break-words">
-          <span class="font-mono text-xs break-words">{incident.detail}</span>
-          {#if incident.recovery}
-            <span class="mt-1 block text-xs opacity-80">{incident.recovery}</span>
-          {/if}
-          {#if incident.task_id}
-            <a href={`/task/${incident.task_id}`} class="mt-1 inline-block text-xs underline">
-              Open the task to see the full activity log
-            </a>
-          {/if}
-        </Alert.Description>
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        class="flex-none"
-        title="Dismiss"
-        aria-label="Dismiss heart attack"
-        onclick={() => dismissHeartAttack(incident.id)}
-      >
-        <X class="size-4" />
-      </Button>
-    </Alert.Root>
+    <BoardBanner
+      variant="destructive"
+      icon={HeartPulse}
+      title={`Agent heart attack: "${incident.task_title}"`}
+      dismiss={() => dismissHeartAttack(incident.id)}
+      dismissLabel="Dismiss heart attack"
+    >
+      {#snippet titleBadge()}
+        {#if lane}
+          <span class="rounded border border-current/40 px-1.5 py-0 text-[10px] font-normal opacity-80">
+            {lane}
+          </span>
+        {/if}
+      {/snippet}
+      <Alert.Description class="break-words">
+        <span class="font-mono text-xs break-words">{incident.detail}</span>
+        {#if incident.recovery}
+          <span class="mt-1 block text-xs opacity-80">{incident.recovery}</span>
+        {/if}
+        {#if incident.task_id}
+          <a href={`/task/${incident.task_id}`} class="mt-1 inline-block text-xs underline">
+            Open the task to see the full activity log
+          </a>
+        {/if}
+      </Alert.Description>
+    </BoardBanner>
   {/each}
 
   {#if settings?.config_repo_error}
-    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-center justify-between gap-4">
-      <div>
-        <Alert.Title>Config repo (~/.claude) failed to set up — the agent is halted.</Alert.Title>
-        <Alert.Description class="font-mono text-xs break-words">
-          {settings.config_repo_error}
-        </Alert.Description>
-      </div>
-      <Button variant="outline" size="sm" disabled={retrying} onclick={retryProvision}>
-        {retrying ? 'Retrying…' : 'Retry'}
-      </Button>
-    </Alert.Root>
+    <BoardBanner
+      variant="destructive"
+      align="center"
+      title="Config repo (~/.claude) failed to set up — the agent is halted."
+    >
+      <Alert.Description class="font-mono text-xs break-words">
+        {settings.config_repo_error}
+      </Alert.Description>
+      {#snippet action()}
+        <Button variant="outline" size="sm" disabled={retrying} onclick={retryProvision}>
+          {retrying ? 'Retrying…' : 'Retry'}
+        </Button>
+      {/snippet}
+    </BoardBanner>
   {/if}
 
   {#each visibleSyncErrors as repo (repo.full_name)}
     <!-- A repo's issue sync is failing (issue #213). Persist the reason until it
          recovers (it clears itself on the next successful sync), with a dismiss for
          operators who have read it. -->
-    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <Alert.Title class="flex items-center gap-1.5">
-          <RefreshCw class="size-4 flex-none" />
-          Issue sync failed: {repo.full_name}
-        </Alert.Title>
-        <Alert.Description class="break-words">
-          {repo.sync_error}
-        </Alert.Description>
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        class="flex-none"
-        title="Dismiss"
-        aria-label="Dismiss sync error"
-        onclick={() => dismissedSyncRepos.add(repo.full_name)}
-      >
-        <X class="size-4" />
-      </Button>
-    </Alert.Root>
+    <BoardBanner
+      variant="destructive"
+      icon={RefreshCw}
+      title={`Issue sync failed: ${repo.full_name}`}
+      dismiss={() => dismissedSyncRepos.add(repo.full_name)}
+      dismissLabel="Dismiss sync error"
+    >
+      <Alert.Description class="break-words">
+        {repo.sync_error}
+      </Alert.Description>
+    </BoardBanner>
   {/each}
 
   {#each visibleEmptyPrs as pr (pr.pr_url)}
@@ -1010,110 +996,89 @@
          squash a zero-change PR and the agent did not deliberately park it as a
          draft, so it is held in review and surfaced here. Self-clears when the PR
          gains changes, is closed, or is marked draft; dismissible once read. -->
-    <Alert.Root variant="destructive" class="mx-6 w-auto mt-4 flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <Alert.Title class="flex items-center gap-1.5">
-          <GitPullRequestArrow class="size-4 flex-none" />
-          Empty pull request: {pr.repo_full_name}#{pr.pr_number}
-        </Alert.Title>
-        <Alert.Description class="break-words">
-          <span>
-            "{pr.task_title}" opened a pull request with no changes that is not a draft, so it
-            cannot be merged. It is held in review; close it or push the intended changes.
-          </span>
-          <a href={pr.pr_url} target="_blank" rel="noreferrer" class="mt-1 inline-block text-xs underline">
-            Open the pull request
-          </a>
-          <a href={`/task/${pr.task_id}`} class="mt-1 ml-3 inline-block text-xs underline">
-            Open the task
-          </a>
-        </Alert.Description>
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        class="flex-none"
-        title="Dismiss"
-        aria-label="Dismiss empty pull request anomaly"
-        onclick={() => dismissedEmptyPrs.add(pr.pr_url)}
-      >
-        <X class="size-4" />
-      </Button>
-    </Alert.Root>
+    <BoardBanner
+      variant="destructive"
+      icon={GitPullRequestArrow}
+      title={`Empty pull request: ${pr.repo_full_name}#${pr.pr_number}`}
+      dismiss={() => dismissedEmptyPrs.add(pr.pr_url)}
+      dismissLabel="Dismiss empty pull request anomaly"
+    >
+      <Alert.Description class="break-words">
+        <span>
+          "{pr.task_title}" opened a pull request with no changes that is not a draft, so it
+          cannot be merged. It is held in review; close it or push the intended changes.
+        </span>
+        <a href={pr.pr_url} target="_blank" rel="noreferrer" class="mt-1 inline-block text-xs underline">
+          Open the pull request
+        </a>
+        <a href={`/task/${pr.task_id}`} class="mt-1 ml-3 inline-block text-xs underline">
+          Open the task
+        </a>
+      </Alert.Description>
+    </BoardBanner>
   {/each}
 
   {#each setupScriptChanges as change (change.id)}
+    {@const scriptTarget =
+      change.target === 'base' ? 'environment setup' : (change.repo_full_name ?? 'a repository')}
     <!-- The agent edited one of its own setup scripts (issue #340). Not an error,
          so this is an informational banner (primary accent, not destructive): it
          names what changed and why, shows the new script, and links to the task,
          with a dismiss that acknowledges it server-side so it clears for good. -->
-    <Alert.Root class="mx-6 w-auto mt-4 flex items-start justify-between gap-4 border-primary/40">
-      <div class="min-w-0">
-        <Alert.Title class="flex items-center gap-1.5">
-          <Wrench class="size-4 flex-none" />
-          Agent updated the setup script: {change.target === 'base'
-            ? 'environment setup'
-            : (change.repo_full_name ?? 'a repository')}
-        </Alert.Title>
-        <Alert.Description class="break-words">
-          {#if change.summary}
-            <span class="block">{change.summary}</span>
-          {/if}
-          {#if change.always_run !== null}
-            <span class="mt-1 block text-xs opacity-80">
-              {change.always_run
-                ? 'Now re-runs before every task on the existing clone.'
-                : 'Now runs only on first clone / full provision.'}
-            </span>
-          {/if}
-          <pre
-            class="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-xs whitespace-pre-wrap">{change.new_script ||
-              '(empty script)'}</pre>
-          {#if change.target === 'base'}
-            <span class="mt-1 block text-xs opacity-80">
-              Takes effect on the next workspace provision/recreate.
-            </span>
-          {/if}
-          {#if change.task_id}
-            <a href={`/task/${change.task_id}`} class="mt-1 inline-block text-xs underline">
-              Open the task that made this change
-            </a>
-          {/if}
-        </Alert.Description>
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        class="flex-none"
-        title="Dismiss"
-        aria-label="Dismiss setup-script change"
-        onclick={() => dismissSetupChange(change.id)}
-      >
-        <X class="size-4" />
-      </Button>
-    </Alert.Root>
+    <BoardBanner
+      icon={Wrench}
+      title={`Agent updated the setup script: ${scriptTarget}`}
+      class="border-primary/40"
+      dismiss={() => dismissSetupChange(change.id)}
+      dismissLabel="Dismiss setup-script change"
+    >
+      <Alert.Description class="break-words">
+        {#if change.summary}
+          <span class="block">{change.summary}</span>
+        {/if}
+        {#if change.always_run !== null}
+          <span class="mt-1 block text-xs opacity-80">
+            {change.always_run
+              ? 'Now re-runs before every task on the existing clone.'
+              : 'Now runs only on first clone / full provision.'}
+          </span>
+        {/if}
+        <pre
+          class="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-xs whitespace-pre-wrap">{change.new_script ||
+            '(empty script)'}</pre>
+        {#if change.target === 'base'}
+          <span class="mt-1 block text-xs opacity-80">
+            Takes effect on the next workspace provision/recreate.
+          </span>
+        {/if}
+        {#if change.task_id}
+          <a href={`/task/${change.task_id}`} class="mt-1 inline-block text-xs underline">
+            Open the task that made this change
+          </a>
+        {/if}
+      </Alert.Description>
+    </BoardBanner>
   {/each}
 
   {#if settings?.usage_paused_until && new Date(settings.usage_paused_until).getTime() > Date.now()}
-    <Alert.Root class="mx-6 w-auto mt-4 flex items-start justify-between gap-4 border-warning/40">
-      <div class="min-w-0">
-        <Alert.Title>Paused: subscription usage limit reached.</Alert.Title>
-        <Alert.Description>
-          New work is on hold until the usage window resets at
-          {new Date(settings.usage_paused_until).toLocaleString()}, when it resumes automatically.
-          To resume sooner, raise the usage threshold in Settings or resume now.
-        </Alert.Description>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        class="flex-none"
-        disabled={resumingUsage}
-        onclick={resumeUsageNow}
-      >
-        {resumingUsage ? 'Resuming…' : 'Resume now'}
-      </Button>
-    </Alert.Root>
+    <BoardBanner title="Paused: subscription usage limit reached." class="border-warning/40">
+      <Alert.Description>
+        New work is on hold until the usage window resets at
+        {new Date(settings.usage_paused_until).toLocaleString()}, when it resumes automatically.
+        To resume sooner, raise the usage threshold in Settings or resume now.
+      </Alert.Description>
+      {#snippet action()}
+        <Button
+          variant="outline"
+          size="sm"
+          class="flex-none"
+          disabled={resumingUsage}
+          onclick={resumeUsageNow}
+        >
+          {resumingUsage ? 'Resuming…' : 'Resume now'}
+        </Button>
+      {/snippet}
+    </BoardBanner>
   {/if}
 
   <div class="flex items-center justify-between px-6 pb-1 pt-4">
