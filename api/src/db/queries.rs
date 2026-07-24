@@ -1941,19 +1941,34 @@ pub async fn move_task(
 ) -> sqlx::Result<Task> {
     // Re-queuing a card (into To Do or Available) is a hard reset: it clears any
     // prior failure, resets the CI-fix counter, and stamps the stats reset marker
-    // so its time/cost/tokens start fresh, all so the task starts clean.
+    // so its time/cost/tokens start fresh, and it withdraws any still-pending
+    // question the abandoned attempt escalated (issue #391), all so the task starts
+    // clean. A left-behind pending question would otherwise strand the notifications
+    // sidebar and, worse, block the card's next resume, since `pick_resume_ready`
+    // refuses a task that still has one. Answered questions are kept as history. The
+    // move and the withdrawal share one statement so they commit together; the
+    // data-modifying `withdrawn` CTE always runs even though the query reads only
+    // `moved`.
     sqlx::query_as::<_, Task>(
-        "UPDATE tasks SET board_column = $2, position = $3, \
-         status = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
-                       THEN 'queued'::task_status ELSE status END, \
-         error = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
-                      THEN NULL ELSE error END, \
-         ci_fix_attempts = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
-                                THEN 0 ELSE ci_fix_attempts END, \
-         stats_reset_at = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
-                               THEN now() ELSE stats_reset_at END, \
-         updated_at = now() \
-         WHERE id = $1 RETURNING *",
+        "WITH moved AS ( \
+             UPDATE tasks SET board_column = $2, position = $3, \
+                 status = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
+                               THEN 'queued'::task_status ELSE status END, \
+                 error = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
+                              THEN NULL ELSE error END, \
+                 ci_fix_attempts = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
+                                        THEN 0 ELSE ci_fix_attempts END, \
+                 stats_reset_at = CASE WHEN $2 IN ('todo'::task_column, 'available'::task_column) \
+                                       THEN now() ELSE stats_reset_at END, \
+                 updated_at = now() \
+             WHERE id = $1 RETURNING * \
+         ), \
+         withdrawn AS ( \
+             DELETE FROM questions \
+             WHERE task_id = $1 AND status = 'pending' \
+               AND $2 IN ('todo'::task_column, 'available'::task_column) \
+         ) \
+         SELECT * FROM moved",
     )
     .bind(id)
     .bind(column)
@@ -3379,12 +3394,26 @@ pub async fn list_questions_for_task(pool: &PgPool, task_id: Uuid) -> sqlx::Resu
         .await
 }
 
-/// All unanswered questions across every task, for the notifications sidebar.
+/// The pending questions whose answer is actionable now, for the notifications
+/// sidebar (issue #391).
+///
+/// A pending question is only worth surfacing while answering it would actually
+/// deliver: its task must still be parked awaiting that input, i.e.
+/// `in_progress` + `waiting_for_input`, the exact state [`pick_resume_ready`]
+/// resumes from. A card pulled out of that state (re-queued to To Do / Available,
+/// or archived to Done / Ignored) sets its work aside, and an answer would be a
+/// no-op the resume loop never consumes, so its questions must not linger in the
+/// list and misdirect the operator. This derives that live from the task's
+/// current state and reconciles nothing, the same shape as
+/// [`list_anomalous_empty_prs`] (issue #369).
 pub async fn list_pending_questions(pool: &PgPool) -> sqlx::Result<Vec<PendingQuestion>> {
     sqlx::query_as::<_, PendingQuestion>(
         "SELECT q.id, q.task_id, t.title AS task_title, q.prompt, q.options, q.created_at \
          FROM questions q JOIN tasks t ON q.task_id = t.id \
-         WHERE q.status = 'pending' ORDER BY q.created_at",
+         WHERE q.status = 'pending' \
+           AND t.status = 'waiting_for_input' \
+           AND t.board_column = 'in_progress' \
+         ORDER BY q.created_at",
     )
     .fetch_all(pool)
     .await
@@ -4372,6 +4401,170 @@ mod tests {
         assert_eq!(
             get_task(&pool, task.id).await.unwrap().unwrap().status,
             TaskStatus::Working,
+        );
+
+        db.teardown().await;
+    }
+
+    /// A pending question must drop off the notifications sidebar the moment its
+    /// card leaves the parked `in_progress` + `waiting_for_input` state, so parked
+    /// or archived work never misdirects the operator into answering a question the
+    /// resume loop would never consume (issue #391).
+    ///
+    /// DB-gated: runs only when `DATABASE_URL` is set (the CI test job's throwaway
+    /// Postgres, or `pg-ephemeral` locally); otherwise it skips.
+    #[tokio::test]
+    async fn pending_questions_list_only_shows_actionable_parked_cards() {
+        let Some(db) = setup_throwaway_db("seraphim_issue391_display_test").await else {
+            return;
+        };
+        let pool = db.pool.clone();
+
+        // A card parked mid-turn, waiting on a question: the one live, actionable
+        // state, so its question is listed.
+        let parked = create_internal_task(&pool, "parked mid-turn", "", "open", &[], 1.0)
+            .await
+            .expect("create the parked task");
+        move_task(&pool, parked.id, TaskColumn::InProgress, parked.position)
+            .await
+            .expect("into In Progress");
+        set_task_status(&pool, parked.id, TaskStatus::WaitingForInput)
+            .await
+            .expect("park it waiting for input");
+        create_question(&pool, parked.id, "which auth library?", &[])
+            .await
+            .expect("its question");
+        assert!(
+            list_pending_questions(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .any(|q| q.task_id == parked.id),
+            "a genuinely parked card's question is actionable and listed",
+        );
+
+        // Archiving it to Ignored leaves the question pending and the status
+        // `waiting_for_input` (only a To Do / Available move re-queues), but the
+        // answer is no longer deliverable, so it must drop off the list. This
+        // isolates the board-column half of the live filter.
+        move_task(&pool, parked.id, TaskColumn::Ignored, parked.position)
+            .await
+            .expect("archive it to Ignored");
+        assert!(
+            !list_pending_questions(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .any(|q| q.task_id == parked.id),
+            "an archived card's question is not actionable, so it leaves the list",
+        );
+
+        // A card whose status is anything but `waiting_for_input` (here left
+        // `queued` while still In Progress) is likewise not answerable, so its
+        // question never shows. This isolates the status half of the live filter.
+        let queued = create_internal_task(&pool, "queued in progress", "", "open", &[], 2.0)
+            .await
+            .expect("create the queued task");
+        move_task(&pool, queued.id, TaskColumn::InProgress, queued.position)
+            .await
+            .expect("into In Progress");
+        create_question(&pool, queued.id, "which database?", &[])
+            .await
+            .expect("its question");
+        set_task_status(&pool, queued.id, TaskStatus::Queued)
+            .await
+            .expect("leave it queued, not waiting");
+        assert!(
+            !list_pending_questions(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .any(|q| q.task_id == queued.id),
+            "a queued card's question is not actionable, so it never shows",
+        );
+
+        db.teardown().await;
+    }
+
+    /// Re-queuing a card back to To Do / Available withdraws its still-pending
+    /// questions so the returned card starts clean (issue #391): a leftover pending
+    /// question would block its next resume (`pick_resume_ready` refuses a task that
+    /// has one) and its answer would never be delivered. Answered questions are kept
+    /// as history, and a non-requeue move (into In Review) leaves questions alone.
+    ///
+    /// DB-gated: runs only when `DATABASE_URL` is set (the CI test job's throwaway
+    /// Postgres, or `pg-ephemeral` locally); otherwise it skips.
+    #[tokio::test]
+    async fn re_queuing_a_card_withdraws_its_pending_questions() {
+        let Some(db) = setup_throwaway_db("seraphim_issue391_requeue_test").await else {
+            return;
+        };
+        let pool = db.pool.clone();
+
+        let task = create_internal_task(&pool, "parked work", "", "open", &[], 1.0)
+            .await
+            .expect("create the task");
+        move_task(&pool, task.id, TaskColumn::InProgress, task.position)
+            .await
+            .expect("into In Progress");
+        set_task_status(&pool, task.id, TaskStatus::WaitingForInput)
+            .await
+            .expect("park it waiting for input");
+        let answered = create_question(&pool, task.id, "which auth library?", &[])
+            .await
+            .expect("a question that gets answered");
+        create_question(&pool, task.id, "which database?", &[])
+            .await
+            .expect("a question left pending");
+        answer_question(
+            &pool,
+            answered.id,
+            QuestionStatus::Answered,
+            AnswerKind::Custom,
+            "jwt",
+        )
+        .await
+        .expect("answer the first");
+
+        // Pull the card back to Available: a hard re-queue. Its one still-pending
+        // question is withdrawn; the answered one is kept as decision history.
+        let moved = move_task(&pool, task.id, TaskColumn::Available, 1.0)
+            .await
+            .expect("re-queue to Available");
+        assert_eq!(
+            moved.status,
+            TaskStatus::Queued,
+            "a re-queued card is back to queued",
+        );
+        assert_eq!(
+            count_pending_questions(&pool, task.id).await.unwrap(),
+            0,
+            "the abandoned attempt's pending question is withdrawn",
+        );
+        assert_eq!(
+            list_questions_for_task(&pool, task.id).await.unwrap().len(),
+            1,
+            "the answered question is kept as decision history",
+        );
+
+        // A move that is not a re-queue (into In Review) must leave pending questions
+        // untouched: only To Do / Available clears them.
+        let other = create_internal_task(&pool, "in-review work", "", "open", &[], 2.0)
+            .await
+            .expect("create another task");
+        move_task(&pool, other.id, TaskColumn::InProgress, other.position)
+            .await
+            .expect("into In Progress");
+        create_question(&pool, other.id, "still pending?", &[])
+            .await
+            .expect("its question");
+        move_task(&pool, other.id, TaskColumn::InReview, other.position)
+            .await
+            .expect("into In Review");
+        assert_eq!(
+            count_pending_questions(&pool, other.id).await.unwrap(),
+            1,
+            "a non-requeue move leaves pending questions in place",
         );
 
         db.teardown().await;

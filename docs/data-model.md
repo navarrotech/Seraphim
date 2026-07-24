@@ -36,7 +36,10 @@ Migrations live in `api/migrations/` and are embedded at compile time
   through the Seraphim MCP, recorded with a before/after and a reason. See
   [workspace.md](./workspace.md).
 - **`questions`**: decisions the agent escalated to the operator, answered in
-  the task view.
+  the task view. The pending list is derived live (issue #391): a question shows
+  only while its task is still parked awaiting input, and re-queuing a card
+  withdraws its pending questions, so parked work never strands an un-answerable
+  question.
 - **`task_screenshots`** / **`task_attachments`**: image and file blobs tied to
   a task, stored as `bytea` and streamed by a dedicated route, never inlined in
   board or task JSON. See [secrets.md](./secrets.md) for the at-rest caveat.

@@ -331,7 +331,17 @@ operator notepad lives on the kanban board.
   question would block it forever; `POST /agent/questions` therefore rejects a
   blank (empty or whitespace-only) `prompt` with a 400 rather than persisting it
   (issue #368), and `seraphim-ask` handles `--help` and refuses a shell-mangled
-  JSON payload so a slip never posts one.
+  JSON payload so a slip never posts one. The sidebar list
+  (`list_pending_questions`) is derived live (issue #391): a pending question
+  shows only while its task is still parked `in_progress` + `waiting_for_input`,
+  the exact state `pick_resume_ready` resumes from, so a card pulled out of that
+  state (re-queued, or archived to Done / Ignored) never leaves a stranded,
+  un-answerable question misdirecting the operator (the same "derive live,
+  reconcile nothing" shape as the empty-PR banner, issue #369). Re-queuing a card
+  to To Do / Available (`move_task`) also **withdraws** its still-pending
+  questions in the same statement, so the returned card starts clean rather than
+  resuming against a leftover that `pick_resume_ready` refuses; answered questions
+  are kept as history.
 - **`task_screenshots`** (issue #248) — screenshots the agent captured during a
   task (via the Playwright MCP, issue #243), so the operator sees what the agent
   saw. The agent's `seraphim-screenshot <file>` helper POSTs the raw image bytes to
