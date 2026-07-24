@@ -497,6 +497,20 @@ operator notepad lives on the kanban board.
   (`.env`, with a safe `Seraphim` fallback), so the agent can commit in every flat
   clone under `/workspace` without per-repo setup. A repo-local `user.*` still
   overrides it.
+- **Workspace disk guard (issue #390):** `/workspace` is one volume shared across
+  every sibling repo, so a Rust-heavy repo whose incremental `target/` balloons
+  over many rebuilds (crew hit 21G once) can fill the disk and starve every other
+  task. A full disk surfaces as a misleading `cc: No space left on device` link
+  error, not an obvious disk problem, which can burn CI-fix attempts. So before
+  each turn the agent loop runs `orchestrator::disk::guard_workspace_disk` (in
+  `work_task`, once the container is up): it measures the free space on
+  `/workspace`, prunes every repo's stale Rust `target/` dir when it dips below a
+  reclaim threshold (a `cargo clean`, worth ~20G on crew, since a clean rebuild is
+  only a few GB), and if that still leaves too little it refuses the turn with a
+  loud "workspace disk full" error. The refusal rides the normal turn-abort path,
+  so it lands as a heart-attack incident (board banner + notification), turning a
+  confusing link error into an obvious disk problem. Thresholds are documented
+  constants in `disk.rs` (reclaim below 10G, refuse below 2G).
 - **Rust toolchains baked (issue #370):** the workspace image preinstalls rustup +
   stable, the pinned `1.88` build toolchain (with `rustfmt` + `clippy`), and the
   date-pinned nightly (with `rustfmt`) that a repo's nightly-only fmt gate uses
