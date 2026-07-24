@@ -80,6 +80,11 @@ RUN actionlint --version \
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
+# The date-pinned nightly a repo's nightly-only rustfmt gate uses (crew's
+# `Format (nightly)` job, `cargo +$NIGHTLY fmt`, issue #370). A build-time knob so
+# a bump is one line; keep it in sync with that repo's `.github/workflows/ci.yml`
+# `NIGHTLY`.
+ARG RUST_NIGHTLY=nightly-2026-07-22
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
     && rustup component add rustfmt clippy \
@@ -88,6 +93,11 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     # with no first-run download or "component not installed" stall.
     && rustup toolchain install 1.88 --profile minimal \
     && rustup component add --toolchain 1.88 rustfmt clippy \
+    # Pre-install the pinned nightly with rustfmt so the nightly-only fmt gate
+    # (`cargo +$RUST_NIGHTLY fmt --check`) runs with no first-run "cargo-fmt is
+    # not installed" stall (issue #370). rustfmt only: clippy and test run on the
+    # pinned stable, not the nightly.
+    && rustup toolchain install "$RUST_NIGHTLY" --profile minimal --component rustfmt \
     && chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
 
 # --- Org cloud CLIs (jira, doctl, gcloud) ------------------------------------
