@@ -4,18 +4,19 @@
 # Data-backed pages (the repositories page, the board, task views) need a live API
 # with some data to review in a browser. This wires the pieces the agent otherwise
 # starts by hand: a throwaway PostgreSQL 17 (via `pg-ephemeral`), the API built and
-# run against it, and a few seeded dev repositories. Pair it with the frontend dev
-# server (`cd frontend && yarn dev`), which proxies `/api` to this backend, then
-# drive the visual self-review loop.
+# run against it, a few seeded dev repositories, and a board of dev tasks spread
+# across every column. Pair it with the frontend dev server (`cd frontend && yarn
+# dev`), which proxies `/api` to this backend, then drive the visual self-review loop.
 #
 # Verbs mirror `pg-ephemeral`, and every command returns (the API runs in the
 # background), so it scripts cleanly:
-#   dev-api.sh up      start PG, run the API, seed dev repos (default); idempotent
-#   dev-api.sh seed    re-seed the dev repos against the running API
-#   dev-api.sh logs    tail the API log
-#   dev-api.sh down    stop the API, leave PG running for a fast restart
-#   dev-api.sh stop    stop the API and PG
-#   dev-api.sh reset   stop the API and delete the PG data dir for a clean slate
+#   dev-api.sh up          start PG, run the API, seed repos + board tasks (default)
+#   dev-api.sh seed        re-seed the dev repos and board tasks against the running API
+#   dev-api.sh seed-tasks  re-seed only the board tasks
+#   dev-api.sh logs        tail the API log
+#   dev-api.sh down        stop the API, leave PG running for a fast restart
+#   dev-api.sh stop        stop the API and PG
+#   dev-api.sh reset       stop the API and delete the PG data dir for a clean slate
 #
 # The data is disposable dev fixtures only; never point this at production data.
 set -euo pipefail
@@ -79,6 +80,108 @@ seed_repos() {
   log "Seeded ${#payloads[@]} dev repositories."
 }
 
+# Create an internal ticket and echo its id. Args: title, body. Every internal
+# task lands in Available; the caller moves it onward. Uses jq to build the JSON
+# and read the id back, so titles and bodies with punctuation stay safe.
+create_task() {
+  local title="$1" body="$2" id
+  id="$(curl -fsS --max-time 10 -X POST "${API}/tasks" \
+    -H 'content-type: application/json' \
+    -d "$(jq -n --arg t "$title" --arg b "$body" '{title: $t, body: $b}')" \
+    | jq -r '.id')" || die "failed to create task \"${title}\" (is the API healthy?)"
+  [ -n "$id" ] && [ "$id" != "null" ] || die "task \"${title}\" created but returned no id."
+  printf '%s' "$id"
+}
+
+# Place a card in a column at a rank. Args: id, column, position. Available cards
+# need no move (create lands them there); every other column is reached this way.
+move_card() {
+  local id="$1" column="$2" position="$3"
+  curl -fsS --max-time 10 -X POST "${API}/tasks/${id}/move" \
+    -H 'content-type: application/json' \
+    -d "$(jq -n --arg c "$column" --argjson p "$position" '{column: $c, position: $p}')" \
+    >/dev/null || die "failed to move task ${id} to ${column}."
+}
+
+# Append an internal comment to a ticket. Args: id, author (user|agent), body.
+comment_on() {
+  local id="$1" author="$2" body="$3"
+  curl -fsS --max-time 10 -X POST "${API}/tasks/${id}/comment" \
+    -H 'content-type: application/json' \
+    -d "$(jq -n --arg a "$author" --arg b "$body" '{author: $a, body: $b}')" \
+    >/dev/null || die "failed to comment on task ${id}."
+}
+
+# Save the operator's private notes on a ticket. Args: id, notes.
+set_notes_on() {
+  local id="$1" notes="$2"
+  curl -fsS --max-time 10 -X PUT "${API}/tasks/${id}/notes" \
+    -H 'content-type: application/json' \
+    -d "$(jq -n --arg n "$notes" '{notes: $n}')" \
+    >/dev/null || die "failed to set notes on task ${id}."
+}
+
+# A board of internal tasks, one card in each column, so the kanban board shows a
+# populated lane for every state (Available, To Do, In Progress, In Review, Done).
+# The In Progress card also carries a two-way comment thread and operator notes, so
+# the task view has real content to review. The live activity feed (Claude stream
+# events) comes only from actual agent turns and cannot be seeded, so the comment
+# thread stands in as that card's reviewable history.
+#
+# Unlike repositories (upserted on full_name), internal tickets have no natural key
+# to upsert on, so re-seeding appends a fresh board rather than replacing it. Use
+# `dev-api.sh reset` for a clean slate.
+seed_tasks() {
+  api_healthy || die "the API is not responding at ${API_URL}; run 'dev-api.sh up' first."
+  require_cmd curl
+  require_cmd jq
+  log "Seeding dev board tasks..."
+
+  # Available: two cards, no move needed (create lands them here and auto-stacks).
+  create_task "Add a dark mode toggle to Settings" \
+    "Operators want a dark theme. Add a toggle in Settings that persists the choice and respects the system preference by default." >/dev/null
+  create_task "Write the on-call runbook" \
+    "The recovery steps live only in people's heads. Capture them in docs/oncall.md so anyone can follow the playbook." >/dev/null
+  log "  seeded 2 cards in Available"
+
+  # To Do: queued for the agent to pick up next.
+  local todo_id
+  todo_id="$(create_task "Fix the flaky checkout integration test" \
+    "The checkout test fails intermittently in CI, roughly one run in five. Track down the race and make it deterministic.")"
+  move_card "$todo_id" todo 1.0
+  log "  seeded 1 card in To Do"
+
+  # In Progress: the rich card, with a comment thread and notes to review.
+  local wip_id
+  wip_id="$(create_task "Migrate file uploads to object storage" \
+    "Uploads currently sit on the API host's local disk, which does not survive a redeploy. Move them to object storage and stream through a signed URL.")"
+  move_card "$wip_id" in_progress 1.0
+  comment_on "$wip_id" agent \
+    "Starting on this. Plan: add an object-storage client behind the existing upload trait, then backfill the on-disk files in a one-off migration."
+  comment_on "$wip_id" user \
+    "Sounds right. Keep the local-disk path as a fallback until the backfill is verified, then remove it in a follow-up."
+  comment_on "$wip_id" agent \
+    "Done: uploads now write to object storage behind a signed URL, with the disk path kept as a fallback. Backfill migration is next."
+  set_notes_on "$wip_id" "Verify the backfill against staging before dropping the local-disk fallback."
+  log "  seeded 1 card in In Progress (with a comment thread and notes)"
+
+  # In Review: a card with work awaiting sign-off.
+  local review_id
+  review_id="$(create_task "Add rate limiting to the public API" \
+    "The public endpoints have no throttle. Add a per-client rate limit with a clear 429 response so a single caller cannot starve the others.")"
+  move_card "$review_id" in_review 1.0
+  log "  seeded 1 card in In Review"
+
+  # Done: a finished card, so the terminal lane is not empty.
+  local done_id
+  done_id="$(create_task "Upgrade the database to Postgres 17" \
+    "Move the stack from Postgres 16 to 17 and confirm the migrations, extensions, and backups all still work.")"
+  move_card "$done_id" done 1.0
+  log "  seeded 1 card in Done"
+
+  log "Seeded 6 dev board tasks across every column."
+}
+
 # --- Lifecycle ---------------------------------------------------------------
 
 start_api() {
@@ -140,15 +243,21 @@ case "${1:-up}" in
   up | "")
     start_api
     seed_repos
+    seed_tasks
     cat <<EOF
 [dev-api] Ready. Next steps for visual review:
 [dev-api]   1. In another terminal: cd frontend && yarn dev
-[dev-api]   2. Open http://localhost:5173/repos (vite proxies /api to ${API_URL})
+[dev-api]   2. Open http://localhost:5173/ for the board, /repos for repositories
+[dev-api]      (vite proxies /api to ${API_URL}; click a card to open its task view)
 [dev-api]   3. When done: scripts/dev-api.sh down   (or 'stop' to also stop PG)
 EOF
     ;;
   seed)
     seed_repos
+    seed_tasks
+    ;;
+  seed-tasks)
+    seed_tasks
     ;;
   logs)
     [ -f "$LOG_FILE" ] || die "no log file at ${LOG_FILE}; is the API running?"
@@ -168,6 +277,6 @@ EOF
     log "Reset: API stopped and PG data dir deleted."
     ;;
   *)
-    die "usage: dev-api.sh [up|seed|logs|down|stop|reset]"
+    die "usage: dev-api.sh [up|seed|seed-tasks|logs|down|stop|reset]"
     ;;
 esac
