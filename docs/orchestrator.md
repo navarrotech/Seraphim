@@ -23,7 +23,11 @@ it.
   review comments, then pull the top of To Do, and finally revisit a PR it gave
   up on (cooldown-gated). A `blocking` task holds back new To Do work until its PR
   merges, while its own PR keeps advancing. A `Depends on:` marker stacks fresh
-  work on an unmerged dependency's branch.
+  work on an unmerged dependency's branch. Before each turn execs, it guards the
+  shared `/workspace` disk (`disk::guard_workspace_disk`, issue #390): reclaim
+  stale Rust `target/` dirs when space is low, and refuse the turn with a loud
+  "workspace disk full" heart attack rather than let a full disk masquerade as a
+  link error.
 - **review**: gates each task on all of its pull requests (a task can span
   several repos, one PR each) and reaches Done only once they have all merged. The
   merge gate is exactly CI green and zero unresolved review threads and no

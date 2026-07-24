@@ -44,6 +44,15 @@ as the non-root `codespace` user.
   (recorded in `setup_script_changes`). Both are registered at user scope so
   `claude -p --permission-mode bypassPermissions` loads them with no approval
   gate.
+- **Disk guard (issue #390).** `/workspace` is one volume shared across every
+  sibling repo, so a Rust-heavy repo whose incremental `target/` balloons over
+  many rebuilds can fill it and starve every other task, surfacing as a misleading
+  `No space left on device` link error. Before each turn the agent loop guards it
+  (`orchestrator::disk::guard_workspace_disk`): it prunes every repo's stale Rust
+  `target/` dir when free space dips below a reclaim threshold (a `cargo clean`,
+  since a clean rebuild is only a few GB), and refuses the turn with a loud
+  "workspace disk full" heart-attack incident when even that leaves too little, so
+  a disk problem reads as itself rather than a code failure.
 
 ## Where it lives
 

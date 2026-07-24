@@ -16,6 +16,10 @@ pub mod compose;
 // the HTTP layer's LLMs page can resolve the active credential for the board.
 pub(crate) mod credentials;
 mod dependencies;
+// Pre-turn workspace disk guard (issue #390): reclaim stale cargo target dirs and
+// refuse a turn loudly when the shared /workspace volume is full, so a disk problem
+// never masquerades as a link error.
+mod disk;
 mod network;
 mod placement;
 mod prompt;
@@ -1488,6 +1492,12 @@ async fn work_task(
     // Lazy start: ensure this railway's container is running and provisioned the
     // moment it has actionable work, before the turn execs into it.
     handle.ensure_running(state).await?;
+
+    // Guard the shared /workspace disk before the turn (issue #390): reclaim stale
+    // Rust target dirs, and refuse loudly if the volume is genuinely full, so a disk
+    // problem surfaces as itself (a heart-attack incident) rather than a misleading
+    // `No space left on device` link error the agent would misread as a code failure.
+    disk::guard_workspace_disk(state, handle).await?;
 
     match mode {
         WorkMode::Fresh => work_fresh(state, handle, task, false).await,
