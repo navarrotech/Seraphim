@@ -23,6 +23,44 @@ function fail(message) {
   process.exit(1)
 }
 
+// Prints usage to stdout for `--help` / `-h`, so the flag never falls through to
+// the post path and submits "--help" as an empty question (issue #368).
+function printUsage() {
+  console.log(
+    [
+      'seraphim-ask: escalate a decision to the human on the current task.',
+      '',
+      'Usage (the payload is JSON, passed as an argument or on stdin):',
+      '  seraphim-ask \'{"questions":[{"prompt":"Which DB?","options":[',
+      '                 {"title":"Postgres","description":"already used here"}]}]}\'',
+      '  echo \'<json>\' | seraphim-ask',
+      '',
+      'Prefer a heredoc on stdin so quotes and braces in the payload never hit the shell:',
+      "  seraphim-ask <<'JSON'",
+      '  {"questions":[{"prompt":"...","options":[{"title":"...","description":"..."}]}]}',
+      '  JSON',
+      '',
+      'A bare string, a single {prompt, options} object, or an array of those are also',
+      'accepted. Up to 3 options per question are kept; the UI adds "something else" and',
+      '"decline and chat". Requires SERAPHIM_API_URL and SERAPHIM_TASK_ID (injected by',
+      'the orchestrator). This does not block waiting for the answer.'
+    ].join('\n')
+  )
+}
+
+// The shared "your input was not usable JSON" guidance, so the JSON-parse failure
+// and the mangled-payload detection give the agent one consistent recovery path:
+// re-emit valid JSON via a heredoc (issue #368).
+function jsonGuidance(reason) {
+  return (
+    `${reason} Nothing was sent. Re-run with valid JSON. To avoid shell-quoting ` +
+    'problems with quotes and apostrophes inside the payload, pipe it on stdin via a heredoc:\n' +
+    "  seraphim-ask <<'JSON'\n" +
+    '  {"questions":[{"prompt":"...","options":[{"title":"...","description":"..."}]}]}\n' +
+    '  JSON'
+  )
+}
+
 // Reads the whole of stdin, for the `echo ... | seraphim-ask` form.
 function readStdin() {
   return new Promise((resolve) => {
@@ -57,6 +95,14 @@ function normalizeQuestions(parsed) {
 }
 
 async function main() {
+  // Handle --help / -h before anything else, so it prints usage and exits 0
+  // without needing the orchestrator env and without ever posting (issue #368).
+  const firstArg = process.argv[2]
+  if (firstArg === '-h' || firstArg === '--help') {
+    printUsage()
+    return
+  }
+
   if (!API_URL || !TASK_ID) {
     fail('SERAPHIM_API_URL and SERAPHIM_TASK_ID must be set (they are injected by the orchestrator)')
   }
@@ -79,13 +125,20 @@ async function main() {
     // loudly so the agent re-emits valid JSON instead of asking the user to read
     // raw JSON.
     if (trimmedInput.startsWith('{') || trimmedInput.startsWith('[')) {
+      fail(jsonGuidance(`the input looks like JSON but could not be parsed (${error.message}).`))
+    }
+    // Even without a leading brace, input carrying the JSON envelope's own keys is
+    // almost certainly a payload the shell mangled (it swallowed the opening brace,
+    // so part of the JSON leaked into what looks like a plain question). Do NOT post
+    // the broken fragment as a question's text (issue #368): that is exactly the
+    // corrupted "question" the operator then has to decline. Fail loudly so the
+    // agent re-emits valid JSON via a heredoc.
+    if (/"(?:questions|prompt|options)"\s*:/.test(trimmedInput)) {
       fail(
-        `the input looks like JSON but could not be parsed (${error.message}). ` +
-          'Nothing was sent. Re-run with valid JSON. To avoid shell-quoting problems ' +
-          'with quotes and apostrophes inside the payload, pipe it on stdin via a heredoc:\n' +
-          "  seraphim-ask <<'JSON'\n" +
-          '  {"questions":[{"prompt":"...","options":[{"title":"...","description":"..."}]}]}\n' +
-          '  JSON'
+        jsonGuidance(
+          'the input looks like a JSON payload the shell mangled (it carries JSON keys ' +
+            'but no wrapping braces).'
+        )
       )
     }
     // A genuinely plain, unquoted question string is still allowed as a shortcut.

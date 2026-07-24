@@ -302,7 +302,12 @@ operator notepad lives on the kanban board.
 - **`questions`** — decisions the agent escalated to the user, stored on the task
   (`prompt`, up to three suggested `options`, `status`, the chosen `answer`).
   Posted by the agent's `seraphim-ask` helper, answered in the task view, and
-  surfaced as toasts + native notifications + a sidebar.
+  surfaced as toasts + native notifications + a sidebar. A task stays
+  `waiting_for_input` until **every** question on it is answered, so a junk
+  question would block it forever; `POST /agent/questions` therefore rejects a
+  blank (empty or whitespace-only) `prompt` with a 400 rather than persisting it
+  (issue #368), and `seraphim-ask` handles `--help` and refuses a shell-mangled
+  JSON payload so a slip never posts one.
 - **`task_screenshots`** (issue #248) — screenshots the agent captured during a
   task (via the Playwright MCP, issue #243), so the operator sees what the agent
   saw. The agent's `seraphim-screenshot <file>` helper POSTs the raw image bytes to
