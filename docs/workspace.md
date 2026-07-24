@@ -12,7 +12,11 @@ as the non-root `codespace` user.
 - **Flat clones.** Every enabled repo is cloned at `/workspace/{repo-name}`, so
   cross-repo work is natural. A task names a focus repo and branch. Adding or
   enabling a repo clones it into the workspace in the background so it lands
-  without waiting for a full provision; removing one drains between tasks.
+  without waiting for a full provision; removing one drains between tasks. The
+  removal queue is in-memory, so provisioning also reconciles orphaned clone dirs
+  (issue #380): it removes any flat git-clone dir under `/workspace` not backed by
+  an enabled repo for that railway, never touching `.claude`, and fails closed on
+  an empty desired set so a transient empty read never mass-deletes.
 - **Instructions become files.** Global instructions write to
   `/workspace/AGENTS.md`, per-repo instructions to `/workspace/{repo}/CLAUDE.md`.
 - **Config repo for `~/.claude`.** The agent's `~/.claude` comes from cloning

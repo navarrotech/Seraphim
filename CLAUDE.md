@@ -247,7 +247,12 @@ operator notepad lives on the kanban board.
   railway's agent loop drains it **between tasks** (never mid-turn) and `rm -rf`s
   the dir (`repo_sync::apply_pending_removals`, only into a running container).
   Removal is guarded to a flat `/workspace/{name}` (unsafe names skipped), and the
-  config dir `.claude` is never touched.
+  config dir `.claude` is never touched. Because that queue is in-memory, a removal
+  lost across an API restart (or a repo deleted while the API was down) is
+  self-healed at provision time (issue #380): `provision::reconcile_orphan_repo_dirs`
+  removes any flat git-clone dir under `/workspace` not backed by an enabled repo
+  assigned to that railway, still never touching `.claude`, and fails closed on an
+  empty desired set so a transient empty read can never mass-delete.
 - **`tasks`** — the cards: `source_kind`, `external_id`, `repo_id`, `title`,
   `board_column`, `position` (fractional rank), `status`, `branch`, `pr_url`,
   `error`, `hold` (agent skips this card), `blocking` (serialize the queue while

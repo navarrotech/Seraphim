@@ -15,8 +15,11 @@
 //! assigned to that railway. The plumbing is the same in both cases; only the
 //! container name and the repo set differ.
 
+use std::collections::HashSet;
+
 use base64::Engine;
 use eyre::{eyre, Result};
+use tracing::{info, warn};
 
 use super::network;
 use super::railway::RailwayHandle;
@@ -215,7 +218,15 @@ pub async fn provision_workspace(state: &AppState, handle: &RailwayHandle) -> Re
         script.push_str(&repo_block(repo, true));
     }
 
-    run(state, handle.container(), &script).await
+    run(state, handle.container(), &script).await?;
+
+    // Self-heal orphaned clone dirs a lost in-memory removal or an offline deletion
+    // left behind (issue #380). Best-effort: a cleanup failure must not fail an
+    // otherwise-successful provision, so it is logged rather than propagated.
+    if let Err(error) = reconcile_orphan_repo_dirs(state, handle, &repos).await {
+        warn!(error = %error, railway_id = %handle.id, "failed to reconcile orphaned repo clone dirs");
+    }
+    Ok(())
 }
 
 /// Clones (or, if already cloned, fetches) a single repo into the railway's
@@ -263,6 +274,115 @@ fn removal_script(dir_names: &[String]) -> String {
         script.push_str(&format!("rm -rf -- \"/workspace/{name}\"\n"));
     }
     script
+}
+
+/// The `~/.claude` config repo is itself a git clone under `/workspace`, so the
+/// `.git` filter alone would flag it. Guard its dir name explicitly wherever a
+/// reconcile might otherwise consider it removable.
+const CLAUDE_CONFIG_DIR_NAME: &str = ".claude";
+
+/// Bash that prints, marked and one per line, each flat git-clone dir directly
+/// under `/workspace`. The `/workspace/*/` glob skips dot dirs, so the `.claude`
+/// config clone is never even listed; `nullglob` makes an empty `/workspace` a
+/// no-op; the `REPODIR:` marker lets the caller pick the names out of a `docker
+/// exec`'s combined stdout/stderr.
+const REPO_DIR_LIST_SCRIPT: &str = r#"shopt -s nullglob
+for path in /workspace/*/; do
+  name="${path%/}"; name="${name##*/}"
+  [ -e "${path}.git" ] && printf 'REPODIR:%s\n' "$name"
+done
+"#;
+
+/// Removes orphaned repo clone dirs under `/workspace` at provision time (issue
+/// #380): any flat git-clone dir not backed by an enabled repo assigned to this
+/// railway. This self-heals a removal lost across an API restart (the removal queue
+/// is in-memory, issue #343) and a repo deleted while the API was down or before
+/// #343 existed.
+///
+/// Fails closed on every axis: only flat git-clone dirs are candidates, `.claude`
+/// (a git clone too) is never touched, and an empty desired set is treated as
+/// untrusted and skipped (see [`orphan_repo_dirs`]), so a transient empty read can
+/// never trigger a broad delete.
+async fn reconcile_orphan_repo_dirs(
+    state: &AppState,
+    handle: &RailwayHandle,
+    repos: &[Repository],
+) -> Result<()> {
+    let desired: HashSet<&str> = repos
+        .iter()
+        .filter(|repo| repo.enabled)
+        .map(|repo| repo_dir_name(&repo.full_name))
+        .collect();
+
+    let present = list_repo_clone_dirs(state, handle).await?;
+    let orphans = orphan_repo_dirs(&present, &desired);
+    if orphans.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        railway_id = %handle.id,
+        orphans = ?orphans,
+        "reconcile: removing orphaned repo clone dirs not backed by an enabled repo"
+    );
+    remove_repo_dirs(state, handle, &orphans).await
+}
+
+/// Lists the flat git-clone directory names directly under `/workspace` in the
+/// railway's container (see [`REPO_DIR_LIST_SCRIPT`]).
+async fn list_repo_clone_dirs(state: &AppState, handle: &RailwayHandle) -> Result<Vec<String>> {
+    let output = state
+        .workspace
+        .exec_capture_in(
+            handle.container(),
+            "/workspace",
+            vec![
+                "bash".to_string(),
+                "-c".to_string(),
+                REPO_DIR_LIST_SCRIPT.to_string(),
+            ],
+            Vec::new(),
+        )
+        .await?;
+    if !output.succeeded() {
+        return Err(eyre!(
+            "listing workspace clone dirs exited {}: {}",
+            output.exit_code,
+            output.output
+        ));
+    }
+    Ok(parse_listed_dirs(&output.output))
+}
+
+/// Extracts the marked clone dir names from a `docker exec`'s combined output,
+/// dropping any profile or stderr noise. Pure, so it is unit-tested.
+fn parse_listed_dirs(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("REPODIR:"))
+        .map(str::to_string)
+        .collect()
+}
+
+/// The clone dirs present in the container but not desired. An orphan is any listed
+/// dir whose name is not in `desired`, is not the protected `.claude` config clone,
+/// and is a safe flat name. Pure, so the whole policy is unit-tested.
+///
+/// Fails closed on an empty desired set: a railway with no enabled repos is
+/// indistinguishable from a transient empty read, so it returns nothing rather than
+/// flag every clone as an orphan. Any lingering clones clear on the next provision
+/// once an enabled repo exists again.
+fn orphan_repo_dirs(present: &[String], desired: &HashSet<&str>) -> Vec<String> {
+    if desired.is_empty() {
+        return Vec::new();
+    }
+    present
+        .iter()
+        .filter(|name| name.as_str() != CLAUDE_CONFIG_DIR_NAME)
+        .filter(|name| !desired.contains(name.as_str()))
+        .filter(|name| is_safe_repo_dir(name))
+        .cloned()
+        .collect()
 }
 
 /// Bash that returns a repo's working tree to a clean state before a checkout.
@@ -468,10 +588,12 @@ async fn run(state: &AppState, container: &str, script: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        branch_prep_snippet, is_safe_repo_dir, removal_script, repo_block, submodule_update_snippet,
+        branch_prep_snippet, is_safe_repo_dir, orphan_repo_dirs, parse_listed_dirs, removal_script,
+        repo_block, submodule_update_snippet, REPO_DIR_LIST_SCRIPT,
     };
     use crate::db::models::Repository;
     use chrono::Utc;
+    use std::collections::HashSet;
     use uuid::Uuid;
 
     fn repo() -> Repository {
@@ -605,5 +727,81 @@ mod tests {
         assert!(!is_safe_repo_dir(".."));
         assert!(!is_safe_repo_dir("a/b"));
         assert!(!is_safe_repo_dir("/etc"));
+    }
+
+    #[test]
+    fn orphan_repo_dirs_flags_only_clones_not_backed_by_an_enabled_repo() {
+        let present = vec![
+            "Plunder".to_string(),
+            "yearloom".to_string(),
+            // Left behind by a removal lost across a restart, or a repo deleted
+            // while the API was down (issue #380).
+            "old-removed".to_string(),
+        ];
+        let desired = HashSet::from(["Plunder", "yearloom"]);
+        assert_eq!(
+            orphan_repo_dirs(&present, &desired),
+            vec!["old-removed".to_string()]
+        );
+    }
+
+    #[test]
+    fn orphan_repo_dirs_never_touches_the_claude_config_clone() {
+        // `.claude` is a git clone too, so it must be protected even though it is
+        // never a desired repo.
+        let present = vec![".claude".to_string(), "Plunder".to_string()];
+        let desired = HashSet::from(["Plunder"]);
+        assert!(orphan_repo_dirs(&present, &desired).is_empty());
+    }
+
+    #[test]
+    fn orphan_repo_dirs_fails_closed_on_an_empty_desired_set() {
+        // A transient empty read is indistinguishable from a genuine zero-repo
+        // railway, so it must never delete every clone (issue #380).
+        let present = vec!["Plunder".to_string(), "yearloom".to_string()];
+        let desired: HashSet<&str> = HashSet::new();
+        assert!(orphan_repo_dirs(&present, &desired).is_empty());
+    }
+
+    #[test]
+    fn orphan_repo_dirs_skips_unsafe_names_as_defense_in_depth() {
+        // The listing yields flat basenames, but the same safe-name guard the `rm`
+        // path uses still applies here so nothing but a flat repo dir can be flagged.
+        let present = vec![
+            "..".to_string(),
+            String::new(),
+            "a/b".to_string(),
+            "gone".to_string(),
+        ];
+        let desired = HashSet::from(["Plunder"]);
+        assert_eq!(
+            orphan_repo_dirs(&present, &desired),
+            vec!["gone".to_string()]
+        );
+    }
+
+    #[test]
+    fn parse_listed_dirs_takes_only_marked_lines_from_noisy_output() {
+        // `docker exec` output is combined stdout/stderr, so profile or warning
+        // noise must be ignored and only the marked names kept.
+        let output = "motd: welcome back\n\
+             REPODIR:Plunder\n\
+             warning: something on stderr\n\
+             REPODIR:yearloom\n";
+        assert_eq!(
+            parse_listed_dirs(output),
+            vec!["Plunder".to_string(), "yearloom".to_string()]
+        );
+    }
+
+    #[test]
+    fn repo_dir_list_script_marks_git_clones_and_skips_dot_dirs() {
+        // The `/workspace/*/` glob skips dot dirs, so the `.claude` config clone is
+        // never listed; only git clones are printed; each is marked for parsing; and
+        // nullglob makes an empty /workspace a no-op instead of a literal glob.
+        assert!(REPO_DIR_LIST_SCRIPT.contains("/workspace/*/"));
+        assert!(REPO_DIR_LIST_SCRIPT.contains("${path}.git"));
+        assert!(REPO_DIR_LIST_SCRIPT.contains("REPODIR:"));
+        assert!(REPO_DIR_LIST_SCRIPT.contains("nullglob"));
     }
 }
