@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { ReposDeletionImpact } from '$lib/types'
 
-  import { SlidersHorizontal, Trash2, X } from '@lucide/svelte'
+  import { SlidersHorizontal, Trash2 } from '@lucide/svelte'
 
-  import { Badge } from './ui/badge'
   import { Button } from './ui/button'
   import * as AlertDialog from './ui/alert-dialog'
+
+  import BulkActionBarShell from './BulkActionBarShell.svelte'
 
   // A floating bottom bar (Jira-style) for the repositories page's multi-select
   // mode, modeled on the board's BulkActionBar (issue #331). It owns its own
@@ -113,50 +114,25 @@
   }
 </script>
 
-<div
-  class="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl"
-  role="toolbar"
-  aria-label="Bulk repository actions"
->
-  <!-- Far left: count badge + the word "selected" (label drops on narrow screens
-       so the compact bar stays within a 375px viewport). -->
-  <div class="flex items-center gap-2 pl-1 pr-1">
-    <Badge variant="default" class="tabular-nums">{count}</Badge>
-    <span class="hidden text-sm text-muted-foreground sm:inline">selected</span>
-  </div>
+<BulkActionBarShell {count} {onClear} ariaLabel="Bulk repository actions">
+  {#snippet actions()}
+    <Button variant="ghost" size="sm" disabled={noneSelected || busy} onclick={openEdit}>
+      <SlidersHorizontal class="size-4" />
+      Edit fields
+    </Button>
 
-  <div class="mx-1 h-6 w-px bg-border" aria-hidden="true"></div>
-
-  <!-- Middle: the actions. -->
-  <Button variant="ghost" size="sm" disabled={noneSelected || busy} onclick={openEdit}>
-    <SlidersHorizontal class="size-4" />
-    Edit fields
-  </Button>
-
-  <Button
-    variant="ghost"
-    size="sm"
-    class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-    disabled={noneSelected || busy}
-    onclick={openDelete}
-  >
-    <Trash2 class="size-4" />
-    Delete
-  </Button>
-
-  <div class="mx-1 h-6 w-px bg-border" aria-hidden="true"></div>
-
-  <!-- Far right: clear selection and exit. -->
-  <Button
-    variant="ghost"
-    size="icon"
-    title="Clear all"
-    aria-label="Clear all and exit multi-select"
-    onclick={onClear}
-  >
-    <X class="size-4" />
-  </Button>
-</div>
+    <Button
+      variant="ghost"
+      size="sm"
+      class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+      disabled={noneSelected || busy}
+      onclick={openDelete}
+    >
+      <Trash2 class="size-4" />
+      Delete
+    </Button>
+  {/snippet}
+</BulkActionBarShell>
 
 <!-- Edit fields modal: one row per editable field, each a "keep as is / on / off"
      dropdown. Native selects render outside the dialog's focus scope, so they
