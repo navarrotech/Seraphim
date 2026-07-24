@@ -531,6 +531,10 @@ fn context_header(
     // at it before declaring done, so the standing instruction lives in the header
     // too (fresh work, CI fixes, revisits all alike).
     prompt.push_str(VISUAL_SELF_REVIEW);
+    // Keep each commit to the task's own changes: the persistent workspace can carry
+    // a prior session's lockfile rewrite that `git add -A` would otherwise sweep in
+    // (issue #385). Shared by every mode this header serves.
+    prompt.push_str(WORKING_TREE_HYGIENE);
     prompt
 }
 
@@ -799,6 +803,26 @@ const ASKING_FOR_HELP: &str = "\n\
     automatically resumed once the user answers. Prefer asking over guessing \
     whenever it matters.\n";
 
+/// Standing guard (issue #385): keep each commit to the task's own changes.
+///
+/// The workspace persists between tasks, so a prior session's build (which can
+/// rewrite a lockfile) or a provisioning step can leave the tree dirty, and
+/// `git add -A` would sweep those unrelated changes into the PR. The provisioning
+/// side is fixed at the source (a repo's committed `CLAUDE.md` is no longer
+/// clobbered), but a build artifact like `yarn.lock` still needs the agent to
+/// notice and restore it before committing, so this rides in every prompt.
+const WORKING_TREE_HYGIENE: &str = "\n\
+    # Keep the commit to your own changes\n\
+    Before you stage or commit, run `git status` (and skim `git diff`) and look for \
+    changes to files this task never touched, especially `CLAUDE.md` and lockfiles \
+    like `yarn.lock`. The workspace persists between tasks, so a prior session's \
+    build or a provisioning step can leave the tree dirty, and `git add -A` would \
+    sweep those unrelated changes into your commit. Restore any such file from the \
+    base before committing (e.g. `git restore <file>` or `git checkout -- <file>`), \
+    so the pull request contains only your work. Commit and push completed work \
+    promptly, since uncommitted changes can be reverted when a task is resumed or \
+    the workspace is re-provisioned.\n";
+
 /// Builds the prompt that resumes a parked task once the user has answered.
 ///
 /// The shared Claude session is also used by other tasks while this one is
@@ -840,6 +864,9 @@ pub fn build_resume(repo: &Repository, task: &Task, branch: &str, answers: &[Que
         }
     }
 
+    // A resume prep deliberately does not reset the tree (it preserves the agent's
+    // parked work), so cross-task dirt is most likely to surface here (issue #385).
+    prompt.push_str(WORKING_TREE_HYGIENE);
     prompt.push_str(
         "When you are finished, open the pull request as described in your original \
          working agreement. If you need another decision, you may ask again with \
@@ -1094,6 +1121,32 @@ mod tests {
         // It reads per-repo dev facts from the repo's CLAUDE.md and skips cleanly.
         assert!(prompt.contains("CLAUDE.md"));
         assert!(prompt.contains("SKIP this review"));
+    }
+
+    #[test]
+    fn fresh_and_resume_prompts_guard_the_working_tree_before_committing() {
+        // The commit-hygiene guard (issue #385) is a standing instruction, so both a
+        // fresh brief and a resume carry it: check the tree and restore unrelated
+        // CLAUDE.md / yarn.lock changes a prior session left behind before add -A.
+        let fresh = build(
+            &sample_settings(),
+            &sample_repo(),
+            &sample_task(),
+            "seraphim/issue-57",
+            &[],
+            &[],
+            &[],
+            &[],
+        );
+        assert!(fresh.contains("Keep the commit to your own changes"));
+        assert!(fresh.contains("yarn.lock"));
+        assert!(fresh.contains("git add -A"));
+
+        // The resume path bypasses the shared header, so it must carry the guard on
+        // its own (it is the path most exposed to cross-task dirt).
+        let resume = build_resume(&sample_repo(), &sample_task(), "seraphim/issue-57", &[]);
+        assert!(resume.contains("Keep the commit to your own changes"));
+        assert!(resume.contains("yarn.lock"));
     }
 
     #[test]
