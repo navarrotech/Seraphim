@@ -105,6 +105,9 @@ scripts/    start.sh stop.sh restart.sh
   #353): a blank `TS_AUTHKEY` (the "skip Tailscale" case) idles the container with
   `sleep infinity` instead of letting `containerboot` crash-loop against
   `restart: unless-stopped`; a set key hands off to the normal `containerboot`.
+  `status` detects that idle (a `sleep infinity` process, no `tailscaled`) and
+  returns `disabled` so the panel reads "Tailscale disabled (no auth key set)"
+  instead of a running-but-broken "Disconnected" (issue #371).
 - `src/sources/` — `Source` enum (GitHub; Jira is a future variant), `github.rs`, `types.rs`.
 - `src/git/` — PR detection, CI-green check, squash-merge (octocrab).
 - `src/orchestrator/` — `mod.rs` (the loops), `provision.rs` (workspace provisioning), `prompt.rs`.
