@@ -114,6 +114,13 @@ pub async fn answer(
     };
     let answered = queries::answer_question(&state.db, id, status, body.kind, &body.text).await?;
 
+    // Unpark the task the instant its last question is answered (issue #366): flip
+    // it off `waiting_for_input` so the board badge clears immediately and
+    // deterministically, instead of lingering until the single-threaded agent loop
+    // gets around to resuming it. The answers stay unacknowledged, so
+    // `pick_resume_ready` still resumes the task and delivers them.
+    queries::clear_waiting_for_input_when_answered(&state.db, question.task_id).await?;
+
     // The board reflects the status, and once nothing is pending the agent loop
     // picks the task up to resume (see `queries::pick_resume_ready`).
     state.notify_board();
