@@ -379,9 +379,273 @@ fn flatten_tool_result(content: Option<&Value>) -> String {
     }
 }
 
+/// A failed turn's cause, classified structurally where the stream-json carries a
+/// typed error, and only from the human text when it does not (issue #398).
+///
+/// This is the one source of truth for how the orchestrator reacts to a failed
+/// turn, so a reworded Claude Code message can no longer silently change the
+/// behavior.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TurnError {
+    /// The active credential is dead: an `authentication_error` or a 401. The
+    /// credential is sidelined and the task re-queued rather than failed, since a
+    /// dead credential is not the task's fault (issue #367).
+    Auth,
+    /// Anthropic's transient, server-side throttle or overload: a
+    /// `rate_limit_error` / `overloaded_error` / 429 / 529. The turn is retried
+    /// after a brief cooldown rather than failed.
+    TransientRateLimit,
+    /// The account's own subscription usage limit, distinct from the transient
+    /// throttle above (which an account can retry through). The live usage limit
+    /// is normally handled from the periodic `rate_limit_event` notices; a turn
+    /// that fails outright citing it is surfaced here so it is not mistaken for a
+    /// retryable throttle. Terminal for the turn, like [`Other`](Self::Other).
+    UsageLimit,
+    /// Any other failure: the task's own problem, failed normally.
+    Other,
+}
+
+/// Classifies a failed turn from its terminal `result` event.
+///
+/// Prefers the structured error type the stream-json carries: an `error.type` or
+/// `error.status`, whether it rides as a sibling `error` object on the event or as
+/// a JSON error body in `message`. Only when no structured type is present does it
+/// fall back to matching the human text, which Claude Code can reword at will
+/// (issue #398). `raw` is the terminal event's JSON; `message` is its (scrubbed)
+/// error text.
+#[must_use]
+pub fn classify_turn_error(raw: &Value, message: &str) -> TurnError {
+    if let Some(class) = structured_error_class(raw, message) {
+        return class;
+    }
+    // No structured type: the human text is all we have. Auth first (a dead
+    // credential must never be retried), then the retryable throttle, then the
+    // account usage limit. This order preserves the retry/sideline behavior the
+    // orchestrator had before it branched on the enum.
+    if is_auth_failure(message) {
+        TurnError::Auth
+    } else if is_transient_rate_limit(message) {
+        TurnError::TransientRateLimit
+    } else if is_usage_limit(message) {
+        TurnError::UsageLimit
+    } else {
+        TurnError::Other
+    }
+}
+
+/// The structured class from the event, or `None` when the stream-json carries no
+/// typed error to classify.
+///
+/// The typed error can ride as a sibling `error` object on the event, or the
+/// `message` can itself be a JSON error body (Claude Code surfaces both shapes).
+fn structured_error_class(raw: &Value, message: &str) -> Option<TurnError> {
+    let candidates = [
+        raw.get("error").cloned(),
+        serde_json::from_str::<Value>(message.trim()).ok(),
+    ];
+    candidates
+        .into_iter()
+        .flatten()
+        .find_map(|body| error_body_class(&body))
+}
+
+/// Maps one error body to a class, or `None` when it carries no usable type or
+/// status.
+///
+/// Accepts either a bare `{ "type", "status" }` body or an `{ "error": { ... } }`
+/// envelope around one.
+fn error_body_class(body: &Value) -> Option<TurnError> {
+    // Unwrap an `{"error": {...}}` envelope; a bare body is used as-is.
+    let inner = body.get("error").unwrap_or(body);
+    match inner.get("type").and_then(Value::as_str) {
+        Some("authentication_error") => return Some(TurnError::Auth),
+        Some("rate_limit_error" | "overloaded_error") => {
+            return Some(TurnError::TransientRateLimit)
+        }
+        // A typed error we do not special-case is still a structured signal, so
+        // trust it as `Other` rather than second-guessing it from the text. The
+        // bare `"error"` envelope tag is not itself a type, so it falls through to
+        // the status check (and then to the text fallback).
+        Some(other) if other != "error" => return Some(TurnError::Other),
+        _ => {}
+    }
+    // No usable type: fall to an HTTP status if the body carries one.
+    let status = inner
+        .get("status")
+        .and_then(Value::as_i64)
+        .or_else(|| body.get("status").and_then(Value::as_i64));
+    match status {
+        Some(401) => Some(TurnError::Auth),
+        Some(429 | 529) => Some(TurnError::TransientRateLimit),
+        Some(_) => Some(TurnError::Other),
+        None => None,
+    }
+}
+
+/// Whether the human error text is Anthropic's transient, server-side request
+/// throttle rather than a genuine failure or the subscription usage limit.
+///
+/// Claude Code surfaces it as e.g. "API Error: Server is temporarily limiting
+/// requests (not your usage limit) · Rate limited". The subscription usage limit
+/// is deliberately excluded (see [`is_usage_limit`]). The text fallback for
+/// [`classify_turn_error`], used only when the event has no structured type.
+fn is_transient_rate_limit(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("temporarily limiting requests")
+        || lower.contains("overloaded")
+        || lower.contains("rate_limit_error")
+        || (lower.contains("rate limited") && lower.contains("api error"))
+}
+
+/// Whether the human error text is an authentication failure: the active
+/// credential is dead (revoked, invalid, or logged out), not the task's fault
+/// (issue #367).
+///
+/// Claude Code surfaces these as e.g. "Failed to authenticate. API Error: 401
+/// OAuth access token has been revoked", "Not logged in", or an
+/// `authentication_error`. The phrases are auth-specific to avoid mistaking an
+/// ordinary failure that merely mentions a status code for a credential problem.
+/// The text fallback for [`classify_turn_error`].
+fn is_auth_failure(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("failed to authenticate")
+        || lower.contains("token has been revoked")
+        || lower.contains("not logged in")
+        || lower.contains("authentication_error")
+        || lower.contains("authentication error")
+        || lower.contains("invalid_api_key")
+        || lower.contains("invalid api key")
+        // Anthropic's literal message for a bad API key; the `x-api-key` header name
+        // is always auth-specific.
+        || lower.contains("x-api-key")
+        || lower.contains("oauth token has expired")
+        || (lower.contains("401")
+            && (lower.contains("oauth")
+                || lower.contains("unauthorized")
+                || lower.contains("authenticate")
+                || lower.contains("api key")))
+}
+
+/// Whether the human error text names the account's own subscription usage limit,
+/// as opposed to the transient server throttle ([`is_transient_rate_limit`]).
+///
+/// The canonical throttle message says "(not your usage limit)", so it is
+/// excluded. The text fallback for [`classify_turn_error`].
+fn is_usage_limit(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    !lower.contains("not your usage limit")
+        && (lower.contains("usage limit") || lower.contains("usage_limit"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Classifies from the human text alone (no structured error present).
+    fn classify_text(message: &str) -> TurnError {
+        classify_turn_error(&Value::Null, message)
+    }
+
+    #[test]
+    fn classifies_a_structured_error_type_over_the_text() {
+        // The structured type is authoritative even when the human text would read
+        // as something else, which is the whole point of issue #398.
+        let raw = serde_json::json!({
+            "type": "result",
+            "is_error": true,
+            "error": { "type": "rate_limit_error", "status": 429 },
+            "result": "API Error: 401 unauthorized",
+        });
+        assert_eq!(
+            classify_turn_error(&raw, "API Error: 401 unauthorized"),
+            TurnError::TransientRateLimit,
+            "the structured rate_limit_error wins over a 401-looking message",
+        );
+
+        let auth = serde_json::json!({ "error": { "type": "authentication_error" } });
+        assert_eq!(classify_turn_error(&auth, ""), TurnError::Auth);
+
+        let overloaded = serde_json::json!({ "error": { "type": "overloaded_error" } });
+        assert_eq!(
+            classify_turn_error(&overloaded, ""),
+            TurnError::TransientRateLimit
+        );
+
+        // A typed error we do not special-case is trusted as Other, not re-read
+        // from a possibly-misleading message.
+        let typed_other = serde_json::json!({ "error": { "type": "invalid_request_error" } });
+        assert_eq!(
+            classify_turn_error(&typed_other, "401 authenticate"),
+            TurnError::Other,
+        );
+    }
+
+    #[test]
+    fn classifies_a_structured_status_when_no_type() {
+        let unauthorized = serde_json::json!({ "error": { "status": 401 } });
+        assert_eq!(classify_turn_error(&unauthorized, ""), TurnError::Auth);
+
+        let throttled = serde_json::json!({ "error": { "status": 529 } });
+        assert_eq!(
+            classify_turn_error(&throttled, ""),
+            TurnError::TransientRateLimit
+        );
+    }
+
+    #[test]
+    fn classifies_a_json_error_body_in_the_message() {
+        // Claude Code sometimes puts the API error envelope in the result text.
+        assert_eq!(
+            classify_text(r#"{"type":"rate_limit_error","message":"slow down"}"#),
+            TurnError::TransientRateLimit,
+        );
+        assert_eq!(
+            classify_text(r#"{"type":"error","error":{"type":"authentication_error"}}"#),
+            TurnError::Auth,
+        );
+    }
+
+    #[test]
+    fn falls_back_to_the_text_when_no_structured_type() {
+        // Auth: the dead-credential shapes Claude Code emits as prose (issue #367).
+        assert_eq!(
+            classify_text(
+                "Failed to authenticate. API Error: 401 OAuth access token has been revoked."
+            ),
+            TurnError::Auth,
+        );
+        assert_eq!(classify_text("Not logged in"), TurnError::Auth);
+        assert_eq!(
+            classify_text("API Error: 401 invalid x-api-key"),
+            TurnError::Auth
+        );
+        assert_eq!(classify_text("OAuth token has expired"), TurnError::Auth);
+
+        // Transient server throttle.
+        assert_eq!(
+            classify_text(
+                "API Error: Server is temporarily limiting requests (not your usage limit) · Rate limited"
+            ),
+            TurnError::TransientRateLimit,
+        );
+        assert_eq!(
+            classify_text("API Error: Overloaded"),
+            TurnError::TransientRateLimit
+        );
+
+        // The account's own usage limit is distinct from the transient throttle.
+        assert_eq!(
+            classify_text("Usage limit reached. Your limit resets at 5pm."),
+            TurnError::UsageLimit,
+        );
+
+        // Ordinary failures and unrelated status codes are the task's own problem.
+        assert_eq!(
+            classify_text("the agent finished without opening a pull request"),
+            TurnError::Other,
+        );
+        assert_eq!(classify_text("API Error: 404 not found"), TurnError::Other);
+    }
 
     #[test]
     fn blank_lines_yield_nothing() {

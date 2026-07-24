@@ -56,7 +56,7 @@ use tokio::time::{sleep, timeout};
 use tracing::{error, info, warn};
 
 use crate::automation::{self, QueuePosition, RuleAction, RuleContext};
-use crate::claude::{run_turn, AgentEventKind, TurnArgs};
+use crate::claude::{classify_turn_error, run_turn, AgentEventKind, TurnArgs, TurnError};
 use crate::db::models::{
     AutomationRule, Railway, Repository, ReviewPolicy, SourceKind, Task, TaskColumn,
     TaskPullRequest, TaskStatus,
@@ -2241,6 +2241,11 @@ struct TurnOutcome {
     session_id: Option<String>,
     /// A failure message to surface on the task, if the turn errored.
     error: Option<String>,
+    /// How the turn's failure was classified (issue #398): the orchestrator
+    /// branches on this typed class, structurally derived from the terminal
+    /// event, rather than re-matching the human error text. `Other` when the turn
+    /// did not error, or died a heart attack (routed to the defibrillator).
+    error_class: TurnError,
     /// Whether the turn *died* rather than merely reporting a problem: it hung with
     /// no output past the heartbeat, or its stream broke. These are routed to the
     /// defibrillator (kill the orphan, revive, alert) instead of a plain failure.
@@ -2276,10 +2281,7 @@ async fn run_agent_turn(
         attempt += 1;
         let outcome = stream_turn(state, handle, settings, task, prompt.clone()).await?;
 
-        let throttled = outcome
-            .error
-            .as_deref()
-            .is_some_and(is_transient_rate_limit);
+        let throttled = matches!(outcome.error_class, TurnError::TransientRateLimit);
         if throttled && attempt < RATE_LIMIT_RETRY_MAX {
             let resume_at = Utc::now()
                 + chrono::Duration::from_std(RATE_LIMIT_COOLDOWN)
@@ -2303,51 +2305,6 @@ async fn run_agent_turn(
         }
         return Ok(outcome);
     }
-}
-
-/// Whether a turn's error message is Anthropic's transient, server-side request
-/// throttle rather than a genuine failure or the subscription usage limit.
-///
-/// Claude Code surfaces it as e.g. "API Error: Server is temporarily limiting
-/// requests (not your usage limit) · Rate limited". The subscription usage limit
-/// is handled separately (via `rate_limit_event` notices), so it is deliberately
-/// excluded here.
-fn is_transient_rate_limit(message: &str) -> bool {
-    let lower = message.to_ascii_lowercase();
-    lower.contains("temporarily limiting requests")
-        || lower.contains("overloaded")
-        || lower.contains("rate_limit_error")
-        || (lower.contains("rate limited") && lower.contains("api error"))
-}
-
-/// Whether a turn's error message is an authentication failure: the active
-/// credential is dead (revoked, invalid, or logged out), not the task's fault
-/// (issue #367).
-///
-/// Claude Code surfaces these as e.g. "Failed to authenticate. API Error: 401
-/// OAuth access token has been revoked", "Not logged in", or an
-/// `authentication_error`. A match means the credential should be sidelined so
-/// the agent pauses or rotates, rather than slamming the next task on the same
-/// dead token. The phrases are auth-specific to avoid mistaking an ordinary
-/// failure that merely mentions a status code for a credential problem.
-fn is_auth_failure(message: &str) -> bool {
-    let lower = message.to_ascii_lowercase();
-    lower.contains("failed to authenticate")
-        || lower.contains("token has been revoked")
-        || lower.contains("not logged in")
-        || lower.contains("authentication_error")
-        || lower.contains("authentication error")
-        || lower.contains("invalid_api_key")
-        || lower.contains("invalid api key")
-        // Anthropic's literal message for a bad API key; the `x-api-key` header name
-        // is always auth-specific.
-        || lower.contains("x-api-key")
-        || lower.contains("oauth token has expired")
-        || (lower.contains("401")
-            && (lower.contains("oauth")
-                || lower.contains("unauthorized")
-                || lower.contains("authenticate")
-                || lower.contains("api key")))
 }
 
 /// Streams one Claude turn for `prompt`, persisting every event and pushing it
@@ -2417,6 +2374,7 @@ async fn stream_turn(
         return Ok(TurnOutcome {
             session_id: resume_session_id.clone(),
             error: None,
+            error_class: TurnError::Other,
             heart_attack: false,
             auth_failed: false,
             epoch: reset_epoch,
@@ -2454,6 +2412,10 @@ async fn stream_turn(
     // persisted on the turn so the stats endpoints can aggregate it.
     let mut token_usage: Option<serde_json::Value> = None;
     let mut error_message: Option<String> = None;
+    // How a reported failure was classified (issue #398), derived structurally from
+    // the terminal `result` event. Stays `Other` for a heart attack (a hung or
+    // broken stream), which the caller routes to the defibrillator, not here.
+    let mut error_class = TurnError::Other;
     // Set when the turn *died* (hung past the heartbeat, or its stream broke), as
     // opposed to the agent merely reporting a problem; routes to the defibrillator.
     let mut heart_attack = false;
@@ -2551,7 +2513,11 @@ async fn stream_turn(
                 let message = text
                     .clone()
                     .unwrap_or_else(|| "the agent reported an error".to_string());
-                error_message = Some(scrubber.scrub_text(&message));
+                let scrubbed = scrubber.scrub_text(&message);
+                // Classify structurally from the terminal event, falling back to the
+                // text only when it carries no typed error (issue #398).
+                error_class = classify_turn_error(&event.raw, &scrubbed);
+                error_message = Some(scrubbed);
             }
         }
 
@@ -2659,7 +2625,7 @@ async fn stream_turn(
     // same dead token; the caller re-queues the task rather than failing it. A dead
     // credential is treated like a failed OAuth refresh: sidelined for a cooldown
     // with a "reconnect it" reason on the LLMs page.
-    let auth_failed = error_message.as_deref().is_some_and(is_auth_failure);
+    let auth_failed = matches!(error_class, TurnError::Auth);
     if auth_failed {
         let until = Utc::now() + chrono::Duration::minutes(AUTH_FAILURE_COOLDOWN_MINUTES);
         let rotated = credentials::mark_exhausted_and_reconcile(
@@ -2680,6 +2646,7 @@ async fn stream_turn(
     Ok(TurnOutcome {
         session_id,
         error: error_message,
+        error_class,
         heart_attack,
         auth_failed,
         epoch: reset_epoch,
@@ -4112,57 +4079,6 @@ mod tests {
             decide_recovery(MAX_DEFIBRILLATIONS + 1, false),
             Recovery::GiveUp
         );
-    }
-
-    #[test]
-    fn transient_rate_limit_matches_server_throttle_only() {
-        // The exact wording Claude Code emits for the server-side throttle.
-        assert!(is_transient_rate_limit(
-            "API Error: Server is temporarily limiting requests (not your usage limit) · Rate limited"
-        ));
-        assert!(is_transient_rate_limit("API Error: Overloaded"));
-        assert!(is_transient_rate_limit(
-            "{\"type\":\"rate_limit_error\",\"message\":\"slow down\"}"
-        ));
-
-        // The subscription usage limit (handled elsewhere) must not match, nor
-        // should ordinary failures.
-        assert!(!is_transient_rate_limit(
-            "Usage limit reached. Your limit resets at 5pm."
-        ));
-        assert!(!is_transient_rate_limit("Not logged in"));
-        assert!(!is_transient_rate_limit(
-            "the agent finished without opening a pull request"
-        ));
-    }
-
-    #[test]
-    fn auth_failure_matches_a_dead_credential_only() {
-        // The exact wording from the reported incident (issue #367), plus the other
-        // dead-credential shapes Claude Code emits.
-        assert!(is_auth_failure(
-            "Failed to authenticate. API Error: 401 OAuth access token has been revoked."
-        ));
-        assert!(is_auth_failure("Not logged in"));
-        assert!(is_auth_failure(
-            "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"}}"
-        ));
-        assert!(is_auth_failure("API Error: 401 invalid x-api-key"));
-        assert!(is_auth_failure("OAuth token has expired"));
-
-        // A transient server throttle and ordinary failures are not auth problems,
-        // so a good credential is never sidelined for them.
-        assert!(!is_auth_failure(
-            "API Error: Server is temporarily limiting requests (not your usage limit)"
-        ));
-        assert!(!is_auth_failure(
-            "Usage limit reached. Your limit resets at 5pm."
-        ));
-        assert!(!is_auth_failure(
-            "the agent finished without opening a pull request"
-        ));
-        // A bare 404 or an unrelated status code must not read as an auth failure.
-        assert!(!is_auth_failure("API Error: 404 not found"));
     }
 
     #[test]

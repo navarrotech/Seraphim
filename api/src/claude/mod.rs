@@ -5,5 +5,5 @@ pub mod events;
 pub mod exec;
 pub mod oauth;
 
-pub use events::{AgentEventKind, UsageTracker};
+pub use events::{classify_turn_error, AgentEventKind, TurnError, UsageTracker};
 pub use exec::{run_turn, TurnArgs};
