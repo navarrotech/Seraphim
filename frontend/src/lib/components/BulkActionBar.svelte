@@ -7,7 +7,6 @@
     ArrowLeftRight,
     ArrowDownUp,
     Trash2,
-    X,
     Circle,
     ListTodo,
     CheckCircle2,
@@ -15,10 +14,11 @@
     ChevronUp
   } from '@lucide/svelte'
 
-  import { Badge } from './ui/badge'
   import { Button, buttonVariants } from './ui/button'
   import * as AlertDialog from './ui/alert-dialog'
   import * as DropdownMenu from './ui/dropdown-menu'
+
+  import BulkActionBarShell from './BulkActionBarShell.svelte'
 
   // A floating bottom bar (Jira-style) for the board's multi-select mode. It owns
   // its own modals/menus and reports whether any is open via `dialogOpen`, so the
@@ -148,95 +148,65 @@
   }
 </script>
 
-<!-- Mobile-safe (issue #350): cap the bar at the viewport width (matching
-     RepoBulkActionBar, issue #331). This bar has more actions than that one, so
-     capping alone still overflows; below sm it takes the full capped width and
-     wraps its actions onto multiple rows, then reverts to a single auto-width row
-     from sm up. -->
-<div
-  class="fixed bottom-6 left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl sm:w-auto sm:flex-nowrap"
-  role="toolbar"
-  aria-label="Bulk actions"
->
-  <!-- Far left: count badge + the word "selected" (label drops on narrow screens
-       so the compact bar stays within a 375px viewport). -->
-  <div class="flex items-center gap-2 pl-1 pr-1">
-    <Badge variant="default" class="tabular-nums">{count}</Badge>
-    <span class="hidden text-sm text-muted-foreground sm:inline">selected</span>
-  </div>
+<BulkActionBarShell {count} {onClear} ariaLabel="Bulk actions">
+  {#snippet actions()}
+    <Button variant="ghost" size="sm" disabled={noneSelected || busy} onclick={openEdit}>
+      <SlidersHorizontal class="size-4" />
+      Edit fields
+    </Button>
 
-  <div class="mx-1 h-6 w-px bg-border" aria-hidden="true"></div>
+    <DropdownMenu.Root bind:open={statusOpen}>
+      <DropdownMenu.Trigger
+        disabled={noneSelected || busy}
+        class={buttonVariants({ variant: 'ghost', size: 'sm' })}
+      >
+        <ArrowLeftRight class="size-4" />
+        Change status
+        <ChevronUp class="size-4 opacity-60" />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content side="top" align="center" class="min-w-44">
+        {#each STATUS_OPTIONS as option (option.column)}
+          {@const Icon = option.icon}
+          <DropdownMenu.Item onclick={() => pickStatus(option.column)}>
+            <Icon class="size-4" />
+            {option.label}
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
 
-  <!-- Middle: the three actions. -->
-  <Button variant="ghost" size="sm" disabled={noneSelected || busy} onclick={openEdit}>
-    <SlidersHorizontal class="size-4" />
-    Edit fields
-  </Button>
+    <DropdownMenu.Root bind:open={sortOpen}>
+      <DropdownMenu.Trigger
+        disabled={noneSelected || busy}
+        class={buttonVariants({ variant: 'ghost', size: 'sm' })}
+        title="Re-order the selected cards"
+      >
+        <ArrowDownUp class="size-4" />
+        Sort selected
+        <ChevronUp class="size-4 opacity-60" />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content side="top" align="center" class="min-w-52">
+        <DropdownMenu.Label>Re-order the selection by</DropdownMenu.Label>
+        {#each SORT_OPTIONS as option (option.key)}
+          <DropdownMenu.Item onclick={() => pickSort(option.key)}>
+            {option.label}
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
 
-  <DropdownMenu.Root bind:open={statusOpen}>
-    <DropdownMenu.Trigger
+    <Button
+      variant="ghost"
+      size="sm"
+      class="text-destructive hover:bg-destructive/10 hover:text-destructive"
       disabled={noneSelected || busy}
-      class={buttonVariants({ variant: 'ghost', size: 'sm' })}
+      onclick={() => (deleteOpen = true)}
     >
-      <ArrowLeftRight class="size-4" />
-      Change status
-      <ChevronUp class="size-4 opacity-60" />
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Content side="top" align="center" class="min-w-44">
-      {#each STATUS_OPTIONS as option (option.column)}
-        {@const Icon = option.icon}
-        <DropdownMenu.Item onclick={() => pickStatus(option.column)}>
-          <Icon class="size-4" />
-          {option.label}
-        </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
-  </DropdownMenu.Root>
-
-  <DropdownMenu.Root bind:open={sortOpen}>
-    <DropdownMenu.Trigger
-      disabled={noneSelected || busy}
-      class={buttonVariants({ variant: 'ghost', size: 'sm' })}
-      title="Re-order the selected cards"
-    >
-      <ArrowDownUp class="size-4" />
-      Sort selected
-      <ChevronUp class="size-4 opacity-60" />
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Content side="top" align="center" class="min-w-52">
-      <DropdownMenu.Label>Re-order the selection by</DropdownMenu.Label>
-      {#each SORT_OPTIONS as option (option.key)}
-        <DropdownMenu.Item onclick={() => pickSort(option.key)}>
-          {option.label}
-        </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
-  </DropdownMenu.Root>
-
-  <Button
-    variant="ghost"
-    size="sm"
-    class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-    disabled={noneSelected || busy}
-    onclick={() => (deleteOpen = true)}
-  >
-    <Trash2 class="size-4" />
-    Delete
-  </Button>
-
-  <div class="mx-1 h-6 w-px bg-border" aria-hidden="true"></div>
-
-  <!-- Far right: clear selection and exit. -->
-  <Button
-    variant="ghost"
-    size="icon"
-    title="Clear all"
-    aria-label="Clear all and exit multi-select"
-    onclick={onClear}
-  >
-    <X class="size-4" />
-  </Button>
-</div>
+      <Trash2 class="size-4" />
+      Delete
+    </Button>
+  {/snippet}
+</BulkActionBarShell>
 
 <!-- Edit fields modal: one row per editable field, each a "keep as is / true /
      false" dropdown. Native selects render outside the dialog's focus scope, so
