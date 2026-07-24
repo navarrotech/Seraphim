@@ -3412,6 +3412,37 @@ pub async fn count_pending_questions(pool: &PgPool, task_id: Uuid) -> sqlx::Resu
     .await
 }
 
+/// Unparks a task the moment its last question is answered (issue #366).
+///
+/// When the agent asks, the task is parked in `waiting_for_input`; it only left
+/// that status when the single-threaded agent loop happened to resume it, so the
+/// "waiting for input" badge lingered on the board (persisting across refreshes,
+/// since it is real DB state) while the loop was paused, busy with another task,
+/// or catching up on a batch the user answered at once. This flips the task back
+/// to `queued` the instant nothing is pending, so the badge clears deterministically.
+///
+/// One atomic, guarded statement: it fires only for a task still parked in
+/// `waiting_for_input` with no pending question left, so it is a no-op if the task
+/// already moved on (the loop resumed it, it was re-queued or failed) or still has
+/// another question open. The answers stay `acknowledged = FALSE`, so
+/// [`pick_resume_ready`] still resumes the task and delivers them. Returns whether
+/// it cleared the parking.
+pub async fn clear_waiting_for_input_when_answered(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> sqlx::Result<bool> {
+    let result = sqlx::query(
+        "UPDATE tasks SET status = 'queued', updated_at = now() \
+         WHERE id = $1 AND status = 'waiting_for_input' \
+           AND NOT EXISTS (SELECT 1 FROM questions q \
+                           WHERE q.task_id = $1 AND q.status = 'pending')",
+    )
+    .bind(task_id)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
+
 /// A task that is parked on a question whose answer has arrived but not yet been
 /// delivered to the agent: in progress, nothing pending, at least one answered
 /// question still unacknowledged. This is what the agent loop resumes.
@@ -4234,6 +4265,105 @@ mod tests {
         assert!(
             !has_active_blocking_task(&pool, railway_id).await.unwrap(),
             "a non-blocking task in review must not gate the queue"
+        );
+
+        db.teardown().await;
+    }
+
+    /// Answering the last pending question must unpark the task immediately, so the
+    /// "waiting for input" badge clears deterministically instead of lingering until
+    /// the agent loop resumes it (issue #366).
+    ///
+    /// DB-gated: runs only when `DATABASE_URL` is set (the CI test job's throwaway
+    /// Postgres, or `pg-ephemeral` locally); otherwise it skips.
+    #[tokio::test]
+    async fn answering_the_last_question_unparks_the_task() {
+        let Some(db) = setup_throwaway_db("seraphim_issue366_test").await else {
+            return;
+        };
+        let pool = db.pool.clone();
+
+        // A task parked in progress, waiting on two questions.
+        let task = create_internal_task(&pool, "waiting-for-input badge", "", "open", &[], 1.0)
+            .await
+            .expect("create the parked task");
+        move_task(&pool, task.id, TaskColumn::InProgress, task.position)
+            .await
+            .expect("move it into In Progress");
+        set_task_status(&pool, task.id, TaskStatus::WaitingForInput)
+            .await
+            .expect("park it waiting for input");
+        let first = create_question(&pool, task.id, "which auth library?", &[])
+            .await
+            .expect("first question");
+        let second = create_question(&pool, task.id, "which database?", &[])
+            .await
+            .expect("second question");
+
+        // Answering the first leaves one pending, so the task stays parked.
+        answer_question(
+            &pool,
+            first.id,
+            QuestionStatus::Answered,
+            AnswerKind::Custom,
+            "jwt",
+        )
+        .await
+        .expect("answer the first");
+        let cleared = clear_waiting_for_input_when_answered(&pool, task.id)
+            .await
+            .expect("attempt to unpark");
+        assert!(
+            !cleared,
+            "a task with a still-pending question stays parked"
+        );
+        assert_eq!(
+            get_task(&pool, task.id).await.unwrap().unwrap().status,
+            TaskStatus::WaitingForInput,
+            "the badge stays until every question is answered",
+        );
+
+        // Answering the last one unparks it at once, back to queued for the resume.
+        answer_question(
+            &pool,
+            second.id,
+            QuestionStatus::Answered,
+            AnswerKind::Custom,
+            "postgres",
+        )
+        .await
+        .expect("answer the last");
+        let cleared = clear_waiting_for_input_when_answered(&pool, task.id)
+            .await
+            .expect("unpark");
+        assert!(cleared, "answering the last question unparks the task");
+        assert_eq!(
+            get_task(&pool, task.id).await.unwrap().unwrap().status,
+            TaskStatus::Queued,
+            "the waiting-for-input badge clears immediately",
+        );
+
+        // The answers are still undelivered, so the resume loop picks the task up.
+        let resumable = pick_resume_ready(&pool, task.railway_id)
+            .await
+            .expect("query resume-ready tasks");
+        assert_eq!(
+            resumable.map(|resumed| resumed.id),
+            Some(task.id),
+            "the task is still resume-ready after unparking",
+        );
+
+        // Guard: a task the loop already resumed (Working) is left untouched.
+        set_task_status(&pool, task.id, TaskStatus::Working)
+            .await
+            .expect("the loop resumes it");
+        let cleared = clear_waiting_for_input_when_answered(&pool, task.id)
+            .await
+            .expect("no-op unpark");
+        assert!(!cleared, "a task no longer parked is not touched");
+        assert_eq!(
+            get_task(&pool, task.id).await.unwrap().unwrap().status,
+            TaskStatus::Working,
         );
 
         db.teardown().await;
