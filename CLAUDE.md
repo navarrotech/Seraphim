@@ -620,10 +620,14 @@ operator notepad lives on the kanban board.
      `ServerEvent::AnomalousEmptyPr` (toast + native notification) on the transition
      into the anomaly, and the board payload carries a derived, self-clearing
      `anomalous_empty_prs` list (`queries::list_anomalous_empty_prs`, open +
-     `is_empty` + not `is_draft`) that drives a dismissible banner, mirroring the
-     repo-sync-error banner; it drops off once the PR gains changes, closes, or is
-     marked draft. Non-empty, non-draft (ready) PRs follow the normal review-gate +
-     auto-merge flow.
+     `is_empty` + not `is_draft`, and only for tasks still in an active column) that
+     drives a self-clearing banner, mirroring the repo-sync-error banner; it drops off
+     once the PR gains changes, closes, is marked draft, or its task settles. Tasks in
+     a terminal column (`done`, `ignored`) never raise the banner (issue #369): the
+     review loop only refreshes `pr_state` while it still gates a task, so a settled
+     task's PR could otherwise leave `pr_state` stuck at `'open'` and the banner
+     permanently raised; a settled task's PR is not an anomaly. Non-empty, non-draft
+     (ready) PRs follow the normal review-gate + auto-merge flow.
    - **Review-comment gate (issues #255, #270):** a green PR is NEVER squash-merged
      while it carries review work, no matter its approval state. The merge gate is
      exactly **CI green AND zero unresolved review threads AND no outstanding
