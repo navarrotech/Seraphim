@@ -87,7 +87,14 @@ workspace/  Dockerfile + entrypoint.sh (the agent sandbox image)
 tailscale/  serve.json
 litellm/    config.yaml + README (opt-in LiteLLM proxy sidecar, issue #342)
 scripts/    start.sh stop.sh restart.sh
+docs/       Per-category decision records (see docs/README.md)
 ```
+
+This file is the project memory to read first and stays the authoritative
+summary. `docs/` expands each decision category (architecture, the data model,
+the orchestrator loops, the workspace, the frontend, settings, secrets, the LLM
+credentials, self-update, Jira, automation, CI, railways) for anyone browsing the
+repo; keep the two in sync when a decision changes.
 
 ### Backend (`api/`)
 - `src/main.rs` — boot: config, DB connect+migrate, workspace handle, GitHub client, spawn loops, serve.
