@@ -15,7 +15,7 @@
 
 use std::time::Duration;
 
-use bollard::container::LogOutput;
+use bollard::container::{LogOutput, TopOptions};
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::Docker;
 use eyre::{Context, Result};
@@ -51,6 +51,11 @@ pub struct TailscaleStatus {
     /// Whether the sidecar container itself is running. When false, the rest is
     /// empty and the management actions are unavailable.
     pub container_running: bool,
+    /// True when the sidecar is intentionally disabled: the container is running
+    /// but idling with a blank `TS_AUTHKEY`, so it hosts no `tailscaled` daemon
+    /// (issue #371). The panel reads this to show "disabled (no auth key set)",
+    /// not "up but broken"; the connection fields below stay empty.
+    pub disabled: bool,
     /// The daemon's backend state, e.g. `Running`, `Stopped`, `NeedsLogin`.
     pub backend_state: String,
     /// True when the node is connected to the tailnet (`backend_state == Running`).
@@ -90,6 +95,27 @@ impl Tailscale {
     async fn is_running(&self) -> bool {
         match self.docker.inspect_container(&self.container, None).await {
             Ok(info) => info.state.and_then(|state| state.running).unwrap_or(false),
+            Err(_) => false,
+        }
+    }
+
+    /// Whether the running container is the intentionally-disabled idle: with a
+    /// blank `TS_AUTHKEY`, the entrypoint runs `exec sleep infinity` instead of
+    /// starting `tailscaled` (issue #353), so the sidecar runs but hosts no
+    /// daemon. Reading `tailscale status` would then look "up but broken", so we
+    /// surface it as disabled instead (issue #371).
+    ///
+    /// Keyed on the idle command in the process table, so a live node (running
+    /// `containerboot` / `tailscaled`) or one still starting up is never
+    /// mislabeled. Best-effort: a failed read is treated as "not disabled" so a
+    /// transient Docker hiccup never hides a real node.
+    async fn is_disabled(&self) -> bool {
+        match self
+            .docker
+            .top_processes(&self.container, None::<TopOptions<String>>)
+            .await
+        {
+            Ok(top) => is_idle_command(&top.processes.unwrap_or_default()),
             Err(_) => false,
         }
     }
@@ -150,6 +176,16 @@ impl Tailscale {
     pub async fn status(&self) -> Result<TailscaleStatus> {
         if !self.is_running().await {
             return Ok(TailscaleStatus::default());
+        }
+        // A blank TS_AUTHKEY idles the container (issue #353): it runs but has no
+        // tailscaled, so report "disabled" rather than an empty broken status
+        // (issue #371) instead of running `tailscale status` against no daemon.
+        if self.is_disabled().await {
+            return Ok(TailscaleStatus {
+                container_running: true,
+                disabled: true,
+                ..Default::default()
+            });
         }
         let status = self.run(&["status", "--json"]).await?;
         // Serve status is a nice-to-have; never let it fail the whole status read.
@@ -283,6 +319,8 @@ fn parse_status(json: &str, container_running: bool, serve_active: bool) -> Tail
 
     TailscaleStatus {
         container_running,
+        // `parse_status` runs only for a live daemon; the disabled idle short-circuits earlier.
+        disabled: false,
         connected: backend_state == "Running",
         needs_login: matches!(backend_state.as_str(), "NeedsLogin" | "NoState"),
         online: node.online.unwrap_or(false),
@@ -298,6 +336,19 @@ fn parse_status(json: &str, container_running: bool, serve_active: bool) -> Tail
         serve_active,
         backend_state,
     }
+}
+
+/// Whether a container's process table is the disabled idle from issue #353: a
+/// blank `TS_AUTHKEY` runs `exec sleep infinity`, so the sidecar sleeps with no
+/// `tailscaled`. Keyed on that idle command, since a live node runs
+/// `containerboot` / `tailscaled` and never `sleep infinity`. Pure, so it is
+/// unit-tested against `docker top` output.
+fn is_idle_command(processes: &[Vec<String>]) -> bool {
+    processes.iter().any(|process| {
+        process
+            .iter()
+            .any(|column| column.contains("sleep infinity"))
+    })
 }
 
 /// Whether `tailscale serve status --json` shows anything being served. The CLI
@@ -377,6 +428,30 @@ mod tests {
         let status = parse_status("not json", true, false);
         assert!(!status.connected);
         assert_eq!(status.backend_state, "");
+    }
+
+    /// One `docker top` row (UID PID PPID C STIME TTY TIME CMD) with `cmd` last.
+    fn top_row(cmd: &str) -> Vec<String> {
+        ["root", "1", "0", "0", "10:00", "?", "00:00:00", cmd]
+            .iter()
+            .map(|column| (*column).to_string())
+            .collect()
+    }
+
+    #[test]
+    fn idle_command_detects_the_disabled_sleep_but_not_a_live_node() {
+        // The blank-TS_AUTHKEY entrypoint execs `sleep infinity` (issue #353),
+        // which is the container's only process.
+        assert!(is_idle_command(&[top_row("sleep infinity")]));
+
+        // A live node runs containerboot + tailscaled, never `sleep infinity`.
+        assert!(!is_idle_command(&[
+            top_row("/usr/local/bin/containerboot"),
+            top_row("tailscaled --state=/var/lib/tailscale/tailscaled.state"),
+        ]));
+
+        // An empty/unreadable process table is not disabled.
+        assert!(!is_idle_command(&[]));
     }
 
     #[test]

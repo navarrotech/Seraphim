@@ -1767,6 +1767,15 @@
               class="rounded bg-secondary px-1 py-0.5">docker compose up -d</code
             >), or try Restart below.
           </div>
+        {:else if tailscale?.disabled}
+          <div class="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            <span class="font-medium text-foreground">Tailscale is disabled.</span> No
+            <code class="rounded bg-secondary px-1 py-0.5">TS_AUTHKEY</code> is set, so the sidecar
+            idles and does not expose the UI over a tailnet. Set
+            <code class="rounded bg-secondary px-1 py-0.5">TS_AUTHKEY</code> in
+            <code class="rounded bg-secondary px-1 py-0.5">.env</code> and restart the stack (or use
+            Restart below) to enable it.
+          </div>
         {:else if tailscale}
           <!-- Connection state + the tailnet URL. -->
           <div class="space-y-3 rounded-md border border-border p-4">

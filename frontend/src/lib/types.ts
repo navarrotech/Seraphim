@@ -281,6 +281,9 @@ export type EnvVar = {
 // The Tailscale sidecar node's state, for the management UI.
 export type TailscaleStatus = {
   container_running: boolean
+  // True when the sidecar is intentionally disabled: running but idling with no
+  // TS_AUTHKEY, so no tailscaled. Shown as "disabled", not "up but broken" (#371).
+  disabled: boolean
   backend_state: string
   connected: boolean
   online: boolean
