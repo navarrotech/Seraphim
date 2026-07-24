@@ -929,10 +929,13 @@ has live data to review. Then `cd frontend && yarn dev` and open the route;
   holds all new work until then, then auto-clears it. Escape hatches (issue #292):
   `POST /settings/usage/resume` clears the pause now (the board banner and the
   Settings usage section each have a "Resume now" button), and every settings
-  update runs `orchestrator::reevaluate_usage_pause`, which lifts an active pause
-  when the toggle is turned off or the threshold is raised above the latest known
-  utilization (`usage::should_lift_pause`, re-judging the latest `rate_limit`
-  event). A genuinely exhausted window still stands until reset.
+  update runs `orchestrator::reevaluate_usage_pause`. Because `usage_paused_until`
+  now means "every credential is exhausted" (issue #341), that reevaluate delegates
+  to `credentials::reconcile_pause` so the escape hatch and the rotation path share
+  one source of truth (issue #381): it re-derives the pause from current credential
+  availability (lift once a credential frees, else stand until the soonest reset)
+  rather than re-judging one stale `rate_limit` event against the threshold, which
+  could have lifted an all-exhausted pause off a single old event.
 
 ## Railways (planned)
 
