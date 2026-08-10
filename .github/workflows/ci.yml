@@ -26,7 +26,7 @@ jobs:
   # cheaply. The same script runs locally: `python3 scripts/check-control-chars.py`.
   hygiene:
     name: Source hygiene
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +39,7 @@ jobs:
   # now bakes pwsh; this job guards the bash side.
   scripts:
     name: Scripts (shellcheck)
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +56,7 @@ jobs:
 
   api:
     name: API (Rust)
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     defaults:
       run:
         working-directory: api
@@ -135,7 +135,7 @@ jobs:
 
   frontend:
     name: Frontend (SvelteKit)
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     defaults:
       run:
         working-directory: frontend
@@ -170,7 +170,7 @@ jobs:
 
   images:
     name: Docker images
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     steps:
       - uses: actions/checkout@v4
 
