@@ -30,9 +30,11 @@ jobs:
     # queries, so a broken or duplicate migration (a repeated version number, a
     # typo in an ALTER TABLE) compiles and tests green and only fails at API
     # boot on a real deploy. Applying the embedded migrations to a real database
-    # here catches that in the PR. Mapped to host port 5433 (not the default
-    # 5432) so it never collides with a dev Postgres on the shared self-hosted
-    # runner. The container is torn down with the job, so every run is clean.
+    # here catches that in the PR. Only the container port is declared, so
+    # Docker picks a random free host port (read back via job.services below).
+    # A fixed port collides on the shared runner host: main and develop can run
+    # concurrently on two runners of the same machine, and a cancelled run can
+    # leak its service container, squatting the port for every later run.
     services:
       postgres:
         image: postgres:17
@@ -41,7 +43,7 @@ jobs:
           POSTGRES_PASSWORD: seraphim
           POSTGRES_DB: seraphim_test
         ports:
-          - 5433:5432
+          - 5432
         options: >-
           --health-cmd "pg_isready -U seraphim -d seraphim_test"
           --health-interval 5s
@@ -79,7 +81,7 @@ jobs:
       - name: Migrate (throwaway Postgres)
         if: ${{ !cancelled() }}
         env:
-          DATABASE_URL: postgres://seraphim:seraphim@localhost:5433/seraphim_test
+          DATABASE_URL: postgres://seraphim:seraphim@localhost:${{ job.services.postgres.ports['5432'] }}/seraphim_test
         run: cargo run --bin migrate
 
   frontend:
