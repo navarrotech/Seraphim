@@ -21,7 +21,7 @@ jobs:
 
   api:
     name: API (Rust)
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     defaults:
       run:
         working-directory: api
@@ -84,7 +84,7 @@ jobs:
 
   frontend:
     name: Frontend (SvelteKit)
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     defaults:
       run:
         working-directory: frontend
@@ -113,7 +113,7 @@ jobs:
 
   images:
     name: Docker images
-    runs-on: [self-hosted, Linux, X64, fedora]
+    runs-on: [self-hosted, Linux, X64, rocky9]
     steps:
       - uses: actions/checkout@v7
 
